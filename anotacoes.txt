@@ -1,0 +1,2 @@
+//configurando o prismadb
+npx prisma init 
