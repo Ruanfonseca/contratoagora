@@ -82,3 +82,26 @@
         margin-right: auto;
     }
 }
+
+/* Responsividade para monitores desktops */
+@media (min-width: 1200px) {
+    .contato {
+        max-width: 1200px;
+        margin: 80px auto;
+        padding: 0 20px;
+    }
+
+    .contato-col {
+        flex-basis: 45%;
+        margin-left: 0;
+    }
+
+    .contato-col:nth-child(odd) {
+        margin-right: 5%;
+    }
+
+    .contato form input,
+    .contato form textarea {
+        max-width: 100%;
+    }
+}
