@@ -34,10 +34,14 @@
   .about-title {
     text-align: center;
     margin: 0 auto;
-    max-width: 800px; /* Ajuste a largura máxima conforme necessário */
+    max-width: 800px; 
     padding: 20px;
     font-size: 2em;
   }
+
+
+
+
   
   .about-text {
     text-align: justify; /* Justifica o texto */
