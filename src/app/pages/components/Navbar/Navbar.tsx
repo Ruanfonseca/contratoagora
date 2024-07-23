@@ -41,10 +41,10 @@ const Navbar: React.FC = () => {
       <Image src={logo} className='logo' alt='Logo' />
       <ul className={mobileMenu ? '' : 'hide-mobile-menu'}>
         <li><Link to='HOME' smooth={true} offset={0} duration={500}>Home</Link></li>
-        <li><Link to='CONTRATOS' smooth={true} offset={0} duration={500}>Preecher Contrato</Link></li>
-        <li><Link to='AJUDA' smooth={true} offset={0} duration={500}>Ajuda</Link></li>
-        <li><Link to='SOBRE' smooth={true} offset={0} duration={500}>Sobre nós</Link></li>
-        <li><Link to='CONTATO' smooth={true} offset={0} duration={500}>Contato</Link></li>
+        <li><Link to='CONTRATOS' smooth={true} offset={-260} duration={500}>Preecher Contrato</Link></li>
+        <li><Link to='AJUDA' smooth={true} offset={-260} duration={500}>Ajuda</Link></li>
+        <li><Link to='SOBRE' smooth={true} offset={-260} duration={500}>Sobre nós</Link></li>
+        <li><Link to='CONTATO' smooth={true} offset={-260} duration={500}>Contato</Link></li>
       </ul>
       <Image src={menu} className='menu-icon' onClick={toggleMenu} alt='Menu icon' />
     </nav>

@@ -8,12 +8,23 @@
   .title-text h1 {
     font-size: 2em; /* Ajuste o tamanho da fonte conforme necessário */
     margin-bottom: 20px; /* Espaçamento entre o título e o parágrafo */
+    margin-top: 50px;
   }
   
   .title-text p {
     text-align: justify; /* Justifica o texto */
     font-size: 1em; /* Ajuste o tamanho da fonte conforme necessário */
     line-height: 1.6; /* Ajuste a altura da linha para melhorar a legibilidade */
+  }
+
+  .instructions-title{
+    text-align: center;
+    margin: 0 auto;
+    max-width: 800px; /* Ajuste a largura máxima conforme necessário */
+    padding: 20px;
+    font-size: 2em; /* Ajuste o tamanho da fonte conforme necessário */
+    margin-bottom: 20px;
+    margin-top: 150px;
   }
   
   .instructions {
@@ -52,10 +63,17 @@
     object-fit: cover;
     border-radius: 8px;
   }
+  .imgstyle {
+    width: 200px;
+    display: block;
+    margin: 0 auto;
+    padding: 10px;
+  }
   .botao-center{
      display: flex;
      justify-content: center;
      align-items: center;
+     margin-top: 30px;
   }
   
   @media screen and (max-width: 768px) {
