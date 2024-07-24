@@ -1,14 +1,17 @@
 "use client"
 import Image from 'next/image';
+import Link from 'next/link';
+import { redirect, useRouter } from 'next/navigation';
 import image2 from '../../../../assets/formcontrato.png';
 import image1 from '../../../../assets/image1.png';
 import image3 from '../../../../assets/modelo.png';
 import './Info.css';
 
 const Info = () => {
+  const router = useRouter();
 
   const handleClick = ()=>{
-
+    redirect('/contratos');
   }
 
   return (
@@ -63,7 +66,7 @@ const Info = () => {
       </div>
       
       <div className='botao-center' id='CONTRATOS'>
-        <button className='btn' onClick={handleClick}>Escolher Contrato</button>
+        <Link className='btn' href="/contratos">Escolher Contrato</Link>
       </div>
     </>
   )

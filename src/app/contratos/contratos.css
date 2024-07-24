@@ -1,0 +1,65 @@
+/* Estilos para o container inicial */
+
+
+.initial-container {
+    margin-top: 100px;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+/* Estilos para a seção inicial */
+.initial {
+    padding: 20px;
+    max-width: 800px; /* Largura máxima ajustada */
+    margin: 0 auto; /* Centraliza o contêiner */
+}
+
+/* Estilos para o título principal */
+.title {
+    font-size: 28px; /* Maior que o subtítulo */
+    font-weight: bold;
+    color: white;
+    margin-bottom: 10px;
+}
+
+/* Estilos para o subtítulo */
+.subtitle {
+    font-size: 22px; /* Menor que o título principal */
+    color: white;
+    margin-bottom: 10px;
+    border: 1px solid white;
+}
+
+/* Estilos para o parágrafo de descrição */
+.initial p {
+    font-size: 16px;
+    line-height: 1.5;
+    color: white;
+    margin-bottom: 20px;
+}
+
+/* Estilos para a lista de contratos */
+.initial-container ul {
+    list-style-type: none;
+    padding: 0;
+    max-width: 800px; /* Largura máxima ajustada */
+    margin: 0 auto; /* Centraliza o contêiner */
+}
+
+.initial-container ul li {
+    font-size: 16px;
+    color: white;
+    margin-bottom: 8px;
+    padding: 10px;
+    text-align: justify; /* Justifica o texto */
+}
+
+/* Estilos para a seção subinitial */
+.subinitial {
+    text-align: center; /* Centraliza o conteúdo */
+    padding: 40px;
+    max-width: 800px; /* Largura máxima ajustada */
+    margin: 0 auto; /* Centraliza o contêiner */
+}
+
+
