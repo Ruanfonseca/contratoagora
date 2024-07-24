@@ -2,13 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-*{
+* {
   padding: 0;
   box-sizing: border-box;
 }
 
-.btn{
-  background:rgba(3, 126, 91, 1);
+.btn {
+  background: rgba(3, 126, 91, 1);
   color: #fff;
   padding: 14px 25px;
   font-size: 16px;
@@ -18,27 +18,24 @@
   align-items: center;
   justify-content: center;
 }
-.btn.dark-btn{
-  background:rgba(3, 126, 91, 1);
+
+.btn.dark-btn {
+  background: rgba(3, 126, 91, 1);
+  color: #fff;
+}
+
+body {
+  background-color: #000;
   color: #fff;
 }
 
 @media (prefers-color-scheme: dark) {
-   *{
+  body {
     --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --background-rgb: 0, 0, 0;
+    background-color: rgb(var(--background-rgb));
+    color: rgb(var(--foreground-rgb));
   }
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
 }
 
 @layer utilities {

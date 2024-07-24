@@ -1,3 +1,4 @@
+"use client"
 import Image from 'next/image';
 import image2 from '../../../../assets/formcontrato.png';
 import image1 from '../../../../assets/image1.png';
@@ -5,6 +6,11 @@ import image3 from '../../../../assets/modelo.png';
 import './Info.css';
 
 const Info = () => {
+
+  const handleClick = ()=>{
+
+  }
+
   return (
     <>
       <div className="title-text" >
@@ -57,7 +63,7 @@ const Info = () => {
       </div>
       
       <div className='botao-center' id='CONTRATOS'>
-        <button className='btn'>Escolher Contrato</button>
+        <button className='btn' onClick={handleClick}>Escolher Contrato</button>
       </div>
     </>
   )
