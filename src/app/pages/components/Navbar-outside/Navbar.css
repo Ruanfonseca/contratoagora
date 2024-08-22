@@ -38,34 +38,40 @@ nav ul li{
         margin:10px 15px;
     }
 }
+@media (max-width: 840px) {
+    nav {
+        padding: 20px 0;
+        justify-content: space-between;
+    }
 
-@media( max-width : 840px ){
-    nav{
-     padding: 20px 0;
+    nav ul {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(3, 126, 91, 1);
+        z-index: -1;
+        width: 200px;
+        padding-top: 70px;
+        transition: 0.5s;
     }
-    nav ul{
-     position: fixed;
-     top: 0;
-     right: 0px;
-     bottom: 0;
-     background:rgba(3, 126, 91, 1);
-     z-index: -1;
-     width: 200px;
-     padding-top: 70px;
-     transition: 0.5s;
+
+    nav ul li {
+        display: block;
+        margin: 25px 20px;
     }
- 
-    nav ul li{
-     display: block;
-     margin: 25px 20px;
+
+    .menu-icon {
+        display: block;
+        flex-direction: row;
+        justify-content: flex-end; 
+        width: 30px;
+        padding-top: 10px;
+        cursor: pointer;
+        margin-right: 20px;
     }
-    .menu-icon{
-     display: block;
-     width: 30px;
-     padding-top: 10px;
-     cursor: pointer;
+
+    .hide-mobile-menu {
+        right: -200px;
     }
-    .hide-mobile-menu{
-     right: -200px;
-    }
- }
+}

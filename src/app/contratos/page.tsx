@@ -1,7 +1,7 @@
 "use client";
+import Link from 'next/link';
 import Footer from "../pages/components/footer/Footer";
 import Navbar from "../pages/components/Navbar-outside/Navbar";
-
 import './contratos.css';
 
 export default function contratos() {
@@ -42,7 +42,7 @@ export default function contratos() {
 
           <h2 className="subtitle">COMPRA E VENDA</h2>
           <ul>
-            <li>Contrato de compra e venda - R$ 19,90</li>
+            <li><Link className='' href="/contratos/compraevenda/contratodecompraevenda">Contrato de compra e venda - R$ 19,90</Link></li>
             <li>Contrato de compra e venda de estabelecimento comercial (trespasse) - R$ 34,90</li>
             <li>Contrato de compra e venda de imóvel - R$ 29,90</li>
             <li>Contrato de compra e venda de imóvel de gaveta - R$ 29,90</li>

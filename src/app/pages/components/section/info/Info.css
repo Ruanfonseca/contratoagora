@@ -1,28 +1,28 @@
 .title-text {
     text-align: center;
     margin: 0 auto;
-    max-width: 800px; /* Ajuste a largura máxima conforme necessário */
-    padding: 20px; /* Adicione algum preenchimento se desejar */
+    max-width: 800px;
+    padding: 2;
   }
   
   .title-text h1 {
-    font-size: 2em; /* Ajuste o tamanho da fonte conforme necessário */
-    margin-bottom: 20px; /* Espaçamento entre o título e o parágrafo */
+    font-size: 2em; 
+    margin-bottom: 20;
     margin-top: 50px;
   }
   
   .title-text p {
-    text-align: justify; /* Justifica o texto */
-    font-size: 1em; /* Ajuste o tamanho da fonte conforme necessário */
-    line-height: 1.6; /* Ajuste a altura da linha para melhorar a legibilidade */
+    text-align: justify;
+    font-size: 1em; 
+    line-height: 1.6; 
   }
 
   .instructions-title{
     text-align: center;
     margin: 0 auto;
-    max-width: 800px; /* Ajuste a largura máxima conforme necessário */
+    max-width: 800px;
     padding: 20px;
-    font-size: 2em; /* Ajuste o tamanho da fonte conforme necessário */
+    font-size: 2em; 
     margin-bottom: 20px;
     margin-top: 150px;
   }
