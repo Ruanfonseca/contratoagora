@@ -8,8 +8,7 @@ import Info from "./pages/components/section/info/Info";
 export default function Home() {
   return (
     <>
-    
-       <Navbar/>
+      <Navbar/>
       <Hero/>
       <Info/>
       <About/>

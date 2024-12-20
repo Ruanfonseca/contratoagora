@@ -1,6 +1,7 @@
 'use client'
 import Footer from "@/app/pages/components/footer/Footer";
 import Navbar from "@/app/pages/components/Navbar-outside/Navbar";
+import Link from "next/link";
 import './index.css';
 
 const ContratoCV = () => {
@@ -71,7 +72,9 @@ const ContratoCV = () => {
        </div>
 
        <div className="preencherContrato">
-         <button className="btn">Preencher Contrato</button>
+         <button className="btn">
+           <Link className='btn' href="contratodecompraevenda/formulario">Preencher Contrato</Link>
+          </button>
        </div>
     </div>
 

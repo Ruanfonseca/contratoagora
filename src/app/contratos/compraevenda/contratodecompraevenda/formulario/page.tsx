@@ -1,52 +1,20 @@
+"use client"
 import Footer from '@/app/pages/components/footer/Footer';
 import Navbar from '@/app/pages/components/Navbar-outside/Navbar';
-import { useState } from 'react';
+import CompraEVenda from './Compraevenda';
 
-const Formulario = () => {
-  const[etapa,setEtapa] = useState(1);
-  
-  const [valores,setValores]=useState({
-    ImovelouTerreno:false,
-    veiculo:false,
-    pessoaJuridicaComprador:false,
-    pessoaFisicaComprador:false,
-    sexoComprador:'',
-    nomeComprador:'',
-    estadoCivilComprador:'',
-    nacionalidadeComprador:'',
-    profissaoComprador:'',
-    TipoDocumentoComprador:'',
-    numeroIdentidocumentoComprador:'',
-    cpfComprador:'',
-    enderecoComprador:'',
-    
-    pessoaJuridicaVendedor:false,
-    pessoaFisicaVendedor:false,
-    sexoVendedor:'',
-    nomeVendedor:'',
-    estadoCivilVendedor:'',
-    nacionalidadeVendedor:'',
-    profissaoVendedor:'',
-    TipoDocumentoVendedor:'',
-    numeroIdentidocumentoVendedor:'',
-    cpfVendedor:'',
-    enderecoVendedor:'',
-    
 
-    bemaservendido:'',
-    periododeentrega:'',
-    vistoria:false,
-    pago:false,
 
-  });
-  
-    return (
+
+const FormularioCV = () => {
+
+  return (
     <>
-     <Navbar/>
-            
-     <Footer/>
+      <Navbar />
+      <CompraEVenda />
+      <Footer />
     </>
   )
 }
 
-export default Formulario;
+export default FormularioCV;
