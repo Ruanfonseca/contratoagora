@@ -1,3 +1,4 @@
+import { formatarData } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -100,7 +101,6 @@ export default function CompraEVenda() {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
-
     };
 
 
@@ -178,7 +178,7 @@ export default function CompraEVenda() {
         doc.text(
             `O bem será entregue ${data.entregaDobem === "hj"
                 ? "na data da assinatura deste contrato"
-                : `em ${data.dataDaEntrega?.toLocaleDateString("pt-BR")}`
+                : `em ${formatarData(data.dataDaEntrega)}`
             }, no endereço: ${data.enderecoDeEntrega}. A entrega será realizada ${data.formaDeEntrega === "compradorBusca"
                 ? "pelo comprador, que buscará o bem."
                 : "pelo vendedor, que se compromete a entregá-lo no local indicado."
@@ -696,10 +696,12 @@ export default function CompraEVenda() {
                                             <option value="outrodia">Outro Dia</option>
                                         </select>
                                     </div>
+
                                     <div>
                                         <label>Data da Entrega:</label>
-                                        <input type="date" name='dataDaEntrega' />
+                                        <input type="date" name='dataDaEntrega' onChange={handleChange} />
                                     </div>
+
                                     <div>
                                         <label>Forma de Entrega:</label>
                                         <select name='formaDeEntrega' onChange={handleChange}>

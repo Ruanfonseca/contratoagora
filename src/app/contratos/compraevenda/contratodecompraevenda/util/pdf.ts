@@ -1,3 +1,4 @@
+import { formatarData } from "@/lib/utils";
 import jsPDF from "jspdf";
 
 export default function geradorPdfFinalizado(data: any) {
@@ -68,7 +69,7 @@ export default function geradorPdfFinalizado(data: any) {
     doc.text(
         `O bem será entregue ${data.entregaDobem === "hj"
             ? "na data da assinatura deste contrato"
-            : `em ${data.dataDaEntrega?.toLocaleDateString("pt-BR")}`
+            : `em ${formatarData(data.dataDaEntrega)}`
         }, no endereço: ${data.enderecoDeEntrega}. A entrega será realizada ${data.formaDeEntrega === "compradorBusca"
             ? "pelo comprador, que buscará o bem."
             : "pelo vendedor, que se compromete a entregá-lo no local indicado."
