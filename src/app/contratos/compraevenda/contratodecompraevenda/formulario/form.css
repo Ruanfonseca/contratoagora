@@ -11,7 +11,10 @@
     flex-direction: row; /* Painéis lado a lado por padrão */
     height: 100vh;
     gap: 20px; /* Espaço entre os painéis esquerdo e direito */
-    margin: 100px;
+    margin-top: 100px;
+    margin-left: 50px;
+    margin-right: 100px;
+
 }
 
 .left-panel, .right-panel {

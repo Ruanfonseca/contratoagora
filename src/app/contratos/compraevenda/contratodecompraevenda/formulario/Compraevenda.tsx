@@ -86,9 +86,10 @@ export default function CompraEVenda() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 19.90;
+    const valor = 1.00;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     /**Construindo as etapas */
     const [step, setStep] = useState(1);
@@ -236,7 +237,10 @@ export default function CompraEVenda() {
     };
 
 
-
+    const handleFinalize = () => {
+        setIsLoading(true)
+        handlePayment();
+    }
     const handlePayment = async () => {
 
         try {
@@ -265,8 +269,9 @@ export default function CompraEVenda() {
                 const pointOfInteraction = response.data.point_of_interaction;
                 if (pointOfInteraction?.transaction_data?.ticket_url) {
                     setTicketUrl(pointOfInteraction.transaction_data.ticket_url);
-                    setPaymentId(response.data.id);
-                    setPaymentStatus(response.data.status);
+
+                    setPaymentId(response.data.result.id);
+                    setPaymentStatus(response.data.result.status);
                     setModalPagamento(true);
 
                 } else {
@@ -280,6 +285,8 @@ export default function CompraEVenda() {
         } catch (error) {
             console.error('Erro ao criar pagamento PIX:', error);
             alert(`Erro ao criar pagamento PIX: ${error}`);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -508,7 +515,7 @@ export default function CompraEVenda() {
                                 </>
                             )}
 
-                            {step === 12 && (
+                            {step === 11 && (
                                 <>
                                     <h2>Dados do Vendedor</h2>
                                     <div>
@@ -525,7 +532,7 @@ export default function CompraEVenda() {
                                 </>
                             )}
 
-                            {step === 13 && (
+                            {step === 12 && (
                                 <>
                                     <h2>Dados do Vendedor</h2>
                                     <div>
@@ -542,7 +549,7 @@ export default function CompraEVenda() {
                             )}
 
 
-                            {step === 14 &&
+                            {step === 13 &&
                                 (
                                     <>
                                         <h2>Dados do Vendedor</h2>
@@ -563,7 +570,7 @@ export default function CompraEVenda() {
 
 
 
-                            {step === 15 &&
+                            {step === 14 &&
                                 (
                                     <>
                                         <h2>Dados do Vendedor</h2>
@@ -581,7 +588,7 @@ export default function CompraEVenda() {
                                     </>
                                 )}
 
-                            {step === 16 && (
+                            {step === 15 && (
                                 <>
                                     <h2>Dados do Vendedor</h2>
                                     <div>
@@ -601,7 +608,7 @@ export default function CompraEVenda() {
                             )}
 
 
-                            {step === 17 &&
+                            {step === 16 &&
                                 (
                                     <>
                                         <h2>Dados do Vendedor</h2>
@@ -620,7 +627,7 @@ export default function CompraEVenda() {
                                 )}
 
 
-                            {step === 18 &&
+                            {step === 17 &&
                                 (
                                     <>
                                         <h2>Dados do Comprador</h2>
@@ -638,7 +645,7 @@ export default function CompraEVenda() {
                                             <button onClick={handleNext}>Próximo</button>                            </div>
                                     </>
                                 )}
-                            {step === 19 &&
+                            {step === 18 &&
                                 (
                                     <>
                                         <h2>Dados do Vendedor</h2>
@@ -657,7 +664,7 @@ export default function CompraEVenda() {
                                     </>
                                 )}
 
-                            {step === 20 && (
+                            {step === 19 && (
                                 <>
                                     <h2>Informações do Bem</h2>
                                     <div>
@@ -672,7 +679,7 @@ export default function CompraEVenda() {
                                 </>
                             )}
 
-                            {step === 21 && (
+                            {step === 20 && (
                                 <>
                                     <h2>Entrega</h2>
                                     <div>
@@ -702,7 +709,7 @@ export default function CompraEVenda() {
                                 </>
                             )}
 
-                            {step === 22 && (
+                            {step === 21 && (
                                 <>
                                     <h2>Pagamento</h2>
                                     <div>
@@ -734,7 +741,7 @@ export default function CompraEVenda() {
 
 
 
-                            {step === 23 && (
+                            {step === 22 && (
                                 <>
                                     <h2>Garantia</h2>
                                     <div>
@@ -754,7 +761,7 @@ export default function CompraEVenda() {
                                     <button onClick={handleNext}>Próximo</button>
                                 </>)}
 
-                            {step === 24 && (
+                            {step === 23 && (
                                 <>
                                     <h2>Assinatura</h2>
 
@@ -789,7 +796,15 @@ export default function CompraEVenda() {
                                         <input type='text' name='testemunha2CPF' onChange={handleChange} />
                                     </div>
                                     <button onClick={handleBack}>Voltar</button>
-                                    <button onClick={handlePayment}>Finalizar</button>
+                                    <button onClick={handleFinalize} disabled={isLoading}>
+                                        {isLoading ? (
+                                            <div className="spinner-border spinner-border-sm text-light" role="status">
+                                                <span className="visually-hidden">Carregando...</span>
+                                            </div>
+                                        ) : (
+                                            'Finalizar'
+                                        )}
+                                    </button>
                                 </>)}
                         </div>
                     </div>
@@ -804,7 +819,10 @@ export default function CompraEVenda() {
                                 frameBorder="0"
                                 width="100%"
                                 height="100%"
-                                style={{ pointerEvents: 'none' }}
+                                style={{
+                                    pointerEvents: 'none',
+                                    userSelect: 'none', // Impede a seleção do conteúdo
+                                }}
                             ></iframe>
                         )}
                     </div>

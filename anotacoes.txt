@@ -1,2 +1,6 @@
 //configurando o prismadb
 npx prisma init 
+
+NEXT_PUBLIC_API_DEV='http://192.168.0.14:7000'
+NEXT_PUBLIC_API_PROD='https://contratoagoraback.onrender.com'
+NEXT_PUBLIC_TOKEN_MERCADO_PAGO='APP_USR-957794627794363-082308-6665c8bdcf1ceeeb07e1c6a3430fb855-198355928'

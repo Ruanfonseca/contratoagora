@@ -3,12 +3,6 @@ import jsPDF from "jspdf";
 export default function geradorPdfFinalizado(data: any) {
     const doc = new jsPDF();
 
-    // Adicionar marca d'água
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(50);
-    doc.setTextColor(150, 150, 150); // Cinza claro
-    doc.text("Visualização Exemplo", 120, 150, { align: "center", angle: 45 });
-
     // Título do documento
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(14);
@@ -119,6 +113,14 @@ export default function geradorPdfFinalizado(data: any) {
         230,
         { maxWidth: 190 }
     );
+
+    // Assinaturas
+    doc.text("ASSINATURAS", 10, 250);
+    doc.text("_________________________", 10, 260);
+    doc.text("Comprador", 10, 265);
+    doc.text("_________________________", 100, 260);
+    doc.text("Vendedor", 100, 265);
+
     // Download do PDF
     doc.save(`contrato_compra_venda_${data.compradorNome}.pdf`);
 }

@@ -1,8 +1,8 @@
 import axios from 'axios';
-//process.env.NEXT_PUBLIC_API_DEV
+//
 const api = axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_PROD
 
-    baseURL: 'https://contratoagoraback.onrender.com'
 });
 
 export default api;
