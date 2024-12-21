@@ -108,7 +108,7 @@ export default function geradorPdfFinalizado(data: any) {
     // Cláusula de foro
     doc.text("CLÁUSULA DE FORO", 10, 220);
     doc.text(
-        `Fica eleito o foro da comarca de ${data.foroDeResolucao} para resolver eventuais controvérsias, renunciando a qualquer outro, por mais privilegiado que seja.`,
+        `Fica eleito o foro da comarca para resolver eventuais controvérsias, renunciando a qualquer outro, por mais privilegiado que seja.`,
         10,
         230,
         { maxWidth: 190 }

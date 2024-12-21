@@ -5,6 +5,26 @@
     align-items: center;
     min-height: 200vh;
 }
+.caixa-titulo-subtitulo {
+  display: flex;
+  flex-direction: column; /* Para alinhar os itens verticalmente */
+  justify-content: center; /* Centralizar verticalmente */
+  align-items: center; /* Centralizar horizontalmente */
+  text-align: center; /* Alinhar texto no centro */
+  margin-top: 100px;
+}
+
+.title {
+  font-size: 2rem;
+  
+  margin-bottom: 1px;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: gray;
+}
+
 
 .container {
     display: flex;

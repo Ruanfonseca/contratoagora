@@ -86,7 +86,7 @@ export default function CompraEVenda() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 1.00;
+    const valor = 19.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -293,7 +293,7 @@ export default function CompraEVenda() {
 
     const handleVerifyPayment = async () => {
         if (!paymentId) {
-            alert('Não existe transação')
+
         }
         try {
             const token = process.env.NEXT_PUBLIC_TOKEN_MERCADO_PAGO;
@@ -313,7 +313,7 @@ export default function CompraEVenda() {
                 alert('Pagamento Pendente');
             }
         } catch (error) {
-            alert(`Houve um erro ao verificar o pagamento: ${error}`);
+            alert(`Não existe transação:${error}`)
         }
     }
 
@@ -324,9 +324,16 @@ export default function CompraEVenda() {
 
     return (
         <>
+
+            <div className="caixa-titulo-subtitulo">
+                <h1 className="title">Contrato de Compra e Venda</h1>
+                <i className="subtitle">O modelo abaixo não é válido para compra e venda de imóveis ou veículos</i>
+            </div>
+
             <div className="container">
                 <div className="left-panel">
                     <div className="scrollable-card">
+
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
@@ -334,7 +341,7 @@ export default function CompraEVenda() {
                             ></div>
                         </div>
                         <div className="form-wizard">
-                            <h1>Contrato de Compra e Venda</h1>
+
 
                             {step === 1 && (
                                 <>
