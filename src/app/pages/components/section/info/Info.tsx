@@ -2,15 +2,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { redirect, useRouter } from 'next/navigation';
-import image2 from '../../../../assets/formcontrato.png';
-import image1 from '../../../../assets/image1.png';
-import image3 from '../../../../assets/modelo.png';
+import image3 from '../../../../assets/aceito.png';
+import image1 from '../../../../assets/acordo.png';
+import image2 from '../../../../assets/cadastro.png';
 import './Info.css';
 
 const Info = () => {
   const router = useRouter();
 
-  const handleClick = ()=>{
+  const handleClick = () => {
     redirect('/contratos');
   }
 
@@ -18,24 +18,24 @@ const Info = () => {
     <>
       <div className="title-text" >
         <h1>Criando seus contratos com rapidez, praticidade e segurança</h1>
-        <br/>
-        <p>Na Contrato Agora, você encontra a solução perfeita para 
-          criar contratos personalizados de forma ágil e segura. 
+        <br />
+        <p>Na Contrato Agora, você encontra a solução perfeita para
+          criar contratos personalizados de forma ágil e segura.
           Nossa plataforma oferece uma experiência simplificada para gerar
           documentos que atendem exatamente às suas necessidades.
-          Para criar o seu contrato ideal, basta selecionar um modelo e 
-          responder a algumas perguntas simples. O processo é rápido e 
+          Para criar o seu contrato ideal, basta selecionar um modelo e
+          responder a algumas perguntas simples. O processo é rápido e
           intuitivo, garantindo que seu contrato seja elaborado de maneira
           eficiente e personalizada.</p>
         <br />
-        
+
       </div>
-         
-         <div className='instructions-title' id='AJUDA'>
-            <h1>Como Criar seu Contrato</h1>
-         </div>
+
+      <div className='instructions-title' id='AJUDA'>
+        <h1>Como Criar seu Contrato</h1>
+      </div>
       <div className='instructions'>
-      
+
         <div className='card section-1'>
           <h2>1. Passo Escolha o modelo que deseja elaborar</h2>
           <p>
@@ -64,7 +64,7 @@ const Info = () => {
           <Image src={image3} className='imgstyle' alt='' />
         </div>
       </div>
-      
+
       <div className='botao-center' id='CONTRATOS'>
         <Link className='btn' href="/contratos">Escolher Contrato</Link>
       </div>
