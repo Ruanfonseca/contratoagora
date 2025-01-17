@@ -805,6 +805,7 @@ export default function CompraEVenda() {
                                         <input type='text' name='testemunha2CPF' onChange={handleChange} />
                                     </div>
                                     <button onClick={handleBack}>Voltar</button>
+
                                     <button onClick={handleFinalize} disabled={isLoading}>
                                         {isLoading ? (
                                             <div className="spinner-border spinner-border-sm text-light" role="status">

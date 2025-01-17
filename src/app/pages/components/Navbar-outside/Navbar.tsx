@@ -1,3 +1,4 @@
+'use client'
 import logo from '@/app/assets/logocontrato.png';
 import menu from '@/app/assets/menumobilewhite.png';
 import Image from 'next/image';

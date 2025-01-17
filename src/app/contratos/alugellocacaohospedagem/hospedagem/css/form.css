@@ -1,4 +1,14 @@
 /* Centralizar o formulário */
+.container {
+    display: flex;
+    flex-direction: row; /* Painéis lado a lado por padrão */
+    height: 100vh;
+    gap: 20px; /* Espaço entre os painéis esquerdo e direito */
+    margin-top: 100px;
+    margin-left: 110px;
+    margin-right: 50px;
+
+}
 .form-wrapper {
     display: flex;
     justify-content: center;
@@ -16,27 +26,15 @@
 
 .title {
   font-size: 2rem;
-  
+  font-weight: bold;
+  color:#fff;
   margin-bottom: 1px;
 }
 
-.subtitle {
-  font-size: 1rem;
-  color: gray;
-}
 
 
-.container {
-    display: flex;
-    flex-direction: row; /* Painéis lado a lado por padrão */
-    height: 100vh;
-    gap: 20px; /* Espaço entre os painéis esquerdo e direito */
-    margin-top: 100px;
-    margin-left: 110px;
-    margin-right: 50px;
 
 
-}
 
 .left-panel, .right-panel {
     flex: 1;

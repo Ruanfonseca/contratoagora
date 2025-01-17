@@ -7,22 +7,22 @@ import './contratos.css';
 export default function contratos() {
   return (
     <>
-    <Navbar/>
+      <Navbar />
       <div className="initial-container">
         <div className="initial">
           <h1 className="title">Modelos de contratos e documentos legais</h1>
           <p>
             Escolha entre os diversos modelos de contratos e documentos legais que oferecemos.
-            Os nossos modelos são atualizados mensalmente e revisados de acordo com a 
-            legislação vigente. No final do procedimento em nosso site, os contratos são disponibilizados 
+            Os nossos modelos são atualizados mensalmente e revisados de acordo com a
+            legislação vigente. No final do procedimento em nosso site, os contratos são disponibilizados
             em Word, PDF, assim como para download e impressão.
           </p>
         </div>
 
-        <div className="subinitial">  
+        <div className="subinitial">
           <h2 className="subtitle">ALUGUEL | LOCAÇÃO | HOSPEDAGEM</h2>
           <ul>
-            <li>Contrato de hospedagem | Locação de Flat ou Apart Hotel - R$ 19,90</li>
+            <li><Link className='' href="/contratos/alugellocacaohospedagem/hospedagem">Contrato de hospedagem | Locação de Flat ou Apart Hotel - R$ 19,90</Link></li>
             <li>Contrato de locação de bens móveis - R$ 19,90</li>
             <li>Contrato de locação de equipamentos - R$ 24,90</li>
             <li>Contrato de locação de espaço para evento - R$ 19,90</li>
@@ -191,7 +191,7 @@ export default function contratos() {
           </ul>
         </div>
       </div>
-    <Footer />
+      <Footer />
     </>
   );
 }
