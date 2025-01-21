@@ -5,6 +5,9 @@ import jsPDF from "jspdf";
 export default function gerarContratoHospedagem(data: any) {
     const doc = new jsPDF();
 
+    const obterValorOuVazio = (valor: any) =>
+        valor === undefined || valor === null || valor === "" ? "   " : valor;
+
     // Título
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(14);
@@ -24,21 +27,27 @@ export default function gerarContratoHospedagem(data: any) {
     // Identificação das Partes
     doc.text("IDENTIFICAÇÃO DAS PARTES", 10, 50);
     if (data.locador === 'pf') {
-        doc.text(`Locador: ${data.nomeLocador}, ${data.estadoCivilLocador}, ${data.nacionalidadeLocador}, ${data.profissaoLocador}, portador do(a) ${data.docidentLocador} nº ${data.numeroDocLocador}, CPF nº ${data.cpfLocador}, residente em ${data.enderecoLocador}.`, 10, 60, { maxWidth: 190 });
+        doc.text(`Locador: ${obterValorOuVazio(data.nomeLocador)}, ${obterValorOuVazio(data.estadoCivilLocador)},
+                 ${obterValorOuVazio(data.nacionalidadeLocador)}, ${obterValorOuVazio(data.profissaoLocador)}, portador do(a) ${obterValorOuVazio(data.docidentLocador)} 
+                 nº ${obterValorOuVazio(data.numeroDocLocador)}, CPF nº ${obterValorOuVazio(data.cpfLocador)}, residente em ${obterValorOuVazio(data.enderecoLocador)}.`, 10, 60, { maxWidth: 190 });
     } else {
-        doc.text(`Locador: ${data.razaoSocialLocador}, CNPJ nº ${data.cnpjLocador}, com sede em ${data.enderecoLocadora}.`, 10, 60, { maxWidth: 190 });
+        doc.text(`Locador: ${obterValorOuVazio(data.razaoSocialLocador)}, CNPJ nº ${obterValorOuVazio(data.cnpjLocador)}, com sede em ${obterValorOuVazio(data.enderecoLocadora)}.`, 10, 60, { maxWidth: 190 });
     }
 
     if (data.hospede === 'pf') {
-        doc.text(`Hóspede: ${data.nomeHospede}, ${data.estadoCivilHospede}, ${data.nacionalidadeHospede}, ${data.profissaoHospede}, portador do(a) ${data.docidentHospede} nº ${data.numeroDocHospede}, CPF nº ${data.cpfHospede}, residente em ${data.enderecoHospede}.`, 10, 80, { maxWidth: 190 });
+        doc.text(`Hóspede: ${obterValorOuVazio(data.nomeHospede)}, ${obterValorOuVazio(data.estadoCivilHospede)}, ${obterValorOuVazio(data.nacionalidadeHospede)},
+                     ${obterValorOuVazio(data.profissaoHospede)}, portador do(a) ${obterValorOuVazio(data.docidentHospede)} nº ${obterValorOuVazio(data.numeroDocHospede)}, 
+                     CPF nº ${obterValorOuVazio(data.cpfHospede)}, residente em ${obterValorOuVazio(data.enderecoHospede)}.`, 10, 80, { maxWidth: 190 });
     } else {
-        doc.text(`Hóspede: ${data.razaoSocialHospede}, CNPJ nº ${data.cnpjHospede}, com sede em ${data.enderecoHospedeiro}.`, 10, 80, { maxWidth: 190 });
+        doc.text(`Hóspede: ${obterValorOuVazio(data.razaoSocialHospede)}, CNPJ nº ${obterValorOuVazio(data.cnpjHospede)}, com sede em ${obterValorOuVazio(data.enderecoHospedeiro)}.`, 10, 80, { maxWidth: 190 });
     }
 
     // Objeto do Contrato
     doc.text("OBJETO DO CONTRATO", 10, 100);
     doc.text(
-        `O presente contrato tem como objeto a locação do imóvel ${data.tipoDeImovel === 'cs' ? 'Casa' : data.tipoDeImovel === 'flat' ? 'Flat' : 'Outro'}, localizado em ${data.enderecoImovel}, conforme descrito: ${data.descImovel}.`,
+        `O presente contrato tem como objeto a locação do imóvel 
+                ${obterValorOuVazio(data.tipoDeImovel) === 'cs' ? 'Casa' : obterValorOuVazio(data.tipoDeImovel) === 'flat' ? 'Flat' : 'Outro'}, 
+                localizado em ${obterValorOuVazio(data.enderecoImovel)}, conforme descrito: ${obterValorOuVazio(data.descImovel)}.`,
         10,
         110,
         { maxWidth: 190 }
@@ -56,31 +65,34 @@ export default function gerarContratoHospedagem(data: any) {
     // Valor e Condições de Pagamento
     doc.text("VALOR E CONDIÇÕES DE PAGAMENTO", 10, 160);
     doc.text(
-        `O valor da hospedagem será de R$ ${data.valordahospedagem} por ${data.cobrancaHospedagem === 'd' ? 'dia' : data.cobrancaHospedagem === 'mes' ? 'mês' : 'outra frequência'}.`,
+        `O valor da hospedagem será de R$ ${obterValorOuVazio(data.valordahospedagem)} 
+                por ${obterValorOuVazio(data.cobrancaHospedagem) === 'd' ? 'dia' : obterValorOuVazio(data.cobrancaHospedagem) === 'mes' ? 'mês' : 'outra frequência'}.`,
         10,
         170,
         { maxWidth: 190 }
     );
     if (data.antecipaPagReserva === 'S') {
-        doc.text(`Foi paga uma antecipação de R$ ${data.valorAntecipa} como reserva.`, 10, 180, { maxWidth: 190 });
+        doc.text(`Foi paga uma antecipação de R$ ${obterValorOuVazio(data.valorAntecipa)} como reserva.`, 10, 180, { maxWidth: 190 });
     }
 
     // Regras de Ocupação
     doc.text("REGRAS DE OCUPAÇÃO", 10, 200);
     doc.text(
-        `O imóvel será ocupado por até ${data.qtdPessoasAutorizadas} pessoa(s). O descumprimento dessa regra acarretará multa de R$ ${data.valorMultaPesExcendente}.`,
+        `O imóvel será ocupado por até ${obterValorOuVazio(data.qtdPessoasAutorizadas)} pessoa(s). 
+                O descumprimento dessa regra acarretará multa de R$ ${obterValorOuVazio(data.valorMultaPesExcendente)}.`,
         10,
         210,
         { maxWidth: 190 }
     );
     if (data.regrasExpeHospedes === 'S') {
-        doc.text(`Regras adicionais para hóspedes: ${data.descRegrasHospedes}.`, 10, 220, { maxWidth: 190 });
+        doc.text(`Regras adicionais para hóspedes: ${obterValorOuVazio(data.descRegrasHospedes)}.`, 10, 220, { maxWidth: 190 });
     }
 
     // Garantia e Benfeitorias
     doc.text("GARANTIA E BENFEITORIAS", 10, 240);
     doc.text(
-        `Será exigida garantia do tipo ${data.garantidorHosp}. Caso o Locador autorize benfeitorias, as mesmas deverão ser custeadas por ${data.pagadorBemFeitorias}.`,
+        `Será exigida garantia do tipo ${obterValorOuVazio(data.garantidorHosp)}. Caso o Locador autorize benfeitorias, as mesmas 
+                deverão ser custeadas por ${obterValorOuVazio(data.pagadorBemFeitorias)}.`,
         10,
         250,
         { maxWidth: 190 }
@@ -90,7 +102,8 @@ export default function gerarContratoHospedagem(data: any) {
     doc.addPage();
     doc.text("RESCISÃO, DESCUMPRIMENTO E MULTAS", 10, 20);
     doc.text(
-        `Em caso de rescisão antecipada sem justa causa, será aplicada multa de R$ ${data.valorMultaRompimento}. Caso o Hóspede descumpra quaisquer cláusulas deste contrato, será aplicada multa de R$ ${data.valorMultaDesc}.`,
+        `Em caso de rescisão antecipada sem justa causa, será aplicada multa de R$ ${obterValorOuVazio(data.valorMultaRompimento)}. 
+                Caso o Hóspede descumpra quaisquer cláusulas deste contrato, será aplicada multa de R$ ${obterValorOuVazio(data.valorMultaDesc)}.`,
         10,
         30,
         { maxWidth: 190 }
@@ -99,7 +112,8 @@ export default function gerarContratoHospedagem(data: any) {
     // Foro
     doc.text("FORO", 10, 60);
     doc.text(
-        `As partes elegem o foro da cidade de ${data.cidadeAssinatura} para dirimir quaisquer questões oriundas deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.`,
+        `As partes elegem o foro da cidade de ${obterValorOuVazio(data.cidadeAssinatura)} 
+                para dirimir quaisquer questões oriundas deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.`,
         10,
         70,
         { maxWidth: 190 }
@@ -107,7 +121,7 @@ export default function gerarContratoHospedagem(data: any) {
 
     // Data de Assinatura
     doc.text("DATA DE ASSINATURA", 10, 90);
-    doc.text(`Este contrato foi firmado na cidade de ${data.cidadeAssinatura}, em ${formatarData(data.dataAssinatura)}.`, 10, 100, { maxWidth: 190 });
+    doc.text(`Este contrato foi firmado na cidade de ${obterValorOuVazio(data.cidadeAssinatura)}, em ${formatarData(data.dataAssinatura)}.`, 10, 100, { maxWidth: 190 });
 
     // Assinaturas
     doc.text("ASSINATURAS", 10, 120);
@@ -122,6 +136,7 @@ export default function gerarContratoHospedagem(data: any) {
         doc.text("_________________________", 100, 150);
         doc.text(`Testemunha 2: ${data.nomeTest2}, CPF: ${data.cpfTest2}`, 100, 155);
     }
+
 
     // Salvar o PDF
     doc.save(`contrato_hospedagem_${data.nomeHospede || data.razaoSocialHospede}.pdf`);

@@ -41,7 +41,7 @@ const hospedagemschema = z.object({
 
     nome2locador: z.string(),
     cargo2locador: z.string(),
-    docidentpessoaHabilitadaLoc2: z.string(),
+    docidentpessoaHabilitadaLoc2: z.enum(['Rg', 'Ifunc', 'ctps', 'cnh', 'passaporte']),
     numeroDoc2Locador: z.string(),
     cpfDaPessoaHabilitada2: z.string(),
     /** */
@@ -228,7 +228,7 @@ export default function Hospedagem() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 19.90;
+    const valor = 1.00;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -341,7 +341,19 @@ export default function Hospedagem() {
         else if (currentStepData.garantidorHosp === 'segfianca') {
             setSeguroFi(true);
             nextStep = 88;
+        } else if (currentStepData.enderecoFiador != undefined) {
+            setStep(89);
+        } else if (currentStepData.valorTitCaucao != undefined) {
+            setStep(89);
+        } else if (currentStepData.descBemCaucao != undefined) {
+            setStep(89);
+        } else if (currentStepData.descCredUtili != undefined) {
+            setStep(89);
+        } else if (currentStepData.segFianca != undefined) {
+            setStep(89);
         }
+
+
 
 
         if (currentStepData.multaPorRompimento === 'S') {
@@ -359,7 +371,7 @@ export default function Hospedagem() {
 
         } else if (currentStepData.multaPorDescDeContrato === 'N') {
 
-            nextStep = 95;
+            nextStep = 96;
         }
 
 
@@ -369,7 +381,7 @@ export default function Hospedagem() {
 
         } else if (currentStepData.duastestemunhas === 'N') {
 
-            nextStep = 101;
+            nextStep = 103;
         }
 
         // Caso nenhuma condição seja satisfeita, incrementar o passo.
@@ -381,6 +393,7 @@ export default function Hospedagem() {
         setStep(nextStep);
 
         console.log(`qtd step depois do ajuste: ${nextStep}`);
+        console.log(`currentStepData - enderecoFiador: ${currentStepData.enderecoFiador}`);
 
         // Limpar os dados do passo atual.
         setCurrentStepData({});
@@ -482,7 +495,7 @@ export default function Hospedagem() {
         const doc = new jsPDF();
 
         const obterValorOuVazio = (valor: any) =>
-            valor === undefined || valor === null || valor === "" ? "_____________________________" : valor;
+            valor === undefined || valor === null || valor === "" ? "   " : valor;
 
         // Título
         doc.setFont("Helvetica", "bold");
@@ -505,7 +518,7 @@ export default function Hospedagem() {
         if (data.locador === 'pf') {
             doc.text(`Locador: ${obterValorOuVazio(data.nomeLocador)}, ${obterValorOuVazio(data.estadoCivilLocador)},
              ${obterValorOuVazio(data.nacionalidadeLocador)}, ${obterValorOuVazio(data.profissaoLocador)}, portador do(a) ${obterValorOuVazio(data.docidentLocador)} 
-             nº ${obterValorOuVazio(data.numeroDocLocado)}, CPF nº ${obterValorOuVazio(data.cpfLocador)}, residente em ${obterValorOuVazio(data.enderecoLocador)}.`, 10, 60, { maxWidth: 190 });
+             nº ${obterValorOuVazio(data.numeroDocLocador)}, CPF nº ${obterValorOuVazio(data.cpfLocador)}, residente em ${obterValorOuVazio(data.enderecoLocador)}.`, 10, 60, { maxWidth: 190 });
         } else {
             doc.text(`Locador: ${obterValorOuVazio(data.razaoSocialLocador)}, CNPJ nº ${obterValorOuVazio(data.cnpjLocador)}, com sede em ${obterValorOuVazio(data.enderecoLocadora)}.`, 10, 60, { maxWidth: 190 });
         }
@@ -597,7 +610,7 @@ export default function Hospedagem() {
 
         // Data de Assinatura
         doc.text("DATA DE ASSINATURA", 10, 90);
-        doc.text(`Este contrato foi firmado na cidade de ${obterValorOuVazio(data.cidadeAssinatura)}, em ${obterValorOuVazio(formatarData(data.dataAssinatura))}.`, 10, 100, { maxWidth: 190 });
+        doc.text(`Este contrato foi firmado na cidade de ${obterValorOuVazio(data.cidadeAssinatura)}, em ${formatarData(data.dataAssinatura)}.`, 10, 100, { maxWidth: 190 });
 
         // Assinaturas
         doc.text("ASSINATURAS", 10, 120);
@@ -665,7 +678,8 @@ export default function Hospedagem() {
                                     <h2>Dados do Locador</h2>
                                     <div>
                                         <label>Sexo:</label>
-                                        <select name='locadorSexo' value='M' onChange={handleChange}>
+                                        <select name='locadorSexo' onChange={handleChange}>
+                                            <option value="">Selecione</option>
                                             <option value="F">Feminino</option>
                                             <option value="M">Masculino</option>
                                         </select>
@@ -697,9 +711,10 @@ export default function Hospedagem() {
                                     <h2>Dados do Locador</h2>
                                     <div>
                                         <label>Estado Cívil:</label>
-                                        <select name='estadoCivilLocador' value='solteiro' onChange={handleChange}>
-                                            <option value="solteiro">Solteiro</option>
-                                            <option value="casado">Casado</option>
+                                        <select name='estadoCivilLocador' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="solteiro">Solteiro(a)</option>
+                                            <option value="casado">Casado(a)</option>
                                             <option value="viuvo">Viuvo(a)</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
@@ -748,7 +763,8 @@ export default function Hospedagem() {
                                     <h2>Dados do Locador</h2>
                                     <div>
                                         <label>Documento de Identificação:</label>
-                                        <select name='docidentLocador' value='Rg' onChange={handleChange}>
+                                        <select name='docidentLocador' onChange={handleChange}>
+                                            <option value="">Selecione</option>
                                             <option value="Rg">Rg</option>
                                             <option value="Ifunc">Identificação funcional</option>
                                             <option value="ctps">Carteira de trabalho</option>
@@ -1074,7 +1090,8 @@ export default function Hospedagem() {
                                     <h2>Dados do Hóspede</h2>
                                     <div>
                                         <label>Sexo:</label>
-                                        <select name='hospedeSexo' value='M' onChange={handleChange}>
+                                        <select name='hospedeSexo' onChange={handleChange}>
+                                            <option value="">Selecione</option>
                                             <option value="F">Feminino</option>
                                             <option value="M">Masculino</option>
                                         </select>
@@ -1106,7 +1123,8 @@ export default function Hospedagem() {
                                     <h2>Dados do Hóspede</h2>
                                     <div>
                                         <label>Estado Cívil:</label>
-                                        <select name='estadoCivilHospede' value='solteiro' onChange={handleChange}>
+                                        <select name='estadoCivilHospede' onChange={handleChange}>
+                                            <option value="">Selecione</option>
                                             <option value="solteiro">Solteiro(a)</option>
                                             <option value="casado">Casado(a)</option>
                                             <option value="viuvo">Viuvo(a)</option>
@@ -1157,7 +1175,8 @@ export default function Hospedagem() {
                                     <h2>Dados do Hóspede</h2>
                                     <div>
                                         <label>Documento de Identificação:</label>
-                                        <select name='docidentHospede' value='Rg' onChange={handleChange}>
+                                        <select name='docidentHospede' onChange={handleChange}>
+                                            <option value="">Selecione</option>
                                             <option value="Rg">Rg</option>
                                             <option value="Ifunc">Identificação funcional</option>
                                             <option value="ctps">Carteira de trabalho</option>
@@ -1237,6 +1256,7 @@ export default function Hospedagem() {
                                                     name="razaoSocialHospede"
                                                     onChange={handleChange}
                                                 />
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1254,6 +1274,7 @@ export default function Hospedagem() {
                                                     name="cnpjHospede"
                                                     onChange={handleChange}
                                                 />
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1270,6 +1291,7 @@ export default function Hospedagem() {
                                                     name="enderecoHospedeiro"
                                                     onChange={handleChange}
                                                 />
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1285,6 +1307,7 @@ export default function Hospedagem() {
                                                     <option value="1">1</option>
                                                     <option value="2">2</option>
                                                 </select>
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1302,6 +1325,7 @@ export default function Hospedagem() {
                                                     name="nomeumHospede"
                                                     onChange={handleChange}
                                                 />
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1318,6 +1342,7 @@ export default function Hospedagem() {
                                                     name="cargoumHospede"
                                                     onChange={handleChange}
                                                 />
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1336,6 +1361,7 @@ export default function Hospedagem() {
                                                     <option value="cnh">CNH</option>
                                                     <option value="passaporte">Passaporte</option>
                                                 </select>
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1352,6 +1378,7 @@ export default function Hospedagem() {
                                                     name="numeroDocUmHospede"
                                                     onChange={handleChange}
                                                 />
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1368,6 +1395,7 @@ export default function Hospedagem() {
                                                     name="cpfDaPessoaHabilitadaHospede"
                                                     onChange={handleChange}
                                                 />
+                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1386,6 +1414,7 @@ export default function Hospedagem() {
                                                             name="nomeu2Hospede"
                                                             onChange={handleChange}
                                                         />
+                                                        <button onClick={handleBack}>Voltar</button>
                                                         <button onClick={handleNext}>Próximo</button>
                                                     </div>
                                                 </>
@@ -1402,6 +1431,7 @@ export default function Hospedagem() {
                                                             name="cargo2Hospede"
                                                             onChange={handleChange}
                                                         />
+                                                        <button onClick={handleBack}>Voltar</button>
                                                         <button onClick={handleNext}>Próximo</button>
                                                     </div>
                                                 </>
@@ -1420,6 +1450,7 @@ export default function Hospedagem() {
                                                             <option value="cnh">CNH</option>
                                                             <option value="passaporte">Passaporte</option>
                                                         </select>
+                                                        <button onClick={handleBack}>Voltar</button>
                                                         <button onClick={handleNext}>Próximo</button>
                                                     </div>
                                                 </>
@@ -1436,6 +1467,7 @@ export default function Hospedagem() {
                                                             name="numeroDoc2Hospede"
                                                             onChange={handleChange}
                                                         />
+                                                        <button onClick={handleBack}>Voltar</button>
                                                         <button onClick={handleNext}>Próximo</button>
                                                     </div>
                                                 </>
@@ -1452,6 +1484,7 @@ export default function Hospedagem() {
                                                             name="cpfDaPessoaHabilitadaHospede2"
                                                             onChange={handleChange}
                                                         />
+                                                        <button onClick={handleBack}>Voltar</button>
                                                         <button onClick={handleNext}>Próximo</button>
                                                     </div>
                                                 </>
@@ -1477,6 +1510,7 @@ export default function Hospedagem() {
                                             <option value="qr">Quarto em República</option>
                                             <option value="qa">Quarto em Albergue</option>
                                         </select>
+                                        <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
@@ -1494,8 +1528,8 @@ export default function Hospedagem() {
                                                 name="enderecoImovel"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1512,8 +1546,8 @@ export default function Hospedagem() {
                                                 name="descImovel"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1530,8 +1564,8 @@ export default function Hospedagem() {
                                                 name="qtdPessoasAutorizadas"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1548,8 +1582,8 @@ export default function Hospedagem() {
                                                 name="valorMultaPesExcendente"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1562,11 +1596,11 @@ export default function Hospedagem() {
                                         <label>Existirá regras específicas para hospedes?</label>
                                         <select name='regrasExpeHospedes' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="S">S</option>
-                                            <option value="N">N</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>                                    </div>
                                 </>
                             )}
 
@@ -1584,8 +1618,8 @@ export default function Hospedagem() {
                                                         name="descRegrasHospedes"
                                                         onChange={handleChange}
                                                     />
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1599,11 +1633,11 @@ export default function Hospedagem() {
                                         <label>O imóvel será alugado mobiliado?</label>
                                         <select name='imovelMobiliado' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="S">S</option>
-                                            <option value="N">N</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>                                    </div>
                                 </>
                             )}
 
@@ -1620,8 +1654,8 @@ export default function Hospedagem() {
                                             <option value="qui">Quinzena</option>
                                             <option value="cobunic">Cobrança Única</option>
                                         </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>                                    </div>
                                 </>
                             )}
 
@@ -1637,8 +1671,8 @@ export default function Hospedagem() {
                                                 name="valordahospedagem"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1653,8 +1687,8 @@ export default function Hospedagem() {
                                             <option value="S">Sim</option>
                                             <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>                                    </div>
                                 </>
                             )}
 
@@ -1673,8 +1707,8 @@ export default function Hospedagem() {
                                                         name="valorAntecipa"
                                                         onChange={handleChange}
                                                     />
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1708,8 +1742,8 @@ export default function Hospedagem() {
                                                                 name="multaDesistencia"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -1733,8 +1767,8 @@ export default function Hospedagem() {
                                             <option value="din">Dinheiro</option>
                                             <option value="bol">Boleto</option>
                                         </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>                                    </div>
                                 </>
                             )}
 
@@ -1748,8 +1782,8 @@ export default function Hospedagem() {
                                             <option value="S">Sim</option>
                                             <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>                                    </div>
                                 </>
                             )}
 
@@ -1764,8 +1798,8 @@ export default function Hospedagem() {
                                             <option value="S">Sim</option>
                                             <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>                                    </div>
                                 </>
                             )}
 
@@ -1781,8 +1815,8 @@ export default function Hospedagem() {
                                                     <option value="S">Sim</option>
                                                     <option value="N">Não</option>
                                                 </select>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>                                            </div>
                                         </>
                                     )}
                                 </>
@@ -1798,8 +1832,8 @@ export default function Hospedagem() {
                                             <option value="S">Sim</option>
                                             <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>                                    </div>
                                 </>
                             )}
 
@@ -1818,8 +1852,8 @@ export default function Hospedagem() {
                                                     <option value="ipca">Índice Nacional de Preços ao Consumidor Amplo</option>
                                                     <option value="inpc">Índice Nacional de Preços ao Consumidor</option>
                                                 </select>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>                                            </div>
                                         </>
                                     )}
                                 </>
@@ -1836,8 +1870,8 @@ export default function Hospedagem() {
                                                 <option value="dias">Dias</option>
                                                 <option value="meses">Meses</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1854,8 +1888,8 @@ export default function Hospedagem() {
                                                 name="qtdDiasouMeses"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1872,8 +1906,8 @@ export default function Hospedagem() {
                                                 name="dataDeInicioHospedagem"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1889,8 +1923,8 @@ export default function Hospedagem() {
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1906,8 +1940,8 @@ export default function Hospedagem() {
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1923,8 +1957,8 @@ export default function Hospedagem() {
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1945,8 +1979,8 @@ export default function Hospedagem() {
                                                         <option value="ti">Titulos</option>
                                                         <option value="segfianca">Seguro fiança</option>
                                                     </select>
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1963,8 +1997,8 @@ export default function Hospedagem() {
                                                                 <option value="F">Feminino</option>
                                                                 <option value="M">Masculino</option>
                                                             </select>
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -1981,8 +2015,8 @@ export default function Hospedagem() {
                                                                 name="nomeFiador1"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -1995,13 +2029,13 @@ export default function Hospedagem() {
                                                         <div>
                                                             <select name='sexoFiador' onChange={handleChange}>
                                                                 <option value="">Selecione</option>
-                                                                <option value="casado">Casado</option>
-                                                                <option value="solteiro">Solteiro</option>
-                                                                <option value="divorciado">Divorciado</option>
-                                                                <option value="viuvo">Viuvo</option>
+                                                                <option value="casado">Casado(a)</option>
+                                                                <option value="solteiro">Solteiro(a)</option>
+                                                                <option value="divorciado">Divorciado(a)</option>
+                                                                <option value="viuvo">Viuvo(a)</option>
                                                             </select>
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2018,8 +2052,8 @@ export default function Hospedagem() {
                                                                 name="nacionalidadeFiador"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2036,8 +2070,8 @@ export default function Hospedagem() {
                                                                 name="profissaoFiador"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2055,8 +2089,8 @@ export default function Hospedagem() {
                                                             <option value="cnh">CNH</option>
                                                             <option value="passaporte">Passaporte</option>
                                                         </select>
-                                                        <button onClick={handleNext}>Próximo</button>
-                                                    </div>
+                                                        <button onClick={handleBack}>Voltar</button>
+                                                        <button onClick={handleNext}>Próximo</button>                                                    </div>
                                                 </>
                                             )}
 
@@ -2072,8 +2106,8 @@ export default function Hospedagem() {
                                                                 name="numeroDocFiador"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2090,8 +2124,8 @@ export default function Hospedagem() {
                                                                 name="cpfFiador"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2108,8 +2142,8 @@ export default function Hospedagem() {
                                                                 name="enderecoFiador"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2131,8 +2165,8 @@ export default function Hospedagem() {
                                                                 name="valorTitCaucao"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2156,8 +2190,8 @@ export default function Hospedagem() {
                                                                 name="descBemCaucao"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2178,8 +2212,8 @@ export default function Hospedagem() {
                                                                 name="descCredUtili"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2200,8 +2234,8 @@ export default function Hospedagem() {
                                                                 name="segFianca"
                                                                 onChange={handleChange}
                                                             />
-                                                            <button onClick={handleNext}>Próximo</button>
-                                                        </div>
+                                                            <button onClick={handleBack}>Voltar</button>
+                                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -2224,8 +2258,8 @@ export default function Hospedagem() {
                                                 <option value="hospede">Hóspede</option>
                                                 <option value="locador">Locador</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -2241,8 +2275,8 @@ export default function Hospedagem() {
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -2259,8 +2293,8 @@ export default function Hospedagem() {
                                                 name="multaPorNaoDesocupa"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -2276,8 +2310,8 @@ export default function Hospedagem() {
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
@@ -2296,15 +2330,15 @@ export default function Hospedagem() {
                                                         name="valorMultaRompimento"
                                                         onChange={handleChange}
                                                     />
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
                                 </>
                             )}
 
-                            {step === 93 && (
+                            {step === 94 && (
                                 <>
                                     <h2>Dados do Imóvel</h2>
                                     <div>
@@ -2315,15 +2349,15 @@ export default function Hospedagem() {
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
 
                             {multaPorDescDeContrato && (
                                 <>
-                                    {step === 94 && (
+                                    {step === 95 && (
                                         <>
                                             <h2>Dados do Imóvel</h2>
                                             <div>
@@ -2335,15 +2369,15 @@ export default function Hospedagem() {
                                                         name="valorMultaDesc"
                                                         onChange={handleChange}
                                                     />
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
                                 </>
                             )}
 
-                            {step === 95 && (
+                            {step === 96 && (
                                 <>
                                     <h2>Dados do Contrato</h2>
                                     <div>
@@ -2355,13 +2389,13 @@ export default function Hospedagem() {
                                                 name="cidadeAssinatura"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
 
-                            {step === 96 && (
+                            {step === 97 && (
                                 <>
                                     <h2>Dados do Contrato</h2>
                                     <div>
@@ -2373,13 +2407,13 @@ export default function Hospedagem() {
                                                 name="cidadeAssinatura"
                                                 onChange={handleChange}
                                             />
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
 
-                            {step === 96 && (
+                            {step === 98 && (
                                 <>
                                     <h2>Dados do Contrato</h2>
                                     <div>
@@ -2390,15 +2424,15 @@ export default function Hospedagem() {
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
                                             </select>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>                                        </div>
                                     </div>
                                 </>
                             )}
 
                             {duastestemunhas && (
                                 <>
-                                    {step === 97 && (
+                                    {step === 99 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2410,13 +2444,13 @@ export default function Hospedagem() {
                                                         name="nomeTest1"
                                                         onChange={handleChange}
                                                     />
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 98 && (
+                                    {step === 100 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2428,13 +2462,13 @@ export default function Hospedagem() {
                                                         name="nomeTest1"
                                                         onChange={handleChange}
                                                     />
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 99 && (
+                                    {step === 101 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2446,13 +2480,13 @@ export default function Hospedagem() {
                                                         name="nomeTest2"
                                                         onChange={handleChange}
                                                     />
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 100 && (
+                                    {step === 102 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2464,14 +2498,14 @@ export default function Hospedagem() {
                                                         name="cpfTest2"
                                                         onChange={handleChange}
                                                     />
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>                                                </div>
                                             </div>
                                         </>
                                     )}
                                 </>
                             )}
-                            {step === 101 && (
+                            {step === 103 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
