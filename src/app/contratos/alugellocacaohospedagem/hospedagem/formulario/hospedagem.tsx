@@ -1,5 +1,4 @@
 'use client'
-import { formatarData } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -19,7 +18,7 @@ const hospedagemschema = z.object({
     estadoCivilLocador: z.enum(['solteiro', 'casado', 'viuvo']),
     nacionalidadeLocador: z.string(),
     profissaoLocador: z.string(),
-    docidentLocador: z.enum(['Rg', 'Ifunc', 'ctps', 'cnh', 'passaporte']),
+    docidentLocador: z.enum(['Rg', 'Identidade funcional', 'Ctps', 'CNH', 'Passaporte']),
     numeroDocLocador: z.string(),
     cpfLocador: z.string(),
     enderecoLocador: z.string(),
@@ -35,13 +34,13 @@ const hospedagemschema = z.object({
     //se for uma pessoa
     nomeumlocador: z.string(),
     cargoumlocador: z.string(),
-    docidentpessoaHabilitadaLoc: z.enum(['Rg', 'Ifunc', 'ctps', 'cnh', 'passaporte']),
+    docidentpessoaHabilitadaLoc: z.enum(['Rg', 'Identidade funcional', 'Ctps', 'CNH', 'Passaporte']),
     numeroDocUmLocador: z.string(),
     cpfDaPessoaHabilitada: z.string(),
 
     nome2locador: z.string(),
     cargo2locador: z.string(),
-    docidentpessoaHabilitadaLoc2: z.enum(['Rg', 'Ifunc', 'ctps', 'cnh', 'passaporte']),
+    docidentpessoaHabilitadaLoc2: z.enum(['Rg', 'Identidade funcional', 'Ctps', 'CNH', 'Passaporte']),
     numeroDoc2Locador: z.string(),
     cpfDaPessoaHabilitada2: z.string(),
     /** */
@@ -55,7 +54,7 @@ const hospedagemschema = z.object({
     estadoCivilHospede: z.string(),
     nacionalidadeHospede: z.string(),
     profissaoHospede: z.string(),
-    docidentHospede: z.enum(['Rg', 'Ifunc', 'ctps', 'cnh', 'passaporte']),
+    docidentHospede: z.enum(['Rg', 'Identidade funcional', 'Ctps', 'CNH', 'Passaporte']),
     numeroDocHospede: z.string(),
     cpfHospede: z.string(),
     enderecoHospede: z.string(),
@@ -82,7 +81,7 @@ const hospedagemschema = z.object({
     cpfDaPessoaHabilitadaHospede2: z.string(),
     /** */
 
-    tipoDeImovel: z.enum(['cs', 'flat', 'aph', 'qh', 'qr', 'qa']),  //casa ,flat,apartHotel,quarto em hotel,quarto em republica,quarto albergue
+    tipoDeImovel: z.enum(['Casa', 'Apartamento', 'Flat', 'Quarto de Hotel', 'Quarto em República', 'Quarto em Albergue', 'Apartamento de Hotel']),  //casa ,flat,apartHotel,quarto em hotel,quarto em republica,quarto albergue
 
     enderecoImovel: z.string(),
     descImovel: z.string(),
@@ -145,7 +144,7 @@ const hospedagemschema = z.object({
 
     nacionalidadeFiador: z.string(),
     profissaoFiador: z.string(),
-    docIdentificacao: z.enum(['Rg', 'Ifunc', 'ctps', 'cnh', 'passaporte']), //qual é o documento 
+    docIdentificacao: z.enum(['Rg', 'Identidade funcional', 'Ctps', 'CNH', 'Passaporte']), //qual é o documento 
     numeroDocFiador: z.string(),
     cpfFiador: z.string(),
     enderecoFiador: z.string(),
@@ -239,148 +238,127 @@ export default function Hospedagem() {
     const [step, setStep] = useState(1);
 
     const handleNext = () => {
-
         setFormData((prev) => ({ ...prev, ...currentStepData }));
 
         let nextStep = step;
 
-        // Dados locador
-        if (currentStepData.locador === 'pj') {
-
+        // Lógica do Locador
+        if (currentStepData.locador === "pj") {
             setLocadorPessoaJuri(true);
-            nextStep = 13;
-
-        } else if (currentStepData.enderecoLocador || nextStep === 10) {
-
+            nextStep = 11;
+        } else if (currentStepData.enderecoLocador) {
             nextStep = 25;
-
-        } else if (currentStepData.pessoasAssinantes === '1' || currentStepData.pessoasAssinantes === '2') {
-            setMaisUmAssinante(currentStepData.pessoasAssinantes === '2');
-            nextStep = 17;
+        } else if (currentStepData.pessoasAssinantes === "2") {
+            setMaisUmAssinante(true);
+        } else if (nextStep === 19 && maisUmAssinante === false) {
+            nextStep = 25
         }
 
-        // Dados hospede
-        if (currentStepData.hospede === 'pj') {
+        // Lógica do Hóspede
+        if (currentStepData.hospede === "pj") {
             setHospedePessoaJuri(true);
             nextStep = 35;
-        } else if (currentStepData.enderecoHospede || nextStep === 34) {
+        } else if (currentStepData.enderecoHospede) {
             nextStep = 49;
-        } else if (
-            currentStepData.pessoasHospedeAssinantes === '1' ||
-            currentStepData.pessoasHospedeAssinantes === '2'
-        ) {
-            setMaisUmAssinanteHosp(currentStepData.pessoasHospedeAssinantes === '2');
-            nextStep = 44;
+        } else if (currentStepData.pessoasHospedeAssinantes === "2") {
+            setMaisUmAssinanteHosp(true);
+            nextStep = 39;
+        } else if (nextStep === 43 && maisUmAssinanteHosp === false) {
+            nextStep = 49
         }
 
-
-
-
-        //dados imóvel
-        if (currentStepData.regrasExpeHospedes === 'S') {
+        // Lógica do Imóvel
+        if (currentStepData.regrasExpeHospedes === "S") {
             setRegrasHospedes(true);
             nextStep = 55;
-        } else if (currentStepData.regrasExpeHospedes === 'N') {
+        } else if (currentStepData.regrasExpeHospedes === "N") {
             nextStep = 56;
         }
 
-        if (currentStepData.antecipaPagReserva === 'S') {
-
+        // Pagamento antecipado e multas
+        if (currentStepData.antecipaPagReserva === "S") {
             setPagamentoAntecipado(true);
-
-        } else if (currentStepData.cobrancaMulta === 'S') {
+        } else if (currentStepData.antecipaPagReserva === "N" || currentStepData.cobrancaMulta === "N") {
+            nextStep = 63;
+        } else if (currentStepData.cobrancaMulta === "S") {
             setMultapordesistencia(true);
-
-        } else if (currentStepData.cobrancaMulta === 'N') {
-            nextStep = 63;
-
-        } else if (currentStepData.antecipaPagReserva === 'N') {
-            nextStep = 63;
         }
 
-
-
-
-        if (currentStepData.contasBasicas === 'S') {
+        // Contas básicas
+        if (currentStepData.contasBasicas === "S") {
             setContasBasicas(true);
-        } else if (currentStepData.contasBasicas === 'N') {
+        } else if (currentStepData.contasBasicas === "N") {
             nextStep = 67;
         }
 
-        if (currentStepData.resgateAnual === 'S') {
+        // Resgate anual
+        if (currentStepData.resgateAnual === "S") {
             setResgateAnual(true);
-        } else if (currentStepData.resgateAnual === 'N') {
+        } else if (currentStepData.resgateAnual === "N") {
             nextStep = 69;
         }
 
-        if (currentStepData.garantiaHosp === 'S') {
-
+        // Garantias
+        if (currentStepData.garantiaHosp === "S") {
             setGarantidorHosp(true);
-
-        } else if (currentStepData.garantiaHosp === 'N') {
-
+        } else if (currentStepData.garantiaHosp === "N") {
             nextStep = 89;
         }
 
-        if (currentStepData.garantidorHosp === 'fi') {
-
-            setFiador(true);
-
-        } else if (currentStepData.garantidorHosp === 'caudep') {
-            setCaucaoDep(true);
-            nextStep = 85;
-
-        } else if (currentStepData.garantidorHosp === 'caubem') {
-            setCaucaoBemIM(true);
-            nextStep = 86;
-
-        } else if (currentStepData.garantidorHosp === 'ti') {
-            setTitulos(true);
-            nextStep = 87;
-        }
-        else if (currentStepData.garantidorHosp === 'segfianca') {
-            setSeguroFi(true);
-            nextStep = 88;
-        } else if (currentStepData.enderecoFiador != undefined) {
-            setStep(89);
-        } else if (currentStepData.valorTitCaucao != undefined) {
-            setStep(89);
-        } else if (currentStepData.descBemCaucao != undefined) {
-            setStep(89);
-        } else if (currentStepData.descCredUtili != undefined) {
-            setStep(89);
-        } else if (currentStepData.segFianca != undefined) {
-            setStep(89);
+        // Tipos de garantia
+        if (currentStepData.garantidorHosp) {
+            switch (currentStepData.garantidorHosp) {
+                case "fi":
+                    setFiador(true);
+                    break;
+                case "caudep":
+                    setCaucaoDep(true);
+                    nextStep = 85;
+                    break;
+                case "caubem":
+                    setCaucaoBemIM(true);
+                    nextStep = 86;
+                    break;
+                case "ti":
+                    setTitulos(true);
+                    nextStep = 87;
+                    break;
+                case "segfianca":
+                    setSeguroFi(true);
+                    nextStep = 88;
+                    break;
+                default:
+                    break;
+            }
         }
 
+        if (
+            currentStepData.enderecoFiador ||
+            currentStepData.valorTitCaucao ||
+            currentStepData.descBemCaucao ||
+            currentStepData.descCredUtili ||
+            currentStepData.segFianca
+        ) {
+            nextStep = 89;
+        }
 
-
-
-        if (currentStepData.multaPorRompimento === 'S') {
-
+        // Multas e cláusulas específicas
+        if (currentStepData.multaPorRompimento === "S") {
             setMultaPorRompimento(true);
-
-        } else if (currentStepData.multaPorRompimento === 'N') {
-
-            nextStep = 93;
+        } else if (currentStepData.multaPorRompimento === "N") {
+            nextStep = 94;
         }
 
-        if (currentStepData.multaPorDescDeContrato === 'S') {
-
+        if (currentStepData.multaPorDescDeContrato === "S") {
             setMultaPorDescDeContrato(true);
-
-        } else if (currentStepData.multaPorDescDeContrato === 'N') {
-
+        } else if (currentStepData.multaPorDescDeContrato === "N") {
             nextStep = 96;
         }
 
-
-        if (currentStepData.duastestemunhas === 'S') {
-
+        // Testemunhas
+        if (currentStepData.duastestemunhas === "S") {
             setDuastestemunhas(true);
-
-        } else if (currentStepData.duastestemunhas === 'N') {
-
+        } else if (currentStepData.duastestemunhas === "N") {
             nextStep = 103;
         }
 
@@ -392,8 +370,9 @@ export default function Hospedagem() {
         // Atualizar o passo final.
         setStep(nextStep);
 
+        // Logs para depuração
         console.log(`qtd step depois do ajuste: ${nextStep}`);
-        console.log(`currentStepData - enderecoFiador: ${currentStepData.enderecoFiador}`);
+        // console.log(`currentStepData - enderecoFiador: ${currentStepData.enderecoFiador}`);
 
         // Limpar os dados do passo atual.
         setCurrentStepData({});
@@ -490,7 +469,6 @@ export default function Hospedagem() {
         }
     }
 
-
     const gerandoPdf = (data: any) => {
         const doc = new jsPDF();
 
@@ -500,14 +478,20 @@ export default function Hospedagem() {
         // Título
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(14);
-        doc.text("CONTRATO DE LOCAÇÃO DE IMÓVEL PARA HOSPEDAGEM", 105, 20, { align: "center" });
+        doc.text(
+            "CONTRATO DE LOCAÇÃO DE IMÓVEL PARA HOSPEDAGEM",
+            105,
+            20,
+            { align: "center" }
+        );
 
-        // Introdução
+        // Introdução e Legislação
         doc.setFont("Helvetica", "normal");
         doc.setFontSize(12);
         doc.text(
             "Pelo presente instrumento particular, as partes abaixo qualificadas ajustam o presente Contrato de Locação de Imóvel, " +
-            "que será regido pelas cláusulas e condições descritas a seguir, em conformidade com a legislação brasileira.",
+            "que será regido pelas cláusulas e condições descritas a seguir, em conformidade com a legislação brasileira, " +
+            "especialmente o disposto na Lei nº 8.245/1991 (Lei do Inquilinato), sem prejuízo de outras normas aplicáveis.",
             10,
             30,
             { maxWidth: 190 }
@@ -515,122 +499,212 @@ export default function Hospedagem() {
 
         // Identificação das Partes
         doc.text("IDENTIFICAÇÃO DAS PARTES", 10, 50);
-        if (data.locador === 'pf') {
-            doc.text(`Locador: ${obterValorOuVazio(data.nomeLocador)}, ${obterValorOuVazio(data.estadoCivilLocador)},
-             ${obterValorOuVazio(data.nacionalidadeLocador)}, ${obterValorOuVazio(data.profissaoLocador)}, portador do(a) ${obterValorOuVazio(data.docidentLocador)} 
-             nº ${obterValorOuVazio(data.numeroDocLocador)}, CPF nº ${obterValorOuVazio(data.cpfLocador)}, residente em ${obterValorOuVazio(data.enderecoLocador)}.`, 10, 60, { maxWidth: 190 });
+
+        // Dados do Locador
+        if (data.locador === "pf") {
+            doc.text(
+                `Locador: ${obterValorOuVazio(data.nomeLocador)}, ${obterValorOuVazio(data.estadoCivilLocador)}, ${obterValorOuVazio(data.nacionalidadeLocador)}, ` +
+                `${obterValorOuVazio(data.profissaoLocador)}, portador do(a) ${obterValorOuVazio(data.docidentLocador)} nº ${obterValorOuVazio(data.numeroDocLocador)}, ` +
+                `CPF nº ${obterValorOuVazio(data.cpfLocador)}, residente em ${obterValorOuVazio(data.enderecoLocador)}.`,
+                10,
+                60,
+                { maxWidth: 190 }
+            );
         } else {
-            doc.text(`Locador: ${obterValorOuVazio(data.razaoSocialLocador)}, CNPJ nº ${obterValorOuVazio(data.cnpjLocador)}, com sede em ${obterValorOuVazio(data.enderecoLocadora)}.`, 10, 60, { maxWidth: 190 });
+            doc.text(
+                `Locador: ${obterValorOuVazio(data.razaoSocialLocador)}, CNPJ nº ${obterValorOuVazio(data.cnpjLocador)}, com sede em ${obterValorOuVazio(data.enderecoLocadora)}.`,
+                10,
+                60,
+                { maxWidth: 190 }
+            );
+            const baseY = 100;
+
+            if (data.pessoasAssinantes === "1") {
+                doc.text(
+                    `Representante: ${obterValorOuVazio(data.nomeumlocador)}, ${obterValorOuVazio(data.cargoumlocador)}, portador do(a) ${obterValorOuVazio(data.docidentpessoaHabilitadaLoc)} nº ${obterValorOuVazio(data.numeroDocUmLocador)}, ` +
+                    `CPF nº ${obterValorOuVazio(data.cpfDaPessoaHabilitada)}.`,
+                    10,
+                    baseY,
+                    { maxWidth: 190 }
+                );
+            } else {
+                doc.text(
+                    `Representante 1: ${obterValorOuVazio(data.nome2locador)}, ${obterValorOuVazio(data.cargo2locador)}, portador do(a) ${obterValorOuVazio(data.docidentpessoaHabilitadaLoc2)} nº ${obterValorOuVazio(data.numeroDoc2Locador)}, ` +
+                    `CPF nº ${obterValorOuVazio(data.cpfDaPessoaHabilitadaHospede)}.`,
+                    10,
+                    baseY,
+                    { maxWidth: 190 }
+                );
+                doc.text(
+                    `Representante 2: ${obterValorOuVazio(data.nomeu2Hospede)}, ${obterValorOuVazio(data.cargo2Hospede)}, portador do(a) ${obterValorOuVazio(data.docidentpessoaHabilitadaHos2)} nº ${obterValorOuVazio(data.numeroDoc2Hospede)}, ` +
+                    `CPF nº ${obterValorOuVazio(data.cpfDaPessoaHabilitada2)}.`,
+                    10,
+                    baseY + 10,
+                    { maxWidth: 190 }
+                );
+            }
         }
 
-        if (data.hospede === 'pf') {
-            doc.text(`Hóspede: ${obterValorOuVazio(data.nomeHospede)}, ${obterValorOuVazio(data.estadoCivilHospede)}, ${obterValorOuVazio(data.nacionalidadeHospede)},
-                 ${obterValorOuVazio(data.profissaoHospede)}, portador do(a) ${obterValorOuVazio(data.docidentHospede)} nº ${obterValorOuVazio(data.numeroDocHospede)}, 
-                 CPF nº ${obterValorOuVazio(data.cpfHospede)}, residente em ${obterValorOuVazio(data.enderecoHospede)}.`, 10, 80, { maxWidth: 190 });
+        // Dados do Hóspede
+        doc.text("DADOS DO HÓSPEDE", 10, 80);
+
+        if (data.hospede === "pf") {
+            doc.text(
+                `Hóspede: ${obterValorOuVazio(data.nomeHospede)}, ${obterValorOuVazio(data.estadoCivilHospede)}, ${obterValorOuVazio(data.nacionalidadeHospede)}, ` +
+                `${obterValorOuVazio(data.profissaoHospede)}, portador do(a) ${obterValorOuVazio(data.docidentHospede)} nº ${obterValorOuVazio(data.numeroDocHospede)}, ` +
+                `CPF nº ${obterValorOuVazio(data.cpfHospede)}, residente em ${obterValorOuVazio(data.enderecoHospede)}.`,
+                10,
+                90,
+                { maxWidth: 190 }
+            );
         } else {
-            doc.text(`Hóspede: ${obterValorOuVazio(data.razaoSocialHospede)}, CNPJ nº ${obterValorOuVazio(data.cnpjHospede)}, com sede em ${obterValorOuVazio(data.enderecoHospedeiro)}.`, 10, 80, { maxWidth: 190 });
+            doc.text(
+                `Hóspede: ${obterValorOuVazio(data.razaoSocialHospede)}, CNPJ nº ${obterValorOuVazio(data.cnpjHospede)}, com sede em ${obterValorOuVazio(data.enderecoHospedeiro)}.`,
+                10,
+                90,
+                { maxWidth: 190 }
+            );
+
+            const baseY = 100;
+
+            if (data.pessoasHospedeAssinantes === "1") {
+                doc.text(
+                    `Representante: ${obterValorOuVazio(data.nomeumHospede)}, ${obterValorOuVazio(data.cargoumHospede)}, portador do(a) ${obterValorOuVazio(data.docidentpessoaHabilitadaHos)} nº ${obterValorOuVazio(data.numeroDocUmHospede)}, ` +
+                    `CPF nº ${obterValorOuVazio(data.cpfDaPessoaHabilitadaHospede)}.`,
+                    10,
+                    baseY,
+                    { maxWidth: 190 }
+                );
+            } else {
+                doc.text(
+                    `Representante 1: ${obterValorOuVazio(data.nomeumHospede)}, ${obterValorOuVazio(data.cargoumHospede)}, portador do(a) ${obterValorOuVazio(data.docidentpessoaHabilitadaHos)} nº ${obterValorOuVazio(data.numeroDocUmHospede)}, ` +
+                    `CPF nº ${obterValorOuVazio(data.cpfDaPessoaHabilitadaHospede)}.`,
+                    10,
+                    baseY,
+                    { maxWidth: 190 }
+                );
+                doc.text(
+                    `Representante 2: ${obterValorOuVazio(data.nomeu2Hospede)}, ${obterValorOuVazio(data.cargo2Hospede)}, portador do(a) ${obterValorOuVazio(data.docidentpessoaHabilitadaHos2)} nº ${obterValorOuVazio(data.numeroDoc2Hospede)}, ` +
+                    `CPF nº ${obterValorOuVazio(data.cpfDaPessoaHabilitadaHospede2)}.`,
+                    10,
+                    baseY + 10,
+                    { maxWidth: 190 }
+                );
+            }
         }
 
         // Objeto do Contrato
-        doc.text("OBJETO DO CONTRATO", 10, 100);
+        doc.text("OBJETO DO CONTRATO", 10, 120);
         doc.text(
-            `O presente contrato tem como objeto a locação do imóvel 
-            ${obterValorOuVazio(data.tipoDeImovel) === 'cs' ? 'Casa' : obterValorOuVazio(data.tipoDeImovel) === 'flat' ? 'Flat' : 'Outro'}, 
-            localizado em ${obterValorOuVazio(data.enderecoImovel)}, conforme descrito: ${obterValorOuVazio(data.descImovel)}.`,
+            `O presente contrato tem como objeto a locação do imóvel ${obterValorOuVazio(data.tipoDeImovel)} localizado em ${obterValorOuVazio(data.enderecoImovel)}, conforme descrito: ${obterValorOuVazio(data.descImovel)}.`,
             10,
-            110,
+            130,
             { maxWidth: 190 }
         );
 
-        // Vedação à Sublocação e Empréstimo
-        doc.text("VEDAÇÃO À SUBLOCAÇÃO E EMPRÉSTIMO", 10, 130);
+
+
+        doc.text("CLÁUSULAS GERAIS", 10, 80);
         doc.text(
-            `Fica expressamente vedada a sublocação ou empréstimo do imóvel, salvo com autorização expressa e por escrito do Locador.`,
+            `Cláusulas Rescisórias:\n` +
+            `1. O contrato poderá ser rescindido por ambas as partes com aviso prévio de 30 dias.\n` +
+            `2. Em caso de inadimplência, será aplicada multa de ${obterValorOuVazio(data.multaDesistencia)}.`,
             10,
-            140,
+            180,
             { maxWidth: 190 }
         );
-
-        // Valor e Condições de Pagamento
-        doc.text("VALOR E CONDIÇÕES DE PAGAMENTO", 10, 160);
+        // Direitos e Deveres
+        doc.text("DIREITOS E DEVERES", 10, 140);
         doc.text(
-            `O valor da hospedagem será de R$ ${obterValorOuVazio(data.valordahospedagem)} 
-            por ${obterValorOuVazio(data.cobrancaHospedagem) === 'd' ? 'dia' : obterValorOuVazio(data.cobrancaHospedagem) === 'mes' ? 'mês' : 'outra frequência'}.`,
+            `Deveres do Locador:\n- Manter o imóvel em condições adequadas para uso.\n- Entregar o imóvel conforme especificado no contrato.`,
+            10,
+            150,
+            { maxWidth: 190 }
+        );
+        doc.text(
+            `Deveres do Hóspede:\n- Utilizar o imóvel de forma responsável e respeitar as regras estabelecidas.\n- Realizar o pagamento da hospedagem conforme estipulado.`,
             10,
             170,
             { maxWidth: 190 }
         );
-        if (data.antecipaPagReserva === 'S') {
-            doc.text(`Foi paga uma antecipação de R$ ${obterValorOuVazio(data.valorAntecipa)} como reserva.`, 10, 180, { maxWidth: 190 });
+
+        // Garantia
+        if (data.garantiaHosp === "S") {
+            doc.text("GARANTIA DA LOCAÇÃO", 10, 150);
+
+            if (data.garantidorHosp === "fi") {
+                doc.text(
+                    `Fiador: ${obterValorOuVazio(data.nomeFiador1)}, ${obterValorOuVazio(data.estadoCivilFiador)}, ${obterValorOuVazio(data.nacionalidadeFiador)}, ` +
+                    `${obterValorOuVazio(data.profissaoFiador)}, portador do(a) ${obterValorOuVazio(data.docIdentificacao)} nº ${obterValorOuVazio(data.numeroDocFiador)}, ` +
+                    `CPF nº ${obterValorOuVazio(data.cpfFiador)}, residente em ${obterValorOuVazio(data.enderecoFiador)}.`,
+                    10,
+                    160,
+                    { maxWidth: 190 }
+                );
+            } else if (data.garantidorHosp === "caudep") {
+                doc.text(
+                    `Caução em Depósito: Valor de R$ ${obterValorOuVazio(data.valorTitCaucao)}.`,
+                    10,
+                    160,
+                    { maxWidth: 190 }
+                );
+            } else if (data.garantidorHosp === "caubem") {
+                doc.text(
+                    `Caução em Bem Imóvel: Descrição do bem: ${obterValorOuVazio(data.descBemCaucao)}.`,
+                    10,
+                    160,
+                    { maxWidth: 190 }
+                );
+            } else if (data.garantidorHosp === "ti") {
+                doc.text(
+                    `Título de Crédito Utilizado: ${obterValorOuVazio(data.descCredUtili)}.`,
+                    10,
+                    160,
+                    { maxWidth: 190 }
+                );
+            } else if (data.garantidorHosp === "segfianca") {
+                doc.text(
+                    `Seguro Fiança: Detalhes da apólice: ${obterValorOuVazio(data.segFianca)}.`,
+                    10,
+                    160,
+                    { maxWidth: 190 }
+                );
+            }
         }
 
-        // Regras de Ocupação
-        doc.text("REGRAS DE OCUPAÇÃO", 10, 200);
+        // Detalhes da Locação
+        doc.text("DETALHES DA LOCAÇÃO", 10, 190);
         doc.text(
-            `O imóvel será ocupado por até ${obterValorOuVazio(data.qtdPessoasAutorizadas)} pessoa(s). 
-            O descumprimento dessa regra acarretará multa de R$ ${obterValorOuVazio(data.valorMultaPesExcendente)}.`,
+            `Quantidade de pessoas autorizadas: ${obterValorOuVazio(data.qtdPessoasAutorizadas)}.\n` +
+            `Valor da multa por pessoa excedente: R$ ${obterValorOuVazio(data.valorMultaPesExcendente)}.\n` +
+            `Antecipação de pagamento de reserva: ${data.antecipaPagReserva === "S" ? `Sim, no valor de R$ ${obterValorOuVazio(data.valorAntecipa)}` : "Não"}.\n` +
+            `Valor da hospedagem: R$ ${obterValorOuVazio(data.valordahospedagem)} (${obterValorOuVazio(data.cobrancaHospedagem)}).\n` +
+            `Cobrança de multa por desistência: ${data.cobrancaMulta === "S" ? `Sim, no valor de R$ ${obterValorOuVazio(data.multaDesistencia)}` : "Não"}.\n` +
+            `Multa por não desocupação do imóvel no prazo: R$ ${obterValorOuVazio(data.multaPorNaoDesocupa)}.`,
             10,
-            210,
+            200,
             { maxWidth: 190 }
         );
-        if (data.regrasExpeHospedes === 'S') {
-            doc.text(`Regras adicionais para hóspedes: ${obterValorOuVazio(data.descRegrasHospedes)}.`, 10, 220, { maxWidth: 190 });
-        }
-
-        // Garantia e Benfeitorias
-        doc.text("GARANTIA E BENFEITORIAS", 10, 240);
-        doc.text(
-            `Será exigida garantia do tipo ${obterValorOuVazio(data.garantidorHosp)}. Caso o Locador autorize benfeitorias, as mesmas 
-            deverão ser custeadas por ${obterValorOuVazio(data.pagadorBemFeitorias)}.`,
-            10,
-            250,
-            { maxWidth: 190 }
-        );
-
-        // Rescisão, Descumprimento e Multas
-        doc.addPage();
-        doc.text("RESCISÃO, DESCUMPRIMENTO E MULTAS", 10, 20);
-        doc.text(
-            `Em caso de rescisão antecipada sem justa causa, será aplicada multa de R$ ${obterValorOuVazio(data.valorMultaRompimento)}. 
-            Caso o Hóspede descumpra quaisquer cláusulas deste contrato, será aplicada multa de R$ ${obterValorOuVazio(data.valorMultaDesc)}.`,
-            10,
-            30,
-            { maxWidth: 190 }
-        );
-
-        // Foro
-        doc.text("FORO", 10, 60);
-        doc.text(
-            `As partes elegem o foro da cidade de ${obterValorOuVazio(data.cidadeAssinatura)} 
-            para dirimir quaisquer questões oriundas deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.`,
-            10,
-            70,
-            { maxWidth: 190 }
-        );
-
-        // Data de Assinatura
-        doc.text("DATA DE ASSINATURA", 10, 90);
-        doc.text(`Este contrato foi firmado na cidade de ${obterValorOuVazio(data.cidadeAssinatura)}, em ${formatarData(data.dataAssinatura)}.`, 10, 100, { maxWidth: 190 });
 
         // Assinaturas
-        doc.text("ASSINATURAS", 10, 120);
-        doc.text("_________________________", 10, 130);
-        doc.text("Locador", 10, 135);
-        doc.text("_________________________", 100, 130);
-        doc.text("Hóspede", 100, 135);
+        doc.text("ASSINATURAS", 10, 230);
+        doc.text(`Assinatura Locador: ________________________________________`, 10, 240);
+        doc.text(`Assinatura Hóspede: _______________________________________`, 10, 250);
 
-        if (data.duastestemunhas === 'S') {
-            doc.text("_________________________", 10, 150);
-            doc.text(`Testemunha 1: ${data.nomeTest1}, CPF: ${data.cpfTest1}`, 10, 155);
-            doc.text("_________________________", 100, 150);
-            doc.text(`Testemunha 2: ${data.nomeTest2}, CPF: ${data.cpfTest2}`, 100, 155);
+        // Testemunhas
+        if (data.duastestemunhas === "S") {
+            doc.text("TESTEMUNHAS", 10, 260);
+            doc.text(`1ª Testemunha: ________________________________________`, 10, 270);
+            doc.text(`2ª Testemunha: ________________________________________`, 10, 280);
         }
 
-
-        // Gerar URL do PDF para visualização
+        // Gerar URL do PDF
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
+
+
+
 
 
     useEffect(() => {
@@ -765,11 +839,12 @@ export default function Hospedagem() {
                                         <label>Documento de Identificação:</label>
                                         <select name='docidentLocador' onChange={handleChange}>
                                             <option value="">Selecione</option>
+
                                             <option value="Rg">Rg</option>
-                                            <option value="Ifunc">Identificação funcional</option>
-                                            <option value="ctps">Carteira de trabalho</option>
-                                            <option value="cnh">CNH</option>
-                                            <option value="passaporte">Passaporte</option>
+                                            <option value="Identidade funcional">Identificação funcional</option>
+                                            <option value="Ctps">Carteira de trabalho</option>
+                                            <option value="CNH">CNH</option>
+                                            <option value="Passaporte">Passaporte</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -936,11 +1011,12 @@ export default function Hospedagem() {
                                                 <label>Documento do 1° Representante:</label>
                                                 <select name='docidentpessoaHabilitadaLoc' onChange={handleChange}>
                                                     <option value="">Selecione</option>
+
                                                     <option value="Rg">Rg</option>
-                                                    <option value="Ifunc">Identificação funcional</option>
-                                                    <option value="ctps">Carteira de trabalho</option>
-                                                    <option value="cnh">CNH</option>
-                                                    <option value="passaporte">Passaporte</option>
+                                                    <option value="Identidade funcional">Identificação funcional</option>
+                                                    <option value="Ctps">Carteira de trabalho</option>
+                                                    <option value="CNH">CNH</option>
+                                                    <option value="Passaporte">Passaporte</option>
                                                 </select>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
@@ -1020,11 +1096,12 @@ export default function Hospedagem() {
                                                         <label>Documento do 2° Representante:</label>
                                                         <select name='docidentpessoaHabilitadaLoc2' onChange={handleChange}>
                                                             <option value="">Selecione</option>
+
                                                             <option value="Rg">Rg</option>
-                                                            <option value="Ifunc">Identificação funcional</option>
-                                                            <option value="ctps">Carteira de trabalho</option>
-                                                            <option value="cnh">CNH</option>
-                                                            <option value="passaporte">Passaporte</option>
+                                                            <option value="Identidade funcional">Identificação funcional</option>
+                                                            <option value="Ctps">Carteira de trabalho</option>
+                                                            <option value="CNH">CNH</option>
+                                                            <option value="Passaporte">Passaporte</option>
                                                         </select>
                                                         <button onClick={handleNext}>Próximo</button>
                                                     </div>
@@ -1177,11 +1254,12 @@ export default function Hospedagem() {
                                         <label>Documento de Identificação:</label>
                                         <select name='docidentHospede' onChange={handleChange}>
                                             <option value="">Selecione</option>
+
                                             <option value="Rg">Rg</option>
-                                            <option value="Ifunc">Identificação funcional</option>
-                                            <option value="ctps">Carteira de trabalho</option>
-                                            <option value="cnh">CNH</option>
-                                            <option value="passaporte">Passaporte</option>
+                                            <option value="Identidade funcional">Identificação funcional</option>
+                                            <option value="Ctps">Carteira de trabalho</option>
+                                            <option value="CNH">CNH</option>
+                                            <option value="Passaporte">Passaporte</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1301,7 +1379,7 @@ export default function Hospedagem() {
                                         <>
                                             <h2>Dados do Hóspede CNPJ</h2>
                                             <div>
-                                                <label>Quantas pessoas assinarão no nome da locadora?</label>
+                                                <label>Quantas pessoas assinarão no nome do(a) Hóspede?</label>
                                                 <select name='pessoasHospedeAssinantes' onChange={handleChange}>
                                                     <option value="">Selecione</option>
                                                     <option value="1">1</option>
@@ -1355,11 +1433,12 @@ export default function Hospedagem() {
                                                 <label>Documento do 1° Representante:</label>
                                                 <select name='docidentpessoaHabilitadaHos' onChange={handleChange}>
                                                     <option value="">Selecione</option>
+
                                                     <option value="Rg">Rg</option>
-                                                    <option value="Ifunc">Identificação funcional</option>
-                                                    <option value="ctps">Carteira de trabalho</option>
-                                                    <option value="cnh">CNH</option>
-                                                    <option value="passaporte">Passaporte</option>
+                                                    <option value="Identidade funcional">Identificação funcional</option>
+                                                    <option value="Ctps">Carteira de trabalho</option>
+                                                    <option value="CNH">CNH</option>
+                                                    <option value="Passaporte">Passaporte</option>
                                                 </select>
                                                 <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
@@ -1444,11 +1523,12 @@ export default function Hospedagem() {
                                                         <label>Documento do 2° Representante:</label>
                                                         <select name='docidentpessoaHabilitadaHos2' onChange={handleChange}>
                                                             <option value="">Selecione</option>
+
                                                             <option value="Rg">Rg</option>
-                                                            <option value="Ifunc">Identificação funcional</option>
-                                                            <option value="ctps">Carteira de trabalho</option>
-                                                            <option value="cnh">CNH</option>
-                                                            <option value="passaporte">Passaporte</option>
+                                                            <option value="Identidade funcional">Identificação funcional</option>
+                                                            <option value="Ctps">Carteira de trabalho</option>
+                                                            <option value="CNH">CNH</option>
+                                                            <option value="Passaporte">Passaporte</option>
                                                         </select>
                                                         <button onClick={handleBack}>Voltar</button>
                                                         <button onClick={handleNext}>Próximo</button>
@@ -1503,12 +1583,13 @@ export default function Hospedagem() {
                                         <label>Qual é o tipo de imóvel que será utilizado na Hospedagem?</label>
                                         <select name='tipoDeImovel' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="cs">Casa</option>
-                                            <option value="flat">Flat</option>
-                                            <option value="aph">Apartamento de Hotel</option>
-                                            <option value="qh">Quarto de Hotel</option>
-                                            <option value="qr">Quarto em República</option>
-                                            <option value="qa">Quarto em Albergue</option>
+                                            <option value="Casa">Casa</option>
+                                            <option value="Apartamento">Apartamento</option>
+                                            <option value="Flat">Flat</option>
+                                            <option value="Apartamento de Hotel">Apartamento de Hotel</option>
+                                            <option value="Quarto de Hotel">Quarto de Hotel</option>
+                                            <option value="Quarto em República">Quarto em República</option>
+                                            <option value="Quarto em Albergue">Quarto em Albergue</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1574,7 +1655,7 @@ export default function Hospedagem() {
                                 <>
                                     <h2>Dados do Imóvel</h2>
                                     <div>
-                                        <label>Valor da multa diária cobrado por valor excedente</label>
+                                        <label>Valor da multa diária cobrado por pessoa excedente</label>
                                         <div>
                                             <input
                                                 type='text'
@@ -2083,11 +2164,12 @@ export default function Hospedagem() {
                                                         <label>Documento do 2° Representante:</label>
                                                         <select name='docIdentificacao' onChange={handleChange}>
                                                             <option value="">Selecione</option>
+
                                                             <option value="Rg">Rg</option>
-                                                            <option value="Ifunc">Identificação funcional</option>
-                                                            <option value="ctps">Carteira de trabalho</option>
-                                                            <option value="cnh">CNH</option>
-                                                            <option value="passaporte">Passaporte</option>
+                                                            <option value="Identidade funcional">Identificação funcional</option>
+                                                            <option value="Ctps">Carteira de trabalho</option>
+                                                            <option value="CNH">CNH</option>
+                                                            <option value="Passaporte">Passaporte</option>
                                                         </select>
                                                         <button onClick={handleBack}>Voltar</button>
                                                         <button onClick={handleNext}>Próximo</button>                                                    </div>
@@ -2537,10 +2619,10 @@ export default function Hospedagem() {
                                 frameBorder="0"
                                 width="100%"
                                 height="100%"
-                                style={{
-                                    pointerEvents: 'none',
-                                    userSelect: 'none',
-                                }}
+                            // style={{
+                            //     pointerEvents: 'none',
+                            //     userSelect: 'none',
+                            // }}
                             ></iframe>
                         )}
                     </div>

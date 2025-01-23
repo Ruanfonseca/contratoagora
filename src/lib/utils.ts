@@ -10,17 +10,6 @@ export function formatarData(Data: string): string {
     console.error('Data inválida ou vazia');
     return 'Data inválida';
   }
-
-  // Verificando se o formato de data é no padrão 'YYYY-MM-DD'
-  if (Data.length !== 10 || Data[4] !== '-' || Data[7] !== '-') {
-    console.error('Formato de data inválido');
-    return 'Data inválida';
-  }
-
-  // Extraindo as partes diretamente
-  const year = Data.substring(0, 4);
-  const month = Data.substring(5, 7);
-  const day = Data.substring(8, 10);
-
-  return `${day}/${month}/${year}`;
+  const partes = Data.split("-");
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
