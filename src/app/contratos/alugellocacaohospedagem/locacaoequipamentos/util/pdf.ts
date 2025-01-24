@@ -1,3 +1,4 @@
+import { verificarValor } from "@/lib/utils";
 import jsPDF from "jspdf";
 
 export default function gerarContratoLocacaoEquipamentoPDF(dados: any) {
@@ -8,124 +9,144 @@ export default function gerarContratoLocacaoEquipamentoPDF(dados: any) {
     let posY = 20;
 
     // Função auxiliar para adicionar seções e ajustar a posição Y
-    const addSection = (title: string, content: string[]) => {
+    const addSection = (title: any, content: any) => {
         if (posY + 10 >= 280) {
             doc.addPage();
             posY = 20;
         }
         doc.setFontSize(12);
-        doc.text(title, 105, posY, { align: "center" });
+        doc.text(title, 105, posY, { align: "center" }); // Centralizado
         posY += 10;
         doc.setFontSize(10);
-        content.forEach((line: string) => {
+        content.forEach((line: any) => {
             if (posY + 7 >= 280) {
                 doc.addPage();
                 posY = 20;
             }
-            doc.text(line, marginX, posY);
+            doc.text(line, 105, posY, { align: "center" }); // Centralizado
             posY += 7;
         });
     };
 
-    // Página 1 - Cabeçalho
+    // Cabeçalho
     doc.setFontSize(14);
     doc.text("CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS", 105, posY, { align: "center" });
     posY += 15;
 
-    // Seções do contrato
+    // Seções do contrato com artigos do Código Civil
     addSection("1. Identificação das Partes", [
+        "Conforme o Código Civil Brasileiro (Art. 104 e Art. 566):",
+        "- As partes devem ser plenamente capazes e identificadas de forma clara.",
         "Locador:",
-        `Tipo: ${dados.locador === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}`,
-        dados.locador === "pf"
-            ? `Nome: ${dados.nomeLocador}, CPF: ${dados.CPFLocador}`
-            : `Razão Social: ${dados.razaoSocial}, CNPJ: ${dados.cpfLocador}`,
-        `Endereço: ${dados.locador === "pf" ? dados.enderecoLocador : dados.enderecoCNPJ}`,
-        `Telefone: ${dados.locador === "pf" ? dados.telefoneLocador : dados.telefoneCNPJ}`,
-        `E-mail: ${dados.locador === "pf" ? dados.emailLocador : dados.emailCNPJ}`,
-        dados.locador === "pj"
-            ? `Representante Legal: ${dados.nomeRepresentanteCNPJ}, CPF: ${dados.CPFRepresentanteCNPJ}`
+        `Tipo: ${verificarValor(dados.locador) === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}`,
+        verificarValor(dados.locador) === "pf"
+            ? `Nome: ${verificarValor(dados.nomeLocador)}, CPF: ${verificarValor(dados.CPFLocador)}`
+            : `Razão Social: ${verificarValor(dados.razaoSocial)}, CNPJ: ${verificarValor(dados.cnpjlocador)}`,
+        `Endereço: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.enderecoLocador) : verificarValor(dados.enderecoCNPJ)}`,
+        `Telefone: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.telefoneLocador) : verificarValor(dados.telefoneCNPJ)}`,
+        `E-mail: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.emailLocador) : verificarValor(dados.emailCNPJ)}`,
+        verificarValor(dados.locador) === "pj"
+            ? `Representante Legal: ${verificarValor(dados.nomeRepresentanteCNPJ)}, CPF: ${verificarValor(dados.CPFRepresentanteCNPJ)}`
             : "",
         "",
         "Locatário:",
-        `Tipo: ${dados.locatario === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}`,
-        dados.locatario === "pf"
-            ? `Nome: ${dados.nomelocatario}, CPF: ${dados.CPFlocatario}`
-            : `Razão Social: ${dados.razaoSociallocatario}, CNPJ: ${dados.cpflocatario}`,
-        `Endereço: ${dados.locatario === "pf" ? dados.enderecolocatario : dados.enderecolocatarioCNPJ}`,
-        `Telefone: ${dados.locatario === "pf" ? dados.telefonelocatario : dados.telefonelocatarioCNPJ}`,
-        `E-mail: ${dados.locatario === "pf" ? dados.emaillocatario : dados.emaillocatarioCNPJ}`,
-        dados.locatario === "pj"
-            ? `Representante Legal: ${dados.nomeRepresentantelocatarioCNPJ}, CPF: ${dados.CPFRepresentantelocatarioCNPJ}`
+        `Tipo: ${verificarValor(dados.locatario) === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}`,
+        verificarValor(dados.locatario) === "pf"
+            ? `Nome: ${verificarValor(dados.nomelocatario)}, CPF: ${verificarValor(dados.CPFlocatario)}`
+            : `Razão Social: ${verificarValor(dados.razaoSociallocatario)}, CNPJ: ${verificarValor(dados.cnpj)}`,
+        `Endereço: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.enderecolocatario) : verificarValor(dados.enderecolocatarioCNPJ)}`,
+        `Telefone: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.telefonelocatario) : verificarValor(dados.telefonelocatarioCNPJ)}`,
+        `E-mail: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.emaillocatario) : verificarValor(dados.emaillocatarioCNPJ)}`,
+        verificarValor(dados.locatario) === "pj"
+            ? `Representante Legal: ${verificarValor(dados.nomeRepresentantelocatarioCNPJ)}, CPF: ${verificarValor(dados.CPFRepresentantelocatarioCNPJ)}`
             : "",
     ]);
 
     addSection("2. Descrição do Equipamento", [
-        `Tipo de Equipamento: ${dados.tipodeequipamento}`,
-        `Marca e Modelo: ${dados.marcaemodelo}`,
-        `Número de Série: ${dados.numerodeserie}`,
-        `Estado de Conservação: ${dados.estadoconservacao}`,
-        `Acessórios e Componentes: ${dados.acessorioscomponentes}`,
+        "Conforme o Código Civil Brasileiro (Art. 566):",
+        "- O locador é obrigado a entregar o equipamento em bom estado de uso.",
+        `Tipo de Equipamento: ${verificarValor(dados.tipodeequipamento)}`,
+        `Marca e Modelo: ${verificarValor(dados.marcaemodelo)}`,
+        `Número de Série: ${verificarValor(dados.numerodeserie)}`,
+        `Estado de Conservação: ${verificarValor(dados.estadoconservacao)}`,
+        `Acessórios e Componentes: ${verificarValor(dados.acessorioscomponentes)}`,
     ]);
 
     addSection("3. Prazo da Locação", [
-        `Data de Início: ${dados.dataInicioLocacao}`,
-        `Data de Término: ${dados.dataTerminoLocacao}`,
-        `Renovação: ${dados.possibilidadeRenovacao === "S" ? "Sim" : "Não"}`,
-        `Condições: ${dados.condicao}`,
+        "Conforme o Código Civil Brasileiro (Art. 565 e Art. 578):",
+        "- A locação deve ter prazo determinado ou indeterminado conforme as partes acordarem.",
+        `Data de Início: ${verificarValor(dados.dataInicioLocacao)}`,
+        `Data de Término: ${verificarValor(dados.dataTerminoLocacao)}`,
+        `Renovação: ${verificarValor(dados.possibilidadeRenovacao) === "S" ? "Sim" : "Não"}`,
+        `Condições: ${verificarValor(dados.condicao)}`,
     ]);
 
     addSection("4. Valor e Condições de Pagamento", [
-        `Valor Total: R$ ${dados.valorTotalLocacao}`,
-        `Forma de Pagamento: ${dados.formaPagamento}`,
-        `Data de Vencimento: ${dados.dataVencimentoParcela}`,
-        `Multa por Atraso: ${dados.multaPorAtrasoPagamento}%`,
-        `Juros por Atraso: ${dados.jurosporatraso}% ao mês`,
+        "Conforme o Código Civil Brasileiro (Art. 567 e Art. 578):",
+        "- O valor do aluguel e a forma de pagamento devem ser especificados claramente.",
+        `Valor Total: R$ ${verificarValor(dados.valorTotalLocacao)}`,
+        `Forma de Pagamento: ${verificarValor(dados.formaPagamento)}`,
+        `Data de Vencimento: ${verificarValor(dados.dataVencimentoParcela)}`,
+        `Multa por Atraso: ${verificarValor(dados.multaPorAtrasoPagamento)}%`,
+        `Juros por Atraso: ${verificarValor(dados.jurosporatraso)}% ao mês`,
     ]);
 
     addSection("5. Garantias", [
-        `Garantia Exigida: ${dados.garantia === "S" ? "Sim" : "Não"}`,
-        `Tipo de Garantia: ${dados.qualgarantidor === "fi"
-            ? `Fiador: ${dados.nomeFiador}, CPF: ${dados.cpfFiador}`
-            : dados.qualgarantidor === "caudep"
-                ? `Caução em Dinheiro: R$ ${dados.valorTitCaucao}`
-                : dados.qualgarantidor === "caubem"
-                    ? `Caução em Bem: ${dados.descBemCaucao}`
-                    : dados.qualgarantidor === "ti"
-                        ? `Título de Crédito: ${dados.descCredUtili}`
-                        : `Seguro Fiança: ${dados.segFianca}`
+        "Conforme o Código Civil Brasileiro (Art. 578 e Art. 585):",
+        "- As garantias contratuais devem ser claramente definidas e respeitadas.",
+        `Garantia Exigida: ${verificarValor(dados.garantia) === "S" ? "Sim" : "Não"}`,
+        `Tipo de Garantia: ${verificarValor(dados.qualgarantidor) === "fi"
+            ? `Fiador: ${verificarValor(dados.nomeFiador)}, CPF: ${verificarValor(dados.cpfFiador)}`
+            : verificarValor(dados.qualgarantidor) === "caudep"
+                ? `Caução em Dinheiro: R$ ${verificarValor(dados.valorTitCaucao)}`
+                : verificarValor(dados.qualgarantidor) === "caubem"
+                    ? `Caução em Bem: ${verificarValor(dados.descBemCaucao)}`
+                    : verificarValor(dados.qualgarantidor) === "ti"
+                        ? `Título de Crédito: ${verificarValor(dados.descCredUtili)}`
+                        : `Seguro Fiança: ${verificarValor(dados.segFianca)}`
         }`,
     ]);
 
     addSection("6. Obrigações do Locador", [
-        `Entrega em Perfeito Estado: ${dados.entregaEquipLocador}`,
-        `Garantia de Manutenção: ${dados.garantiaManutencao}`,
-        `Fornecimento de Suporte: ${dados.forneceraSuporte}`,
-        `Condições Específicas: ${dados.quaisCondicoes}`,
+        "Conforme o Código Civil Brasileiro (Art. 566):",
+        "- O locador é obrigado a entregar o equipamento em estado de servir ao uso a que se destina.",
+        `Entrega em Perfeito Estado: ${verificarValor(dados.entregaEquipLocador)}`,
+        `Garantia de Manutenção: ${verificarValor(dados.garantiaManutencao)}`,
+        `Fornecimento de Suporte: ${verificarValor(dados.forneceraSuporte)}`,
+        `Condições Específicas: ${verificarValor(dados.quaisCondicoes)}`,
     ]);
 
     addSection("7. Obrigações do Locatário", [
-        `Uso Adequado: ${dados.compromeUso}`,
-        `Responsabilidade por Danos: ${dados.danosUso}`,
-        `Restrições de Uso: ${dados.restricoesLocal}`,
-        `Custos de Manutenção: ${dados.arcarCustos}`,
+        "Conforme o Código Civil Brasileiro (Art. 567):",
+        "- O locatário deve usar o equipamento conforme o destino pactuado e responsabilizar-se por danos.",
+        `Uso Adequado: ${verificarValor(dados.compromeUso)}`,
+        `Responsabilidade por Danos: ${verificarValor(dados.danosUso)}`,
+        `Restrições de Uso: ${verificarValor(dados.restricoesLocal)}`,
+        `Custos de Manutenção: ${verificarValor(dados.arcarCustos)}`,
     ]);
 
     addSection("8. Devolução do Equipamento", [
-        `Local de Devolução: ${dados.local}`,
-        `Condições para Devolução: ${dados.condicoesDevolucao}`,
-        `Penalidades em Caso de Avarias: ${dados.penalidades}`,
+        "Conforme o Código Civil Brasileiro (Art. 569):",
+        "- O locatário deve devolver o equipamento ao final do contrato em condições adequadas.",
+        `Local de Devolução: ${verificarValor(dados.local)}`,
+        `Condições para Devolução: ${verificarValor(dados.condicoesDevolucao)}`,
+        `Penalidades em Caso de Avarias: ${verificarValor(dados.penalidades)}`,
     ]);
 
     addSection("9. Rescisão do Contrato", [
-        `Condições: ${dados.condicoesRescisao}`,
-        `Multas: ${dados.multasRescisao}`,
-        `Prazo de Notificação: ${dados.prazoNotificacaoRescisao} dias`,
+        "Conforme o Código Civil Brasileiro (Art. 473):",
+        "- A rescisão contratual pode ocorrer por descumprimento das obrigações ou acordo mútuo.",
+        `Condições: ${verificarValor(dados.condicoesRescisao)}`,
+        `Multas: ${verificarValor(dados.multasRescisao)}`,
+        `Prazo de Notificação: ${verificarValor(dados.prazoNotificacaoRescisao)} dias`,
     ]);
 
     addSection("10. Disposições Gerais", [
-        `Foro: ${dados.foroResolucaoConflitos}`,
-        `Necessidade de Testemunhas: ${dados.testemunhasNecessarias}`,
-        `Registro em Cartório: ${dados.registroCartorio}`,
+        "Conforme o Código Civil Brasileiro (Art. 421 e Art. 422):",
+        "- O contrato deve respeitar a função social e ser executado com boa-fé e probidade.",
+        `Foro: ${verificarValor(dados.foroResolucaoConflitos)}`,
+        `Necessidade de Testemunhas: ${verificarValor(dados.testemunhasNecessarias)}`,
+        `Registro em Cartório: ${verificarValor(dados.registroCartorio)}`,
     ]);
 
     addSection("11. Base Legal do Contrato", [
@@ -137,7 +158,8 @@ export default function gerarContratoLocacaoEquipamentoPDF(dados: any) {
         "Art. 567: Responsabilidade do locatário por usar a coisa adequadamente.",
     ]);
 
-    // Área de assinaturas
+
+    // Assinaturas
     posY += 20;
     doc.text("__________________________", 60, posY);
     doc.text("Assinatura do Locador", 60, posY + 5);
@@ -145,17 +167,18 @@ export default function gerarContratoLocacaoEquipamentoPDF(dados: any) {
     doc.text("__________________________", 140, posY);
     doc.text("Assinatura do Locatário", 140, posY + 5);
 
-    if (dados.testemunhasNecessarias === "Sim") {
+    if (verificarValor(dados.testemunhasNecessarias) === "Sim") {
         posY += 20;
         doc.text("__________________________", 60, posY);
-        doc.text(`Testemunha 1: ${dados.nomeTest1}`, 60, posY + 5);
-        doc.text(`CPF: ${dados.cpfTest1}`, 60, posY + 10);
+        doc.text(`Testemunha 1: ${verificarValor(dados.nomeTest1)}`, 60, posY + 5);
+        doc.text(`CPF: (${verificarValor(dados.cpfTest1)}`, 60, posY + 10);
 
         doc.text("__________________________", 140, posY);
-        doc.text(`Testemunha 2: ${dados.nomeTest2}`, 140, posY + 5);
-        doc.text(`CPF: ${dados.cpfTest2}`, 140, posY + 10);
+        doc.text(`Testemunha 2: ${verificarValor(dados.nomeTest2)}`, 140, posY + 5);
+        doc.text(`CPF: ${verificarValor(dados.cpfTest2)}`, 140, posY + 10);
     }
-    // Salvar o PDF
+
     doc.save(`contrato_hospedagem_${dados.nomeLocador || dados.nomelocatario}.pdf`);
 
 }
+

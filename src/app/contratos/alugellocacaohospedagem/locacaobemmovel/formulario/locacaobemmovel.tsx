@@ -203,28 +203,36 @@ export default function LocacaobemMovel() {
         if (currentStepData.possibilidadeRenovacao === 'S') {
             setPossibilidadeRenovacao(true)
         } else if (currentStepData.possibilidadeRenovacao === 'N') {
-            nextStep = 36;
+            nextStep = 35;
         }
 
 
         if (currentStepData.formaPagamento === 'Parcelado') {
             setParcelado(true);
         } else if (currentStepData.formaPagamento === 'Pix') {
-            nextStep = 41;
+            nextStep = 40;
         } else if (currentStepData.formaPagamento === 'Dinheiro') {
-            nextStep = 41;
+            nextStep = 40;
         } else if (currentStepData.formaPagamento === 'Cartão') {
-            nextStep = 41;
+            nextStep = 40;
         } else if (currentStepData.formaPagamento === 'Boleto') {
-            nextStep = 41;
+            nextStep = 40;
         }
 
         if (currentStepData.garantia === 'S') {
             setGarantia(true);
         } else if (currentStepData.garantia === 'N') {
-            nextStep = 56;
+            nextStep = 55;
         }
-
+        if (nextStep === 50) {
+            nextStep = 55
+        } else if (nextStep === 51) {
+            nextStep = 55
+        } else if (nextStep === 52) {
+            nextStep = 55
+        } else if (nextStep === 53) {
+            nextStep = 55
+        }
 
         switch (currentStepData.qualgarantidor) {
             case "fi":
@@ -232,23 +240,25 @@ export default function LocacaobemMovel() {
                 break;
             case "caudep":
                 setCaucaoDep(true);
-                nextStep = 52;
+                nextStep = 51;
                 break;
             case "caubem":
                 setCaucaoBemIM(true);
-                nextStep = 53;
+                nextStep = 52;
                 break;
             case "ti":
                 setTitulos(true);
-                nextStep = 54;
+                nextStep = 53;
                 break;
             case "segfianca":
                 setSeguroFi(true);
-                nextStep = 55;
+                nextStep = 54;
                 break;
             default:
                 break;
         }
+
+
 
 
 
@@ -566,7 +576,7 @@ export default function LocacaobemMovel() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 77) * 100}%` }}
+                                style={{ width: `${(step / 76) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
@@ -1054,24 +1064,9 @@ export default function LocacaobemMovel() {
                                     </div>
                                 </>
                             )}
-                            {step === 30 && (
-                                <>
-                                    <h2>Descrição do Bem</h2>
-                                    <div>
-                                        <label>Estado de Conservação</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="estadoconservacao"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
 
-                            {step === 31 && (
+
+                            {step === 30 && (
                                 <>
                                     <h2>Descrição do Bem</h2>
                                     <div>
@@ -1088,7 +1083,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 32 && (
+                            {step === 31 && (
                                 <>
                                     <h2>Prazo da Locação</h2>
                                     <div>
@@ -1105,7 +1100,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 33 && (
+                            {step === 32 && (
                                 <>
                                     <h2>Prazo da Locação</h2>
                                     <div>
@@ -1122,7 +1117,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 34 && (
+                            {step === 33 && (
                                 <>
                                     <h2>Prazo da Locação</h2>
                                     <div>
@@ -1141,7 +1136,7 @@ export default function LocacaobemMovel() {
 
                             {possibilidadeRenovacao && (
                                 <>
-                                    {step === 35 && (
+                                    {step === 34 && (
                                         <>
                                             <h2>Prazo da Locação</h2>
                                             <div>
@@ -1160,7 +1155,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 36 && (
+                            {step === 35 && (
                                 <>
                                     <h2>Valor e Condições de Pagamento</h2>
                                     <div>
@@ -1177,7 +1172,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 37 && (
+                            {step === 36 && (
                                 <>
                                     <h2>Valor e Condições de Pagamento</h2>
                                     <div>
@@ -1199,7 +1194,7 @@ export default function LocacaobemMovel() {
 
                             {Parcelado && (
                                 <>
-                                    {step === 38 && (
+                                    {step === 37 && (
                                         <>
                                             <h2>Valor e Condições de Pagamento</h2>
                                             <div>
@@ -1216,7 +1211,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 39 && (
+                                    {step === 38 && (
                                         <>
                                             <h2>Valor e Condições de Pagamento</h2>
                                             <div>
@@ -1233,7 +1228,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 40 && (
+                                    {step === 39 && (
                                         <>
                                             <h2>Valor e Condições de Pagamento</h2>
                                             <div>
@@ -1252,7 +1247,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 41 && (
+                            {step === 40 && (
                                 <>
                                     <h2>Garantias</h2>
                                     <div>
@@ -1270,7 +1265,7 @@ export default function LocacaobemMovel() {
 
                             {garantia && (
                                 <>
-                                    {step === 42 && (
+                                    {step === 41 && (
                                         <>
                                             <h2>Garantias</h2>
                                             <div>
@@ -1293,7 +1288,7 @@ export default function LocacaobemMovel() {
 
                             {fiador && (
                                 <>
-                                    {step === 43 && (
+                                    {step === 42 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1310,7 +1305,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 44 && (
+                                    {step === 43 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1328,7 +1323,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 45 && (
+                                    {step === 44 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1347,7 +1342,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 46 && (
+                                    {step === 45 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1365,7 +1360,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 47 && (
+                                    {step === 46 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1383,11 +1378,11 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 48 && (
+                                    {step === 47 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
-                                                <label>Documento do 2° Representante:</label>
+                                                <label>Documento do  Representante:</label>
                                                 <select name='docIdentificacao' onChange={handleChange}>
                                                     <option value="">Selecione</option>
 
@@ -1402,7 +1397,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 49 && (
+                                    {step === 48 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1420,7 +1415,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 50 && (
+                                    {step === 49 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1438,7 +1433,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 51 && (
+                                    {step === 50 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1461,7 +1456,7 @@ export default function LocacaobemMovel() {
 
                             {caucaoDep && (
                                 <>
-                                    {step === 52 && (
+                                    {step === 51 && (
                                         <>
                                             <h2>Dados do Titulo do Caução</h2>
                                             <div>
@@ -1486,7 +1481,7 @@ export default function LocacaobemMovel() {
 
                             {caucaoBemIM && (
                                 <>
-                                    {step === 53 && (
+                                    {step === 52 && (
                                         <>
                                             <h2>Dados do Caução de imóvel</h2>
                                             <div>
@@ -1508,7 +1503,7 @@ export default function LocacaobemMovel() {
 
                             {titulos && (
                                 <>
-                                    {step === 54 && (
+                                    {step === 53 && (
                                         <>
                                             <h2>Dados do Título de Credito</h2>
                                             <div>
@@ -1530,7 +1525,7 @@ export default function LocacaobemMovel() {
 
                             {seguroFi && (
                                 <>
-                                    {step === 55 && (
+                                    {step === 54 && (
                                         <>
                                             <h2>Dados do Seguro Fiança</h2>
                                             <div>
@@ -1550,7 +1545,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 56 && (
+                            {step === 55 && (
                                 <>
                                     <h2>Obrigações do Locador</h2>
                                     <div>
@@ -1566,7 +1561,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 57 && (
+                            {step === 56 && (
                                 <>
                                     <h2>Obrigações do Locador</h2>
                                     <div>
@@ -1583,7 +1578,7 @@ export default function LocacaobemMovel() {
                             )}
 
 
-                            {step === 58 && (
+                            {step === 57 && (
                                 <>
                                     <h2>Obrigações do Locador</h2>
                                     <div>
@@ -1601,7 +1596,7 @@ export default function LocacaobemMovel() {
 
                             {garantiaManutencao && (
                                 <>
-                                    {step === 59 && (
+                                    {step === 58 && (
                                         <>
                                             <h2>Obrigações do Locador</h2>
                                             <div>
@@ -1621,7 +1616,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 60 && (
+                            {step === 59 && (
                                 <>
                                     <h2>Obrigações do Locatário</h2>
                                     <div>
@@ -1637,7 +1632,7 @@ export default function LocacaobemMovel() {
                                     </div>
                                 </>
                             )}
-                            {step === 61 && (
+                            {step === 60 && (
                                 <>
                                     <h2>Obrigações do Locatário</h2>
                                     <div>
@@ -1654,7 +1649,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 62 && (
+                            {step === 61 && (
                                 <>
                                     <h2>Obrigações do Locatário</h2>
                                     <div>
@@ -1671,7 +1666,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 63 && (
+                            {step === 62 && (
                                 <>
                                     <h2>Obrigações do Locatário</h2>
                                     <div>
@@ -1688,7 +1683,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 64 && (
+                            {step === 63 && (
                                 <>
                                     <h2>Devolução do Equipamento</h2>
                                     <div>
@@ -1706,7 +1701,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 65 && (
+                            {step === 64 && (
                                 <>
                                     <h2>Devolução do Equipamento</h2>
                                     <div>
@@ -1724,7 +1719,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 66 && (
+                            {step === 65 && (
                                 <>
                                     <h2>Devolução do Equipamento</h2>
                                     <div>
@@ -1742,7 +1737,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 67 && (
+                            {step === 66 && (
                                 <>
                                     <h2>Devolução do Equipamento</h2>
                                     <div>
@@ -1760,7 +1755,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 68 && (
+                            {step === 67 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -1778,7 +1773,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 69 && (
+                            {step === 68 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -1796,7 +1791,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 70 && (
+                            {step === 69 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -1815,7 +1810,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 71 && (
+                            {step === 70 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1833,7 +1828,7 @@ export default function LocacaobemMovel() {
                                     </div>
                                 </>
                             )}
-                            {step === 72 && (
+                            {step === 71 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1853,7 +1848,7 @@ export default function LocacaobemMovel() {
 
                             {testemunhas && (
                                 <>
-                                    {step === 73 && (
+                                    {step === 72 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1872,7 +1867,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 74 && (
+                                    {step === 73 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1891,7 +1886,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 75 && (
+                                    {step === 74 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1911,7 +1906,7 @@ export default function LocacaobemMovel() {
                                         </>
                                     )}
 
-                                    {step === 76 && (
+                                    {step === 75 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1932,7 +1927,7 @@ export default function LocacaobemMovel() {
                                 </>
                             )}
 
-                            {step === 77 && (
+                            {step === 76 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1951,7 +1946,7 @@ export default function LocacaobemMovel() {
                             )}
 
 
-                            {step === 78 && (
+                            {step === 77 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -1982,10 +1977,10 @@ export default function LocacaobemMovel() {
                                 frameBorder="0"
                                 width="100%"
                                 height="100%"
-                            // style={{
-                            //     pointerEvents: 'none',
-                            //     userSelect: 'none',
-                            // }}
+                                style={{
+                                    pointerEvents: 'none',
+                                    userSelect: 'none',
+                                }}
                             ></iframe>
                         )}
                     </div>
