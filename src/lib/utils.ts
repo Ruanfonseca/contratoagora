@@ -13,3 +13,8 @@ export function formatarData(Data: string): string {
   const partes = Data.split("-");
   return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
+
+
+export function verificarValor(valor: string) {
+  return valor === undefined || valor === null || valor === "" ? " ______________ " : `${valor}`;
+}

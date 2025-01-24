@@ -1,13 +1,14 @@
+'use client'
 import Footer from "@/app/pages/components/footer/Footer";
 import Navbar from "@/app/pages/components/Navbar-outside/Navbar";
-import LocacaoEquipamentos from "./locacaoequipamentos";
+import LocacaobemMovel from "./locacaobemmovel";
 
-export default function FormularioLocacaoEquipamentos() {
+export default function FormularioLocacaoBemMovel() {
     return (
         <>
             <Navbar />
-            <LocacaoEquipamentos />
+            <LocacaobemMovel />
             <Footer />
         </>
-    )
+    );
 }
