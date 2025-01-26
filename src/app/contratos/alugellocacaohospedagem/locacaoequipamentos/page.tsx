@@ -2,6 +2,8 @@ import Navbar from "@/app/pages/components/Navbar-outside/Navbar";
 import Footer from "@/app/pages/components/footer/Footer";
 import Link from "next/link";
 import './css/index.css';
+
+
 export default function LocacaoEquipamentos() {
     return (
         <>

@@ -25,7 +25,7 @@ export default function contratos() {
             <li><Link className='' href="/contratos/alugellocacaohospedagem/hospedagem">Contrato de hospedagem | Locação de Flat ou Apart Hotel - R$ 19,90</Link></li>
             <li><Link className='' href="/contratos/alugellocacaohospedagem/locacaobemmovel">Contrato de locação de bens móveis - R$ 19,90</Link></li>
             <li><Link className='' href="/contratos/alugellocacaohospedagem/locacaoequipamentos">Contrato de locação de equipamentos - R$ 24,90</Link></li>
-            <li>Contrato de locação de espaço para evento - R$ 19,90</li>
+            <li><Link className='' href="/contratos/alugellocacaohospedagem/locacaoespacoevento">Contrato de locação de espaço para evento - R$ 19,90</Link></li>
             <li>Contrato de locação de imóvel comercial - R$ 29,90</li>
             <li>Contrato de locação de imóvel residencial - R$ 24,90</li>
             <li>Contrato de locação de imóvel residencial para temporada - R$ 19,90</li>

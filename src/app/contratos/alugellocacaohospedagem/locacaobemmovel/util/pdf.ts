@@ -8,8 +8,8 @@ export default function gerarContratoLocacaoBemMovelPago(dados: any) {
     const marginX = 10;
     let posY = 20;
 
-    // Função auxiliar para adicionar seções e ajustar a posição Y
-    const addSection = (title: any, content: any) => {
+    // Função auxiliar para adicionar cláusulas e ajustar a posição Y
+    const addClause = (title: any, content: any) => {
         if (posY + 10 >= 280) {
             doc.addPage();
             posY = 20;
@@ -19,7 +19,7 @@ export default function gerarContratoLocacaoBemMovelPago(dados: any) {
         posY += 10;
         doc.setFontSize(10);
         content.forEach((line: any) => {
-            if (posY + 10 >= 280) { // Adiciona margem extra
+            if (posY + 10 >= 280) {
                 doc.addPage();
                 posY = 20;
             }
@@ -28,32 +28,28 @@ export default function gerarContratoLocacaoBemMovelPago(dados: any) {
         });
     };
 
-
-    // Página 1 - Cabeçalho
+    // Página 1 - Título
     doc.setFontSize(14);
     doc.text("CONTRATO DE LOCAÇÃO DE BENS MÓVEIS", 105, posY, { align: "center" });
     posY += 20;
 
-    // Seção 1 - Identificação das Partes
-    addSection("1. Identificação das Partes", [
-        "As partes celebram o presente contrato de locação de bens móveis, com base no Código Civil Brasileiro:",
-
+    // Cláusula 1 - Identificação das Partes
+    addClause("CLÁUSULA PRIMEIRA - IDENTIFICAÇÃO DAS PARTES", [
+        "As partes abaixo qualificadas celebram o presente contrato de locação de bens móveis,\n conforme disposto no Código Civil Brasileiro (art. 104, que estabelece os requisitos de validade dos negócios jurídicos).",
+        "O presente contrato segue os princípios de autonomia das partes e boa-fé, previstos nos arts. 421 e 422 do Código Civil.",
         dados.locador === "pj"
-            ? `Locador:Razão Social: ${verificarValor(dados.razaoSocial)}, CNPJ: ${verificarValor(dados.cnpj)}, Endereço: ${verificarValor(dados.enderecoCNPJ)},\n Telefone: ${verificarValor(dados.telefoneCNPJ)}, E-mail: ${verificarValor(dados.emailCNPJ)}\nRepresentante Legal: ${verificarValor(dados.nomeRepresentanteCNPJ)}, CPF: ${verificarValor(dados.CPFRepresentanteCNPJ)}.`
-            : `Locador:Nome: ${verificarValor(dados.nomeLocador)}, CPF: ${verificarValor(dados.CPFLocador)}, Endereço: ${verificarValor(dados.enderecoLocador)},\n Telefone: ${verificarValor(dados.telefoneLocador)}, E-mail: ${verificarValor(dados.emailLocador)}.`,
-
+            ? `LOCADOR: Razão Social: ${verificarValor(dados.razaoSocial)}, CNPJ: ${verificarValor(dados.cnpj)}, \nEndereço: ${verificarValor(dados.enderecoCNPJ)}, Telefone: ${verificarValor(dados.telefoneCNPJ)}, E-mail: ${verificarValor(dados.emailCNPJ)}. Representante Legal: ${verificarValor(dados.nomeRepresentanteCNPJ)}, CPF: ${verificarValor(dados.CPFRepresentanteCNPJ)}.`
+            : `LOCADOR: Nome: ${verificarValor(dados.nomeLocador)}, CPF: ${verificarValor(dados.CPFLocador)}, \nEndereço: ${verificarValor(dados.enderecoLocador)}, Telefone: ${verificarValor(dados.telefoneLocador)}, E-mail: ${verificarValor(dados.emailLocador)}.`,
         dados.locatario === "pj"
-            ? `\nLocatário:Razão Social: ${verificarValor(dados.razaoSociallocatario)}, CNPJ: ${verificarValor(dados.cnpjLocatario)}, Endereço: ${verificarValor(dados.enderecolocatarioCNPJ)},\n Telefone: ${verificarValor(dados.telefonelocatarioCNPJ)}, E-mail: ${verificarValor(dados.emaillocatarioCNPJ)}\nRepresentante Legal: ${verificarValor(dados.nomeRepresentantelocatarioCNPJ)}, CPF: ${verificarValor(dados.CPFRepresentantelocatarioCNPJ)}.`
-            : `\nLocatário:Nome: ${verificarValor(dados.nomelocatario)}, CPF: ${verificarValor(dados.CPFlocatario)}, Endereço: ${verificarValor(dados.enderecolocatario)},\n Telefone: ${verificarValor(dados.telefonelocatario)}, E-mail: ${verificarValor(dados.emaillocatario)}.`,
+            ? `LOCATÁRIO: Razão Social: ${verificarValor(dados.razaoSociallocatario)}, CNPJ: ${verificarValor(dados.cnpjLocatario)}, \nEndereço: ${verificarValor(dados.enderecolocatarioCNPJ)}, Telefone: ${verificarValor(dados.telefonelocatarioCNPJ)}, E-mail: ${verificarValor(dados.emaillocatarioCNPJ)}. Representante Legal: ${verificarValor(dados.nomeRepresentantelocatarioCNPJ)}, CPF: ${verificarValor(dados.CPFRepresentantelocatarioCNPJ)}.`
+            : `LOCATÁRIO: Nome: ${verificarValor(dados.nomelocatario)}, CPF: ${verificarValor(dados.CPFlocatario)}, \nEndereço: ${verificarValor(dados.enderecolocatario)}, Telefone: ${verificarValor(dados.telefonelocatario)}, E-mail: ${verificarValor(dados.emaillocatario)}.`,
     ]);
+    posY += 20;
 
-
-    // Seção 2 - Descrição do Equipamento
-    addSection("\n\n2. Descrição do Equipamento", [
-        ...doc.splitTextToSize(
-            "\nOs bens móveis objeto deste contrato são descritos abaixo, considerando suas características,\n estado de conservação e acessórios:",
-            180
-        ),
+    // Cláusula 2 - Descrição do Equipamento
+    addClause("CLÁUSULA SEGUNDA - DESCRIÇÃO DO EQUIPAMENTO", [
+        "Os bens móveis objeto do presente contrato possuem as características descritas a seguir. \nAs partes concordam com a obrigação de conservar o bem conforme disposto no art. 566 do Código Civil:",
+        "Art. 566: O locatário é obrigado a conservar o bem no estado em que foi entregue,\n salvo deterioração decorrente do uso legítimo.",
         `Tipo de Equipamento: ${verificarValor(dados.tipodeequipamento)}.`,
         `Marca/Modelo: ${verificarValor(dados.marcaemodelo)}.`,
         `Número de Série: ${verificarValor(dados.numerodeserie)}.`,
@@ -61,27 +57,22 @@ export default function gerarContratoLocacaoBemMovelPago(dados: any) {
         `Acessórios/Componentes: ${verificarValor(dados.acessorioscomponentes)}.`,
     ]);
 
-    // Seção 3 - Informações sobre o Código Civil Brasileiro
-    addSection("3. Informações sobre o Código Civil Brasileiro", [
-        "O Código Civil Brasileiro, instituído pela Lei nº 10.406 de 10 de janeiro de 2002, regula as relações \nprivadas no Brasil.",
-        "No contexto deste contrato de locação de bens móveis, aplicam-se os seguintes princípios:",
-        "1. Princípio da liberdade contratual: As partes podem definir livremente as cláusulas \ncontratuais, desde que respeitem os limites da lei (Art. 421).",
-        "2. Boa-fé objetiva: As partes devem agir com lealdade e confiança mútua na execução do \ncontrato (Art. 422).",
-        "3. Direitos e deveres decorrentes do contrato: As obrigações do locador e locatário devem\n ser claramente definidas e respeitadas.",
-    ]);
-
-    // Seção 4 - Prazo da Locação
-    addSection("4. Prazo da Locação", [
-        "Este contrato de locação terá vigência conforme acordado entre as partes:",
+    // Cláusula 3 - Vigência do Contrato
+    addClause("CLÁUSULA TERCEIRA - VIGÊNCIA DO CONTRATO", [
+        "O prazo de vigência do presente contrato será conforme especificado abaixo, em conformidade com\n o art. 565 do Código Civil Brasileiro, que regulamenta os contratos de locação:",
+        "Art. 565: Na locação de coisa, uma das partes se obriga a ceder à outra, por tempo determinado ou não,\n o uso e gozo de coisa não fungível, mediante certa retribuição.",
         `Data de Início: ${verificarValor(dados.dataInicioLocacao)}.`,
         `Data de Término: ${verificarValor(dados.dataTerminoLocacao)}.`,
         `Renovação Automática: ${verificarValor(dados.possibilidadeRenovacao) === "S" ? "Sim" : "Não"}.`,
         `Condições para Renovação: ${verificarValor(dados.condicao)}.`,
     ]);
+    posY += 20;
 
-    // Seção 5 - Valor e Condições de Pagamento
-    addSection("5. Valor e Condições de Pagamento", [
-        "As condições financeiras do contrato são detalhadas abaixo:",
+    // Cláusula 4 - Valor e Condições de Pagamento
+    addClause("CLÁUSULA QUARTA - VALOR E CONDIÇÕES DE PAGAMENTO", [
+        "As condições financeiras do contrato seguem os arts. 566 e 575 do Código Civil Brasileiro:",
+        "Art. 566: O locatário é obrigado a conservar a coisa e a devolvê-la, finda a locação, \nno estado em que a recebeu, salvo deterioração pelo uso legítimo.",
+        "Art. 575: Aplicável aos contratos de locação de bens móveis, estabelecendo a \npossibilidade de rescisão por falta de pagamento.",
         `Valor Total: R$ ${verificarValor(dados.valorTotalLocacao)}.`,
         `Forma de Pagamento: ${verificarValor(dados.formaPagamento)}.`,
         `Data de Vencimento das Parcelas: ${verificarValor(dados.dataVencimentoParcela)}.`,
@@ -89,70 +80,89 @@ export default function gerarContratoLocacaoBemMovelPago(dados: any) {
         `Juros por Atraso: ${verificarValor(dados.jurosporatraso)}%.`,
     ]);
 
-    // Seção 6 - Garantias
-    addSection("6. Garantias", [
-        "As garantias para cumprimento do contrato são as seguintes:",
+    // Cláusula 5 - Garantias
+    addClause("CLÁUSULA QUINTA - GARANTIAS", [
+        "As garantias para cumprimento das obrigações previstas neste contrato seguem as\n diretrizes do art. 566 e art. 578 do Código Civil Brasileiro:",
+        "Art. 566: Obriga o locatário a devolver o bem no estado em que foi entregue.",
+        "Art. 578: Permite às partes incluir garantias adicionais para proteger os direitos do locador.",
         verificarValor(dados.garantia) === "S"
-            ? `Garantia: ${verificarValor(dados.qualgarantidor) === "fi" ? "Fiador: " + verificarValor(dados.nomeFiador) + ", CPF: " + verificarValor(dados.cpfFiador) : verificarValor(dados.qualgarantidor) === "caudep" ? "Caução em Dinheiro: R$ " + verificarValor(dados.valorTitCaucao) : verificarValor(dados.qualgarantidor) === "caubem" ? "Bem Caução: " + verificarValor(dados.descBemCaucao) : verificarValor(dados.qualgarantidor) === "segfianca" ? "Seguro Fiança: " + verificarValor(dados.segFianca) : "Título de Crédito: " + verificarValor(dados.descCredUtili)}.`
-            : "Nenhuma garantia foi exigida.",
+            ? `As garantias do presente contrato são: ${verificarValor(dados.qualgarantidor)}.`
+            : "Não foram exigidas garantias para este contrato.",
     ]);
 
-    // Seção 7 - Obrigações do Locador
-    addSection("7. Obrigações do Locador", [
-        `Entrega do Equipamento: ${verificarValor(dados.entregaEquipLocador)}.`,
-        `Garantia de Manutenção: ${verificarValor(dados.garantiaManutencao)}.`,
-        `Fornecimento de Suporte Técnico: ${verificarValor(dados.forneceraSuporte)}.`,
-        `Condições de Fornecimento: ${verificarValor(dados.quaisCondicoes)}.`,
+    // Cláusula 6 - Obrigações do Locador
+    addClause("CLÁUSULA SEXTA - OBRIGAÇÕES DO LOCADOR", [
+        "O LOCADOR se compromete a cumprir as seguintes obrigações, em conformidade com o art. 569 do Código Civil Brasileiro:",
+        "Art. 569: O locador é obrigado a entregar a coisa locada em estado de servir ao uso a que se destina, \nmantê-la nesse estado durante a locação e assegurar ao locatário o uso pacífico.",
+        `a) Entregar o equipamento nas condições especificadas: ${verificarValor(dados.entregaEquipLocador)}.`,
+        `b) Garantir a manutenção do equipamento, quando aplicável: ${verificarValor(dados.garantiaManutencao)}.`,
+        `c) Fornecer suporte técnico ao LOCATÁRIO, quando necessário: ${verificarValor(dados.forneceraSuporte)}.`,
+        `d) Outras condições estabelecidas no presente contrato: ${verificarValor(dados.quaisCondicoes)}.`,
+    ]);
+    // Cláusula 7 - Obrigações do Locatário
+    addClause("CLÁUSULA SÉTIMA - OBRIGAÇÕES DO LOCATÁRIO", [
+        "O LOCATÁRIO se compromete a cumprir as seguintes obrigações, em conformidade \ncom os arts. 566 e 575 do Código Civil Brasileiro:",
+        "Art. 566: O locatário é obrigado a conservar o bem no estado em que foi entregue,\n salvo deterioração decorrente do uso legítimo.",
+        "Art. 575: O locatário pode ser responsabilizado pela rescisão contratual em \ncaso de descumprimento de obrigações.",
+        `a) Utilizar o equipamento exclusivamente para os fins contratados: ${verificarValor(dados.finalidadeUso)}.`,
+        `b) Zelar pela conservação do equipamento durante a vigência do contrato.`,
+        `c) Comunicar ao LOCADOR qualquer defeito ou problema técnico no equipamento.`,
+        `d) Restituir o equipamento no estado em que foi recebido, salvo desgaste natural pelo uso.`,
     ]);
 
-    // Seção 8 - Obrigações do Locatário
-    addSection("8. Obrigações do Locatário", [
-        `Compromisso de Uso: ${verificarValor(dados.compromeUso)}.`,
-        `Responsabilidade por Danos: ${verificarValor(dados.danosUso)}.`,
-        `Restrições de Local: ${verificarValor(dados.restricoesLocal)}.`,
-        `Custos Adicionais: ${verificarValor(dados.arcarCustos)}.`,
+    // Cláusula 8 - Rescisão Contratual
+    addClause("CLÁUSULA OITAVA - RESCISÃO CONTRATUAL", [
+        "A rescisão do presente contrato observará as condições previstas nos arts.\n 472 e 475 do Código Civil Brasileiro:",
+        "Art. 472: O distrato deve observar a mesma forma exigida para o contrato.",
+        "Art. 475: Permite a resolução do contrato por inadimplemento de uma das partes.",
+        `a) O contrato poderá ser rescindido por inadimplemento de qualquer das partes.`,
+        `b) O LOCADOR poderá rescindir o contrato em caso de uso inadequado do equipamento pelo LOCATÁRIO.`,
+        `c) O LOCATÁRIO poderá rescindir o contrato caso o equipamento apresente defeitos\n que impeçam seu uso e o LOCADOR não realize os reparos necessários.`,
+        `d) Condições adicionais de rescisão: ${verificarValor(dados.condicoesRescisao)}.`,
     ]);
 
-    // Seção 9 - Devolução do Equipamento
-    addSection("9. Devolução do Equipamento", [
-        `Local de Devolução: ${verificarValor(dados.local)}.`,
-        `Condições de Devolução: ${verificarValor(dados.condicoesDevolucao)}.`,
-        `Procedimento de Inspeção: ${verificarValor(dados.procedimentoInspec)}.`,
-        `Penalidades por Danos: ${verificarValor(dados.penalidades)}.`,
+    // Cláusula 9 - Penalidades
+    addClause("CLÁUSULA NONA - PENALIDADES", [
+        "As partes estão sujeitas às penalidades previstas neste contrato e \nno Código Civil Brasileiro, em especial no art. 389 e seguintes:",
+        "Art. 389: O devedor que não cumprir a obrigação será responsável por\n perdas e danos, mais juros e atualização monetária.",
+        `a) Multa por rescisão antecipada: ${verificarValor(dados.multaRescisao)}%.`,
+        `b) Multa por uso inadequado do equipamento: ${verificarValor(dados.multaUsoInadequado)}%.`,
+        `c) Outras penalidades previstas: ${verificarValor(dados.outrasPenalidades)}.`,
     ]);
 
-    // Seção 10 - Rescisão do Contrato
-    addSection("10. Rescisão do Contrato", [
-        `Condições de Rescisão Antecipada: ${verificarValor(dados.condicoesRescisao)}.`,
-        `Multas Aplicáveis: ${verificarValor(dados.multasRescisao)}.`,
-        `Prazo de Notificação Prévia: ${verificarValor(dados.prazoNotificacaoRescisao)}.`,
+    // Cláusula 10 - Disposições Gerais
+    addClause("CLÁUSULA DÉCIMA - DISPOSIÇÕES GERAIS", [
+        "As disposições gerais seguem os princípios de boa-fé e autonomia da vontade das partes, \nconforme disposto nos arts. 421 e 422 do Código Civil Brasileiro:",
+        "Art. 421: O contrato deve respeitar a função social e os princípios de liberdade contratual.",
+        "Art. 422: Os contratantes são obrigados a guardar, assim na conclusão do contrato,\n como em sua execução, os princípios de probidade e boa-fé.",
+        `a) Quaisquer alterações neste contrato deverão ser realizadas por escrito e assinadas pelas partes.`,
+        `b) As partes declaram que leram e concordam com todas as cláusulas deste contrato.`,
+        `c) Fica eleito o foro da comarca de ${verificarValor(dados.foroComarca)} para dirimir eventuais controvérsias decorrentes deste contrato.`,
     ]);
 
-    // Seção 11 - Disposições Gerais
-    addSection("11. Disposições Gerais", [
-        `Foro Eleito: ${verificarValor(dados.foroResolucaoConflitos)}.`,
-        `Testemunhas Necessárias: ${verificarValor(dados.testemunhasNecessarias)}.`,
-        verificarValor(dados.testemunhasNecessarias) === "Sim"
-            ? `Testemunhas: Nome 1: ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}; Nome 2: ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}.`
-            : "Sem necessidade de testemunhas.",
-        `Registro em Cartório: ${verificarValor(dados.registroCartorio)}.`,
+    posY += 40; // Espaço antes da área de assinatura
+
+    // Cláusula 11 - Assinatura e Data
+    addClause("CLÁUSULA DÉCIMA PRIMEIRA - ASSINATURA E DATA", [
+        "Por estarem de acordo, as partes assinam o presente contrato em duas vias de igual teor e forma,\n na presença de duas testemunhas, conforme disposto no art. 219 do Código Civil Brasileiro:",
+        "Art. 219: O instrumento particular, feito e assinado ou somente assinado por quem esteja obrigado, \nfaz prova contra o seu signatário.",
     ]);
 
+    // Assinaturas
     if (posY + 40 >= 280) {
         doc.addPage();
         posY = 20;
     }
-
     posY += 20; // Espaço antes da área de assinatura
 
     // Espaço para assinatura do Locador
     doc.setFontSize(10);
     doc.text("__________________________", 60, posY);
-    doc.text("Assinatura do Locador", 60, posY + 5);
+    doc.text("Assinatura do LOCADOR", 60, posY + 5);
 
     // Espaço para assinatura do Locatário
     doc.text("__________________________", 140, posY);
-    doc.text("Assinatura do Locatário", 140, posY + 5);
+    doc.text("Assinatura do LOCATÁRIO", 140, posY + 5);
 
     posY += 30; // Espaço para testemunhas, se existirem
 
@@ -168,8 +178,6 @@ export default function gerarContratoLocacaoBemMovelPago(dados: any) {
         doc.text(`Testemunha 2: ${verificarValor(dados.nomeTest2)}`, 140, posY + 5);
         doc.text(`CPF: ${verificarValor(dados.cpfTest2)}`, 140, posY + 10);
     }
-
-
     // Salvar o PDF
     doc.save(`contrato_hospedagem_${dados.nomeLocador || dados.nomelocatario}.pdf`);
 };
