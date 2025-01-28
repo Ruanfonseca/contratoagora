@@ -1,6 +1,6 @@
 'use client'
 
-import { verificarValor, verificarValorEspecial } from '@/lib/utils';
+import { verificarValor } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -467,14 +467,9 @@ export default function LocacaoEspacoEvento() {
 
     const handleBack = () => setStep((prev) => prev - 1);
 
-
-
-
-
     function gerarContratoPDF(dados: any): void {
         const doc = new jsPDF();
 
-        // Configurações iniciais
         function configurarDocumento() {
             doc.setFont("Helvetica", "bold");
             doc.setFontSize(16);
@@ -484,44 +479,41 @@ export default function LocacaoEspacoEvento() {
                 20,
                 { align: "center" }
             );
-
             doc.setFont("Helvetica", "normal");
             doc.setFontSize(12);
         }
 
-        // Adicionar seção ao PDF
-        function addSection(title: string, content: string, p0?: string) {
-            // Verificar se há espaço suficiente para o título e pelo menos uma linha de texto
+        function addSection(title: string, content: string) {
+            // Verificar espaço antes de adicionar título
             if (y + 20 > 280) {
-                doc.addPage(); // Adicionar nova página
-                y = 20; // Redefinir posição inicial
+                doc.addPage();
+                y = 20;
             }
 
-            // Título da seção
+            // Adicionar título
             doc.setFont("Helvetica", "bold");
             doc.text(title, 105, y, { align: "center" });
-            y += 8;
+            y += 10;
 
-            // Conteúdo da seção
+            // Adicionar conteúdo com quebra automática
             doc.setFont("Helvetica", "normal");
-            const lines = doc.splitTextToSize(content, 180);
-            lines.forEach((line: any) => {
-                if (y > 280) {
-                    doc.addPage(); // Adicionar nova página ao ultrapassar o limite
-                    y = 20; // Redefinir a posição inicial
+            const lines = doc.splitTextToSize(content, 180); // 180 é a largura disponível
+            lines.forEach((line: string) => {
+                if (y + 10 > 280) {
+                    doc.addPage();
+                    y = 20;
                 }
-                doc.text(line, 10, y, { align: "left" });
-                y += 6;
+                doc.text(line, 10, y);
+                y += 6; // Espaçamento entre linhas
             });
+            y += 10; // Espaçamento entre seções
         }
 
-        // Adicionar assinaturas
         function adicionarAssinaturas() {
             if (y + 30 > 280) {
                 doc.addPage();
                 y = 20;
             }
-
             y += 20;
             doc.setFont("Helvetica", "bold");
             doc.text("Assinaturas", 105, y, { align: "center" });
@@ -529,40 +521,26 @@ export default function LocacaoEspacoEvento() {
 
             doc.setFont("Helvetica", "normal");
             doc.text("_______________________________", 60, y);
-            doc.text(
-                "Locador: " +
-                    (verificarValorEspecial(dados.locador) === "pj") ? verificarValorEspecial(dados.razaoSocial) : verificarValorEspecial(dados.nomeLocador),
-                60,
-                y + 6
-            );
+            doc.text(`Locador: ${verificarValor(dados.locador)}`, 60, y + 6);
             y += 20;
 
             doc.text("_______________________________", 60, y);
-            doc.text(
-                "Locatário: " +
-                    (verificarValorEspecial(dados.locatario)) === "pj"
-                    ? verificarValorEspecial(dados.razaoSociallocatario)
-                    : verificarValorEspecial(dados.nomelocatario),
-                60,
-                y + 6
-            );
+            doc.text(`Locatário: ${verificarValor(dados.locatario)}`, 60, y + 6);
             y += 20;
 
-            if (verificarValorEspecial(dados.testemunhas) === "S") {
+            if (verificarValor(dados.testemunhas) === "S") {
                 doc.text("_______________________________", 60, y);
-                doc.text("Testemunha 1: " + verificarValorEspecial(dados.nomeTest1), 60, y + 6);
+                doc.text(`Testemunha 1: ${verificarValor(dados.nomeTest1)}`, 60, y + 6);
                 y += 20;
 
                 doc.text("_______________________________", 60, y);
-                doc.text("Testemunha 2: " + verificarValorEspecial(dados.nomeTest2), 60, y + 6);
+                doc.text(`Testemunha 2: ${verificarValor(dados.nomeTest2)}`, 60, y + 6);
                 y += 20;
             }
 
             doc.text("_______________________________", 60, y);
-            doc.text("Data: " + new Date().toLocaleDateString("pt-BR"), 60, y + 6);
+            doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, 60, y + 6);
         }
-
-
 
         // Inicializar PDF
         let y = 30; // Controle da posição vertical
@@ -2495,13 +2473,13 @@ export default function LocacaoEspacoEvento() {
                     <div className="pdf-preview">
                         {pdfDataUrl && (
                             <iframe
-                                src={pdfDataUrl}
+                                src={`${pdfDataUrl}#toolbar=0&navpanes=0&scrollbar=0`} // Desativa a barra de ferramentas do PDF
                                 title="Pré-visualização do PDF"
                                 frameBorder="0"
                                 width="100%"
                                 height="100%"
                                 style={{
-                                    pointerEvents: 'none',
+                                    pointerEvents: 'auto',
                                     userSelect: 'none',
                                 }}
                             ></iframe>

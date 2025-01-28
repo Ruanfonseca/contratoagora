@@ -6,10 +6,11 @@ export default function gerarContratoLocacaoEquipamentoPDF(dados: any) {
 
     // Configuração inicial de fonte e margens
     const marginX = 10;
+    const pageWidth = 190; // Largura da página útil (A4 menos margens)
     let posY = 20;
 
     // Função auxiliar para adicionar seções e ajustar a posição Y
-    const addSection = (title: any, content: any) => {
+    const addSection = (title: string, content: string[]) => {
         if (posY + 10 >= 280) {
             doc.addPage();
             posY = 20;
@@ -17,14 +18,18 @@ export default function gerarContratoLocacaoEquipamentoPDF(dados: any) {
         doc.setFontSize(12);
         doc.text(title, 105, posY, { align: "center" }); // Centralizado
         posY += 10;
+
         doc.setFontSize(10);
-        content.forEach((line: any) => {
-            if (posY + 7 >= 280) {
-                doc.addPage();
-                posY = 20;
-            }
-            doc.text(line, marginX, posY);
-            posY += 7;
+        content.forEach((text) => {
+            const lines = doc.splitTextToSize(text, pageWidth - 2 * marginX); // Divide o texto automaticamente
+            lines.forEach((line: any) => {
+                if (posY + 7 >= 280) {
+                    doc.addPage();
+                    posY = 20;
+                }
+                doc.text(line, marginX, posY);
+                posY += 7;
+            });
         });
     };
 

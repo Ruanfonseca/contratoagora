@@ -1,15 +1,15 @@
 'use client'
-import { verificarValor } from '@/lib/utils';
+import { verificarValor, verificarValorEspecial } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
-import jsPDF from "jspdf";
+import jsPDF from 'jspdf';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
-import gerarContratoLocacaoEquipamentoPDF from '../util/pdf';
+import geradorDeContratoImovelComercialPago from '../util/pdf';
 
 
-const locacaoEquipamentosSchema = z.object({
+const locacaoimovelcomercialschema = z.object({
     locador: z.enum(['pf', 'pj']).default('pf'),
 
     /**
@@ -56,25 +56,32 @@ const locacaoEquipamentosSchema = z.object({
     emaillocatario: z.string(),
     /** */
 
-    /** Descrição do Equipamento */
-    tipodeequipamento: z.string(),
-    marcaemodelo: z.string(),
-    numerodeserie: z.string(),
-    estadoconservacao: z.string(),
-    acessorioscomponentes: z.string(),
+
+    /**DESCRIÇÃO DO IMÓVEL */
+    enderecoImovel: z.string(),
+    descImovel: z.string(),
+    destcomercial: z.string(),
+    condicoesImovel: z.string(),
     /** */
 
-    /** Prazo da Locação */
+    /**PRAZO DA LOCAÇÃO */
     dataInicioLocacao: z.string(),
-    dataTerminoLocacao: z.string(),
+    duracaoContrato: z.string(),
     possibilidadeRenovacao: z.enum(['S', 'N']),
-    condicao: z.string(),
+
+    //se sim
+    quaisCondicoes: z.string(),
     /** */
 
-    /** Valor e Condições de Pagamento */
-    valorTotalLocacao: z.string(),
-    formaPagamento: z.enum(['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Parcelado']),
-    dataVencimentoParcela: z.string(),
+    /**VALOR DO ALUGUEL E CONDIÇÕES DE PAGAMENTO */
+    valorMensalAluguel: z.string(),
+    dataVenc: z.string(),
+    formaPagamento: z.enum(['Pix', 'Dinheiro', 'Cartão', 'Boleto']),
+
+    reajusteAnual: z.enum(['S', 'N']),
+    //se sim
+    qualIndice: z.string(),
+
     multaPorAtrasoPagamento: z.string(),
     jurosporatraso: z.string(),
     /** */
@@ -106,70 +113,71 @@ const locacaoEquipamentosSchema = z.object({
 
     // Se for seguro-fiança
     segFianca: z.string(),
+
+    procedimentoDevolucao: z.string(),
     /** */
 
-    /** Obrigações do Locador */
-    entregaEquipLocador: z.enum(['Sim', 'Não']),
-    garantiaManutencao: z.enum(['Sim', 'Não']),
-    forneceraSuporte: z.enum(['Sim', 'Não']),
-    quaisCondicoes: z.string(),
+    /**OBRIGAÇÕES DO LOCADOR */
+    locadorManuRep: z.enum(['S', 'N']),
+    locadorServAdicional: z.enum(['S', 'N']),
     /** */
 
-    /** Obrigações do Locatario */
-    compromeUso: z.enum(['Sim', 'Não']),
-    danosUso: z.enum(['Sim', 'Não']),
-    restricoesLocal: z.enum(['Sim', 'Não']),
-    arcarCustos: z.enum(['Sim', 'Não']),
+    /**OBRIAGAÇÕES DO LOCATARIO */
+    locatarioRealiza: z.enum(['S', 'N']),
+    //sesim
+    quaisLocatarioCondicoes: z.string(),
+
+    locatarioManu: z.string(),
+    restricoes: z.string(),
     /** */
 
-    /** Devolução do Equipamento */
-    local: z.string(),
-    condicoesDevolucao: z.string(),
-    procedimentoInspec: z.string(),
-    penalidades: z.string(),
+    /**DESPESAS E TRIBUTOS */
+    despesasLocatario: z.string(),
+    despesasLocador: z.string(),
     /** */
 
-    /** Rescisão do Contrato */
-    condicoesRescisao: z.string(), // Condições para rescisão antecipada
-    multasRescisao: z.string(), // Multas ou penalidades aplicáveis
-    prazoNotificacaoRescisao: z.string(), // Prazo para notificação prévia de rescisão
+    /**RESCISÃO DO CONTRATO */
+    condicoesRescisao: z.string(),
+    multasPenalidades: z.string(),
+    prazo: z.string(),
     /** */
 
-    /**Disposições Gerais */
+    /**DIREITO DE PREFERÊNCIA */
+    direitoPreferencia: z.enum(['S', 'N']),
+    condicoesExec: z.string(),
+    /** */
+
+
+    /**DISPOSIÇÕES GERAIS */
     foroResolucaoConflitos: z.string(), // Foro eleito para resolução de conflitos
-    testemunhasNecessarias: z.enum(['Sim', 'Não']), // Necessidade de testemunhas para assinatura do contrato
+    testemunhasNecessarias: z.enum(['S', 'N']), // Necessidade de testemunhas para assinatura do contrato
     //se sim 
     nomeTest1: z.string(),
     cpfTest1: z.string(),
     nomeTest2: z.string(),
     cpfTest2: z.string(),
 
-    registroCartorio: z.enum(['Sim', 'Não']), // Indicação se o contrato será registrado em cartório 
+    registroCartorio: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
+
+
+
+
 });
 
-type FormData = z.infer<typeof locacaoEquipamentosSchema>;
+type FormData = z.infer<typeof locacaoimovelcomercialschema>;
 
 
-export default function LocacaoEquipamentos() {
+
+export default function LocacaoImovelComercial() {
+    //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
     const [step, setStep] = useState(1);
-
-    const [locadorJuri, setLocadorJuri] = useState(false);
-    const [locadorioJuri, setLocadorioJuri] = useState(false);
-    const [possibilidadeRenovacao, setPossibilidadeRenovacao] = useState(false);
-    const [Parcelado, setParcelado] = useState(false);
-    const [garantia, setGarantia] = useState(false);
-    const [fiador, setFiador] = useState(false);
-    const [caucaoDep, setCaucaoDep] = useState(false);
-    const [caucaoBemIM, setCaucaoBemIM] = useState(false);
-    const [titulos, setTitulos] = useState(false);
-    const [seguroFi, setSeguroFi] = useState(false);
-    const [garantiaManutencao, setGarantiaManutencao] = useState(false);
-    const [testemunhas, setTestemunhas] = useState(false);
+    /** */
 
 
+    //PAGAMENTO
     const [paymentId, setPaymentId] = useState('');
     const [isPaymentApproved, setIsPaymentApproved] = useState(false)
     const [ticketUrl, setTicketUrl] = useState('');
@@ -177,11 +185,38 @@ export default function LocacaoEquipamentos() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 24.90;
+    const valor = 29.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
+    /** */
 
+
+    //VARIAVEIS DE CONTROLE DE FLUXO
+    const [locadorJuri, setLocadorJuri] = useState(false);
+    const [locadorioJuri, setLocadorioJuri] = useState(false);
+    const [desmontagem, setDesmontagem] = useState(false);
+    const [tempoAdicional, setTempoAdicional] = useState(false);
+    const [Parcelado, setParcelado] = useState(false);
+    const [garantia, setGarantia] = useState(false);
+    const [fiador, setFiador] = useState(false);
+    const [caucaoDep, setCaucaoDep] = useState(false);
+    const [caucaoBemIM, setCaucaoBemIM] = useState(false);
+    const [titulos, setTitulos] = useState(false);
+    const [seguroFi, setSeguroFi] = useState(false);
+    const [renovacao, setRenovacao] = useState(false);
+    const [restricoes, setRestricoes] = useState(false);
+    const [reajusteAnual, setReajusteAnual] = useState(false);
+    const [servicoAdicional, setServicoAdicional] = useState(false);
+    const [locatarioRealiza, setLocatarioRealiza] = useState(false);
+    const [direitoPreferencia, setDireitoPreferencia] = useState(false);
+    const [Testemunhas, setTestemunhas] = useState(false);
+
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setCurrentStepData((prev) => ({ ...prev, [name]: value }));
+    };
 
     const handleNext = () => {
         setFormData((prev) => ({ ...prev, ...currentStepData }));
@@ -202,41 +237,40 @@ export default function LocacaoEquipamentos() {
             nextStep = 25;
         }
 
-
         if (currentStepData.possibilidadeRenovacao === 'S') {
-            setPossibilidadeRenovacao(true)
+            setRenovacao(true);
+            nextStep = 33
         } else if (currentStepData.possibilidadeRenovacao === 'N') {
             nextStep = 34;
         }
 
-
-        if (currentStepData.formaPagamento === 'Parcelado') {
-            setParcelado(true);
-        } else if (currentStepData.formaPagamento === 'Pix') {
-            nextStep = 39;
-        } else if (currentStepData.formaPagamento === 'Dinheiro') {
-            nextStep = 39;
-        } else if (currentStepData.formaPagamento === 'Cartão') {
-            nextStep = 39;
-        } else if (currentStepData.formaPagamento === 'Boleto') {
+        if (currentStepData.reajusteAnual === 'S') {
+            setReajusteAnual(true);
+            nextStep = 38
+        } else if (currentStepData.reajusteAnual === 'N') {
             nextStep = 39;
         }
+
+
 
         if (currentStepData.garantia === 'S') {
             setGarantia(true);
+            nextStep = 42;
         } else if (currentStepData.garantia === 'N') {
-            nextStep = 54;
+            nextStep = 56;
         }
 
-
-        if (nextStep === 49) {
-            nextStep = 54
-        } else if (nextStep === 51) {
-            nextStep = 54
+        //para verificar se o próximo é o ultimo de step de algum garantidor
+        if (nextStep === 51) {
+            nextStep = 56
         } else if (nextStep === 52) {
-            nextStep = 54
+            nextStep = 56
         } else if (nextStep === 53) {
-            nextStep = 54
+            nextStep = 56
+        } else if (nextStep === 54) {
+            nextStep = 56
+        } else if (nextStep === 55) {
+            nextStep = 56
         }
 
 
@@ -246,42 +280,63 @@ export default function LocacaoEquipamentos() {
                 break;
             case "caudep":
                 setCaucaoDep(true);
-                nextStep = 50;
+                nextStep = 52;
                 break;
             case "caubem":
                 setCaucaoBemIM(true);
-                nextStep = 51;
+                nextStep = 53;
                 break;
             case "ti":
                 setTitulos(true);
-                nextStep = 52;
+                nextStep = 54;
                 break;
             case "segfianca":
                 setSeguroFi(true);
-                nextStep = 53;
+                nextStep = 55;
                 break;
             default:
                 break;
         }
 
 
-
-
-
-        if (currentStepData.forneceraSuporte === 'Sim') {
-            setGarantiaManutencao(true);
-        } else if (currentStepData.forneceraSuporte === 'Não') {
+        if (currentStepData.locadorServAdicional === 'S') {
+            setServicoAdicional(true);
             nextStep = 58;
+        } else if (currentStepData.locadorServAdicional === 'N') {
+            nextStep = 59;
         }
 
 
+        if (currentStepData.locatarioRealiza === 'S') {
+            setLocatarioRealiza(true);
+            nextStep = 60;
+        } else if (currentStepData.locatarioRealiza === 'N') {
+            nextStep = 62;
+        }
 
 
-        if (currentStepData.testemunhasNecessarias === 'Sim') {
+        if (currentStepData.restricoes === 'S') {
+            setRestricoes(true);
+            nextStep = 63;
+        } else if (currentStepData.restricoes === 'N') {
+            nextStep = 64;
+        }
+
+        if (currentStepData.direitoPreferencia === 'S') {
+            setDireitoPreferencia(true);
+            nextStep = 70;
+        } else if (currentStepData.direitoPreferencia === 'N') {
+            nextStep = 71;
+        }
+
+        if (currentStepData.testemunhasNecessarias === 'S') {
             setTestemunhas(true);
-        } else if (currentStepData.testemunhasNecessarias === 'Não') {
-            nextStep = 75
+            nextStep = 75;
+        } else if (currentStepData.testemunhasNecessarias === 'N') {
+            nextStep = 79;
         }
+
+
 
 
         if (nextStep === step) {
@@ -296,16 +351,6 @@ export default function LocacaoEquipamentos() {
         // Limpar os dados do passo atual.
         setCurrentStepData({});
     }
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setCurrentStepData((prev) => ({ ...prev, [name]: value }));
-    };
-
-
-    const handleBack = () => setStep((prev) => prev - 1);
-
-
 
     const handleFinalize = () => {
         setIsLoading(true)
@@ -389,99 +434,120 @@ export default function LocacaoEquipamentos() {
         }
     }
 
+    const handleBack = () => setStep((prev) => prev - 1);
 
-    const gerarContratoLocacaoEquipamento = (dados: any) => {
+
+
+    const geradorDeContratoImovelComercial = (dados: any) => {
+
         const doc = new jsPDF();
 
         // Configuração inicial de fonte e margens
         const marginX = 10;
-        const pageWidth = 190; // Largura da página útil (A4 menos margens)
         let posY = 20;
+
+        // Altura máxima permitida antes de criar uma nova página
+        const maxPageHeight = 280;
+
+        // Largura do texto permitida dentro das margens
+        const maxTextWidth = 190; // 210 (largura total) - 10 (margem esquerda) - 10 (margem direita)
+
+        // Função auxiliar para verificar espaço restante na página
+        const checkPageBreak = (additionalHeight: number) => {
+            if (posY + additionalHeight >= maxPageHeight) {
+                doc.addPage();
+                posY = 20; // Reinicia a posição no topo da nova página
+            }
+        };
 
         // Função auxiliar para adicionar seções e ajustar a posição Y
         const addSection = (title: string, content: string[]) => {
-            if (posY + 10 >= 280) {
-                doc.addPage();
-                posY = 20;
-            }
-            doc.setFontSize(12);
-            doc.text(title, 105, posY, { align: "center" }); // Centralizado
-            posY += 10;
+            const titleHeight = 15; // Altura do título
+            const lineHeight = 10; // Altura de cada linha de texto
 
+            // Verifica espaço antes de adicionar o título
+            checkPageBreak(titleHeight);
+            doc.setFontSize(12);
+            doc.text(title, 105, posY, { align: "center" });
+            posY += titleHeight;
+
+            // Adiciona o conteúdo, verificando quebra de páginas
             doc.setFontSize(10);
-            content.forEach((text) => {
-                const lines = doc.splitTextToSize(text, pageWidth - 2 * marginX); // Divide o texto automaticamente
-                lines.forEach((line: any) => {
-                    if (posY + 7 >= 280) {
-                        doc.addPage();
-                        posY = 20;
-                    }
-                    doc.text(line, marginX, posY);
-                    posY += 7;
+            content.forEach((line: string) => {
+                // Divide o texto em linhas com base na largura permitida
+                const splitLines = doc.splitTextToSize(line, maxTextWidth); // Quebra automática
+                splitLines.forEach((splitLine: string) => {
+                    checkPageBreak(lineHeight); // Verifica quebra de página para cada linha
+                    doc.text(splitLine, marginX, posY);
+                    posY += lineHeight;
                 });
             });
         };
 
-        // Cabeçalho
+
+        // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE LOCAÇÃO DE IMÓVEL COMERCIAL", 105, posY, { align: "center" });
         posY += 15;
 
-        // Seções do contrato com títulos formatados como cláusulas contratuais
-        addSection("CLÁUSULA PRIMEIRA – DA IDENTIFICAÇÃO DAS PARTES", [
-            "Conforme o Código Civil Brasileiro (Art. 104 e Art. 566):",
-            "- As partes devem ser plenamente capazes e identificadas de forma clara.",
-            `Locador: ${verificarValor(dados.locador) === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}`,
-            verificarValor(dados.locador) === "pf"
-                ? `Nome: ${verificarValor(dados.nomeLocador)}, CPF: ${verificarValor(dados.CPFLocador)}`
-                : `Razão Social: ${verificarValor(dados.razaoSocial)}, CNPJ: ${verificarValor(dados.cnpjlocador)}`,
-            `Endereço: ${verificarValor(dados.enderecoLocador)}`,
-            `Telefone: ${verificarValor(dados.telefoneLocador)}`,
-            `E-mail: ${verificarValor(dados.emailLocador)}`,
+        // Seções do contrato
+        addSection("CLÁUSULA 1 - IDENTIFICAÇÃO DAS PARTES", [
+            "(Artigos 104, 421 e 425 do Código Civil Brasileiro)",
+            "Nesta seção, é feita a descrição detalhada do imóvel objeto do contrato, incluindo seu endereço completo, características e condições.\n Também são especificadas a destinação (residencial ou comercial) e o estado de conservação, conforme o que foi verificado pelas partes.",
+            "\nLocador (Proprietário do Imóvel):",
+            `\nNome ou Razão Social: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.nomeLocador) : verificarValor(dados.razaoSocial)}`,
+            `\nCPF ou CNPJ: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.CPFLocador) : verificarValor(dados.cnpjlocador)}`,
+            `\nEndereço: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.enderecoLocador) : verificarValor(dados.enderecoCNPJ)}`,
+            `\nTelefone: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.telefoneLocador) : verificarValor(dados.telefoneCNPJ)}`,
+            `\nE-mail: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.emailLocador) : verificarValor(dados.emailCNPJ)}`,
+            verificarValor(dados.locador) === "pj" ? `\nRepresentante Legal: ${verificarValor(dados.nomeRepresentanteCNPJ)},\n CPF: ${verificarValor(dados.CPFRepresentanteCNPJ)}` : "",
             "",
-            `Locatário: ${verificarValor(dados.locatario) === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}`,
-            verificarValor(dados.locatario) === "pf"
-                ? `Nome: ${verificarValor(dados.nomelocatario)}, CPF: ${verificarValor(dados.CPFlocatario)}`
-                : `Razão Social: ${verificarValor(dados.razaoSociallocatario)}, CNPJ: ${verificarValor(dados.cnpj)}`,
-            `Endereço: ${verificarValor(dados.enderecolocatario)}`,
-            `Telefone: ${verificarValor(dados.telefonelocatario)}`,
-            `E-mail: ${verificarValor(dados.emaillocatario)}`,
+            "\nLocatário (Inquilino do Imóvel):",
+            `\nNome ou Razão Social: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.nomelocatario) : verificarValor(dados.razaoSociallocatario)}`,
+            `\nCPF ou CNPJ: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.CPFlocatario) : verificarValor(dados.cpflocatario)}`,
+            `\nEndereço: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.enderecolocatario) : verificarValor(dados.enderecolocatarioCNPJ)}`,
+            `\nTelefone: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.telefonelocatario) : verificarValor(dados.telefonelocatarioCNPJ)}`,
+            `\nE-mail: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.emaillocatario) : verificarValor(dados.emaillocatarioCNPJ)}`,
+            verificarValor(dados.locatario) === "pj" ? `\nRepresentante Legal: ${verificarValor(dados.nomeRepresentantelocatarioCNPJ)},\n CPF: ${verificarValor(dados.CPFRepresentantelocatarioCNPJ)}` : "",
         ]);
 
-        addSection("CLÁUSULA SEGUNDA – DA DESCRIÇÃO DO EQUIPAMENTO", [
-            "Conforme o Código Civil Brasileiro (Art. 566):",
-            "- O locador é obrigado a entregar o equipamento em bom estado de uso.",
-            `Tipo de Equipamento: ${verificarValor(dados.tipodeequipamento)}`,
-            `Marca e Modelo: ${verificarValor(dados.marcaemodelo)}`,
-            `Número de Série: ${verificarValor(dados.numerodeserie)}`,
-            `Estado de Conservação: ${verificarValor(dados.estadoconservacao)}`,
-            `Acessórios e Componentes: ${verificarValor(dados.acessorioscomponentes)}`,
+
+        addSection("\nCLÁUSULA 2 - DESCRIÇÃO DO IMÓVEL", [
+            "\n(Artigos 47 e 54 da Lei do Inquilinato - Lei nº 8.245/91)",
+            `\nEndereço do Imóvel: ${verificarValor(dados.enderecoImovel)}`,
+            `\nDescrição: ${verificarValor(dados.descImovel)}`,
+            `\nDestinação Comercial: ${verificarValor(dados.destcomercial)}`,
+            `\nCondições do Imóvel: ${verificarValor(dados.condicoesImovel)}`,
         ]);
 
-        addSection("CLÁUSULA TERCEIRA – DO PRAZO DA LOCAÇÃO", [
-            "Conforme o Código Civil Brasileiro (Art. 565 e Art. 578):",
-            "- A locação deve ter prazo determinado ou indeterminado conforme as partes acordarem.",
-            `Data de Início: ${verificarValor(dados.dataInicioLocacao)}`,
-            `Data de Término: ${verificarValor(dados.dataTerminoLocacao)}`,
-            `Renovação: ${verificarValor(dados.possibilidadeRenovacao) === "S" ? "Sim" : "Não"}`,
-            `Condições: ${verificarValor(dados.condicao)}`,
+        addSection("CLÁUSULA 3 - PRAZO DA LOCAÇÃO", [
+            "(Artigo 565 do Código Civil Brasileiro e Artigo 3º da Lei do Inquilinato)",
+            "O prazo do contrato é definido de forma clara, seja por tempo determinado ou indeterminado, conforme acordado entre as partes. São descritos a data de início, a duração do contrato e a possibilidade de renovação,\n respeitando a legislação aplicável, como o Art. 565 do Código Civil.",
+            `\nData de Início: ${verificarValor(dados.dataInicioLocacao)}`,
+            `\nDuração do Contrato: ${verificarValor(dados.duracaoContrato)}`,
+            `Possibilidade de Renovação: ${verificarValor(dados.possibilidadeRenovacao) === "S" ? "Sim" : "Não"}`,
+            verificarValor(dados.possibilidadeRenovacao) === "S" ? `Condições: ${verificarValor(dados.quaisCondicoes)}` : "",
         ]);
 
-        addSection("CLÁUSULA QUARTA – DO VALOR E CONDIÇÕES DE PAGAMENTO", [
-            "Conforme o Código Civil Brasileiro (Art. 567 e Art. 578):",
-            "- O valor do aluguel e a forma de pagamento devem ser especificados claramente.",
-            `Valor Total: R$ ${verificarValor(dados.valorTotalLocacao)}`,
+
+        addSection("CLÁUSULA 4 - VALOR DO ALUGUEL E CONDIÇÕES DE PAGAMENTO", [
+            "(Artigos 565 e 578 do Código Civil Brasileiro)",
+            "Conforme o Art. 578 do Código Civil: 'Os aluguéis de prédios urbanos, ou de qualquer outra coisa,\n pagam-se nos prazos ajustados, e, na falta de ajuste, até o sexto dia subsequente ao vencido.'",
+            `Valor Mensal: R$ ${verificarValor(dados.valorMensalAluguel)}`,
+            `Data de Vencimento: ${verificarValor(dados.dataVenc)}`,
             `Forma de Pagamento: ${verificarValor(dados.formaPagamento)}`,
-            `Data de Vencimento: ${verificarValor(dados.dataVencimentoParcela)}`,
+            `Reajuste Anual: ${verificarValor(dados.reajusteAnual) === "S" ? "Sim" : "Não"}`,
+            dados.reajusteAnual === "S" ? `Índice: ${verificarValor(dados.qualIndice)}` : "",
             `Multa por Atraso: ${verificarValor(dados.multaPorAtrasoPagamento)}%`,
             `Juros por Atraso: ${verificarValor(dados.jurosporatraso)}% ao mês`,
         ]);
 
-        addSection("CLÁUSULA QUINTA – DAS GARANTIAS", [
-            "Conforme o Código Civil Brasileiro (Art. 578 e Art. 585):",
-            "- As garantias contratuais devem ser claramente definidas e respeitadas.",
+
+        addSection("CLÁUSULA 5 - GARANTIAS LOCATÍCIAS", [
+            "(Artigo 37 da Lei do Inquilinato e Artigos 827 a 838 do Código Civil Brasileiro)",
+            "De acordo com o Art. 37 da Lei do Inquilinato: 'No contrato de locação, pode o locador exigir do locatário\n as seguintes modalidades de garantia: caução, fiança, seguro de fiança locatícia ou cessão fiduciária de quotas de fundo de investimento.'",
             `Garantia Exigida: ${verificarValor(dados.garantia) === "S" ? "Sim" : "Não"}`,
-            `Tipo de Garantia: ${verificarValor(dados.qualgarantidor) === "fi"
+            `Detalhes: ${verificarValor(dados.qualgarantidor) === "fi"
                 ? `Fiador: ${verificarValor(dados.nomeFiador)}, CPF: ${verificarValor(dados.cpfFiador)}`
                 : verificarValor(dados.qualgarantidor) === "caudep"
                     ? `Caução em Dinheiro: R$ ${verificarValor(dados.valorTitCaucao)}`
@@ -491,94 +557,96 @@ export default function LocacaoEquipamentos() {
                             ? `Título de Crédito: ${verificarValor(dados.descCredUtili)}`
                             : `Seguro Fiança: ${verificarValor(dados.segFianca)}`
             }`,
+            `Procedimento para Devolução: ${verificarValor(dados.procedimentoDevolucao)}`,
         ]);
 
-        addSection("CLÁUSULA SEXTA – DAS OBRIGAÇÕES DO LOCADOR", [
-            "Conforme o Código Civil Brasileiro (Art. 566):",
-            "- O locador é obrigado a entregar o equipamento em estado de servir ao uso a que se destina.",
-            `Entrega em Perfeito Estado: ${verificarValor(dados.entregaEquipLocador)}`,
-            `Garantia de Manutenção: ${verificarValor(dados.garantiaManutencao)}`,
-            `Fornecimento de Suporte: ${verificarValor(dados.forneceraSuporte)}`,
+
+        addSection("CLÁUSULA 6 - OBRIGAÇÕES DO LOCADOR", [
+            "(Artigo 22 da Lei do Inquilinato)",
+            `Responsabilidade por Manutenções/Reparos: ${verificarValor(dados.locadorManuRep) === "S" ? "Sim" : "Não"}`,
+            `Serviços Adicionais: ${verificarValor(dados.locadorServAdicional) === "S" ? "Sim" : "Não"}`,
         ]);
 
-        addSection("CLÁUSULA SÉTIMA – DAS OBRIGAÇÕES DO LOCATÁRIO", [
-            "Conforme o Código Civil Brasileiro (Art. 569):",
-            "- O locatário é obrigado a usar o equipamento conforme o destino ajustado e a devolvê-lo no estado em que o recebeu, salvo deteriorações naturais.",
-            `Uso Adequado: ${verificarValor(dados.usoAdequadoEquip)}`,
-            `Responsabilidade por Danos: ${verificarValor(dados.responsabilidadeDanos)}`,
-            `Devolução em Perfeito Estado: ${verificarValor(dados.devolucaoEquipLocatario)}`,
-            `Reparo por Danos: ${verificarValor(dados.obrigacaoReparoDanos)}`,
+        addSection("CLÁUSULA 7 - OBRIGAÇÕES DO LOCATÁRIO", [
+            "(Artigos 23 e 24 da Lei do Inquilinato)",
+            `Reformas ou Modificações Permitidas: ${verificarValor(dados.locatarioRealiza) === "S" ? "Sim" : "Não"}`,
+            verificarValor(dados.locatarioRealiza) === "S" ? `Condições: ${verificarValor(dados.quaisLocatarioCondicoes)}` : "",
+            `Responsabilidade por Manutenções: ${verificarValor(dados.locatarioManu)}`,
+            `Restrições de Uso: ${verificarValor(dados.restricoes)}`,
         ]);
 
-        addSection("CLÁUSULA OITAVA – DA RESCISÃO CONTRATUAL", [
-            "Conforme o Código Civil Brasileiro (Art. 572 e Art. 573):",
-            "- O contrato pode ser rescindido por qualquer das partes em caso de descumprimento das obrigações contratuais.",
-            `Rescisão Antecipada: ${verificarValor(dados.rescisaoAntecipada)}`,
-            `Multa Rescisória: R$ ${verificarValor(dados.multaRescisoria)}`,
-            `Prazo para Aviso Prévio: ${verificarValor(dados.prazoAvisoPrevio)} dias`,
+        addSection("CLÁUSULA 8 - DESPESAS E TRIBUTOS", [
+            "(Artigos 22 e 23 da Lei do Inquilinato)",
+            `Despesas do Locatário: ${verificarValor(dados.despesasLocatario)}`,
+            `Despesas do Locador: ${verificarValor(dados.despesasLocador)}`,
         ]);
 
-        addSection("CLÁUSULA NONA – DAS DISPOSIÇÕES GERAIS", [
-            "Conforme o Código Civil Brasileiro:",
-            "- As disposições gerais devem respeitar os princípios contratuais de boa-fé e equidade.",
-            `Alterações Contratuais: ${verificarValor(dados.alteracoesContratuais)}`,
-            `Foro de Eleição: ${verificarValor(dados.foroEleito)}`,
-            "Outros acordos entre as partes devem ser formalizados por escrito.",
+        addSection("CLÁUSULA 9 - RESCISÃO DO CONTRATO", [
+            "(Artigo 4º da Lei do Inquilinato e Artigo 475 do Código Civil Brasileiro)",
+            `Condições: ${verificarValor(dados.condicoesRescisao)}`,
+            `Multas/Penalidades: ${verificarValor(dados.multasPenalidades)}`,
+            `Prazo para Notificação: ${verificarValor(dados.prazo)} dias`,
         ]);
 
-        // Assinaturas das testemunhas (se aplicável)
-        if (verificarValor(dados.testemunhas) === "S") {
+        addSection("CLÁUSULA 10 - DIREITO DE PREFERÊNCIA", [
+            "(Artigo 27 da Lei do Inquilinato)",
+            `Preferência para Compra: ${verificarValor(dados.direitoPreferencia) === "S" ? "Sim" : "Não"}`,
+            verificarValor(dados.direitoPreferencia) === "S" ? `Condições: ${verificarValor(dados.condicoesExec)}` : "",
+        ]);
+
+        addSection("CLÁUSULA 11 - DISPOSIÇÕES GERAIS", [
+            "(Artigos 421 e 422 do Código Civil Brasileiro)",
+            `Foro: ${verificarValor(dados.foroResolucaoConflitos)}`,
+            `Testemunhas Necessárias: ${verificarValor(dados.testemunhasNecessarias) === "S" ? "Sim" : "Não"}`,
+            `Registro em Cartório: ${verificarValor(dados.registroCartorio) === "S" ? "Sim" : "Não"}`,
+        ]);
+
+        if (dados.testemunhasNecessarias === "S") {
             posY += 20;
             doc.text("__________________________", 60, posY);
-            doc.text("Assinatura da Testemunha 1", 60, posY + 5);
-            doc.text(`Nome: ${verificarValor(dados.nomeTestemunha1)}, CPF: ${verificarValor(dados.cpfTestemunha1)}`, 60, posY + 15);
+            doc.text(`Testemunha 1: ${verificarValorEspecial(dados.nomeTest1)}`, 60, posY + 5);
+            doc.text(`CPF: ${verificarValorEspecial(dados.cpfTest1)}`, 60, posY + 10);
 
-            posY += 30;
-            doc.text("__________________________", 60, posY);
-            doc.text("Assinatura da Testemunha 2", 60, posY + 5);
-            doc.text(`Nome: ${verificarValor(dados.nomeTestemunha2)}, CPF: ${verificarValor(dados.cpfTestemunha2)}`, 60, posY + 15);
+            doc.text("__________________________", 140, posY);
+            doc.text(`Testemunha 2: ${verificarValorEspecial(dados.nomeTest2)}`, 140, posY + 5);
+            doc.text(`CPF: ${verificarValorEspecial(dados.cpfTest2)}`, 140, posY + 10);
         }
 
-        // Finalização do documento
-        posY += 40;
-        doc.setFontSize(10);
-        doc.text("Este contrato é firmado em duas vias de igual teor e forma, que as partes assinam para que produza seus efeitos legais.", marginX, posY);
+        posY += 20;
+        doc.text("__________________________", 60, posY);
+        doc.text("Assinatura do Locador", 60, posY + 5);
 
-        // Salvar o PDF
+        doc.text("__________________________", 140, posY);
+        doc.text("Assinatura do Locatário", 140, posY + 5);
+
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
 
 
-
-
-
-
     useEffect(() => {
-        gerarContratoLocacaoEquipamento({ ...formData });
+        geradorDeContratoImovelComercial({ ...formData });
     }, [formData]);
-
 
     return (
         <>
             <div className="caixa-titulo-subtitulo">
                 <h1 className="title">Contrato de Locação de Equipamentos</h1>
-
             </div>
             <div className="container">
                 <div className="left-panel">
                     <div className="scrollable-card">
-
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 76) * 100}%` }}
+                                style={{ width: `${(step / 78) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
+
                             {step === 1 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Equipamento</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>O Responsavel é pessoa?</label>
                                         <select name='locador' onChange={handleChange}>
@@ -594,7 +662,7 @@ export default function LocacaoEquipamentos() {
                             {/**Pessoa Fisica */}
                             {step === 2 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Equipamento</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>Nome do Locador</label>
                                         <input
@@ -610,7 +678,7 @@ export default function LocacaoEquipamentos() {
                             )}
                             {step === 3 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Equipamento</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>CPF</label>
                                         <input
@@ -626,7 +694,7 @@ export default function LocacaoEquipamentos() {
                             )}
                             {step === 4 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Equipamento</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>Endereço do Locador</label>
                                         <input
@@ -642,7 +710,7 @@ export default function LocacaoEquipamentos() {
                             )}
                             {step === 5 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Equipamento</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>Telefone do Locador</label>
                                         <input
@@ -658,7 +726,7 @@ export default function LocacaoEquipamentos() {
                             )}
                             {step === 6 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Equipamento</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>Email do Locador</label>
                                         <input
@@ -679,7 +747,7 @@ export default function LocacaoEquipamentos() {
                                 <>
                                     {step === 7 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Equipamento</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Razão Social</label>
                                                 <input
@@ -703,7 +771,7 @@ export default function LocacaoEquipamentos() {
 
                                     {step === 8 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Equipamento</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Endereço do onde o CNPJ esta cadastrado</label>
                                                 <input
@@ -719,7 +787,7 @@ export default function LocacaoEquipamentos() {
                                     )}
                                     {step === 9 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Equipamento</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Telefone</label>
                                                 <input
@@ -735,7 +803,7 @@ export default function LocacaoEquipamentos() {
                                     )}
                                     {step === 10 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Equipamento</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Email</label>
                                                 <input
@@ -751,7 +819,7 @@ export default function LocacaoEquipamentos() {
                                     )}
                                     {step === 11 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Equipamento</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Nome do representante do CNPJ</label>
                                                 <input
@@ -765,9 +833,10 @@ export default function LocacaoEquipamentos() {
                                             </div>
                                         </>
                                     )}
+
                                     {step === 12 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Equipamento</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>CPF do representante do CNPJ</label>
                                                 <input
@@ -786,10 +855,9 @@ export default function LocacaoEquipamentos() {
                             )}
 
                             {/**Locatário */}
-
                             {step === 13 && (
                                 <>
-                                    <h2>Dados do Locatário do Equipamento</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>O Responsavel é pessoa?</label>
                                         <select name='locatario' onChange={handleChange}>
@@ -801,10 +869,12 @@ export default function LocacaoEquipamentos() {
                                     </div>
                                 </>
                             )}
+
+
                             {/**Pessoa Fisica */}
                             {step === 14 && (
                                 <>
-                                    <h2>Dados do Locatário do Equipamento</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>Nome do Locatário</label>
                                         <input
@@ -820,7 +890,7 @@ export default function LocacaoEquipamentos() {
                             )}
                             {step === 15 && (
                                 <>
-                                    <h2>Dados do Locatário do Equipamento</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>CPF</label>
                                         <input
@@ -836,7 +906,7 @@ export default function LocacaoEquipamentos() {
                             )}
                             {step === 16 && (
                                 <>
-                                    <h2>Dados do Locatário do Equipamento</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>Endereço do Locatário</label>
                                         <input
@@ -852,7 +922,7 @@ export default function LocacaoEquipamentos() {
                             )}
                             {step === 17 && (
                                 <>
-                                    <h2>Dados do Locatário do Equipamento</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>Telefone do Locatário</label>
                                         <input
@@ -868,7 +938,7 @@ export default function LocacaoEquipamentos() {
                             )}
                             {step === 18 && (
                                 <>
-                                    <h2>Dados do Locatário do Equipamento</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>Email do Locatário</label>
                                         <input
@@ -889,7 +959,7 @@ export default function LocacaoEquipamentos() {
                                 <>
                                     {step === 19 && (
                                         <>
-                                            <h2>Dados do Locatário do Equipamento</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Razão Social</label>
                                                 <input
@@ -913,7 +983,7 @@ export default function LocacaoEquipamentos() {
 
                                     {step === 20 && (
                                         <>
-                                            <h2>Dados do Locatário do Equipamento</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Endereço do onde o CNPJ esta cadastrado</label>
                                                 <input
@@ -929,7 +999,7 @@ export default function LocacaoEquipamentos() {
                                     )}
                                     {step === 21 && (
                                         <>
-                                            <h2>Dados do Locatário do Equipamento</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Telefone</label>
                                                 <input
@@ -945,7 +1015,7 @@ export default function LocacaoEquipamentos() {
                                     )}
                                     {step === 22 && (
                                         <>
-                                            <h2>Dados do Locatário do Equipamento</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Email</label>
                                                 <input
@@ -961,7 +1031,7 @@ export default function LocacaoEquipamentos() {
                                     )}
                                     {step === 23 && (
                                         <>
-                                            <h2>Dados do Locatário do Equipamento</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Nome do representante do CNPJ</label>
                                                 <input
@@ -977,7 +1047,7 @@ export default function LocacaoEquipamentos() {
                                     )}
                                     {step === 24 && (
                                         <>
-                                            <h2>Dados do Locatário do Equipamento</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>CPF do representante do CNPJ</label>
                                                 <input
@@ -992,17 +1062,19 @@ export default function LocacaoEquipamentos() {
                                         </>
                                     )}
 
+
                                 </>
                             )}
+
                             {step === 25 && (
                                 <>
-                                    <h2>Descrição do Equipamento</h2>
+                                    <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Qual é o tipo do Equipamento ?</label>
+                                        <label>Endereço completo do imóvel</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="tipodeequipamento"
+                                            name="enderecoImovel"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1011,31 +1083,36 @@ export default function LocacaoEquipamentos() {
                                 </>
                             )}
 
+
                             {step === 26 && (
                                 <>
-                                    <h2>Descrição do Equipamento</h2>
+                                    <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Qual é a Marca ou Modelo?</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="marcaemodelo"
+                                        <label>Descrição detalhada do imóvel (ex.: área total, número de salas, banheiros, estacionamento, etc.)</label>
+                                        <textarea
+                                            id="descImovel"
+                                            name="descImovel"
                                             onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
                                         />
+
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
+
                             {step === 27 && (
                                 <>
-                                    <h2>Descrição do Equipamento</h2>
+                                    <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Qual é o numero de série?</label>
+                                        <label>Destinação comercial específica (ex.: escritório, loja, restaurante, etc.)</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="numerodeserie"
+                                            name="destcomercial"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1046,13 +1123,13 @@ export default function LocacaoEquipamentos() {
 
                             {step === 28 && (
                                 <>
-                                    <h2>Descrição do Equipamento</h2>
+                                    <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Estado de Conservação</label>
+                                        <label>Condições atuais do imóvel (se necessário, incluir um relatório ou fotos)</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="estadoconservacao"
+                                            name="condicoesImovel"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1063,13 +1140,13 @@ export default function LocacaoEquipamentos() {
 
                             {step === 29 && (
                                 <>
-                                    <h2>Descrição do Equipamento</h2>
+                                    <h2>Prazo Da Locação</h2>
                                     <div>
-                                        <label>Acessórios ou componentes adicionais incluídos</label>
+                                        <label>Condições atuais do imóvel (se necessário, incluir um relatório ou fotos)</label>
                                         <input
-                                            type='text'
+                                            type='date'
                                             placeholder=''
-                                            name="acessorioscomponentes"
+                                            name="dataInicioLocacao"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1080,7 +1157,7 @@ export default function LocacaoEquipamentos() {
 
                             {step === 30 && (
                                 <>
-                                    <h2>Prazo da Locação</h2>
+                                    <h2>Prazo Da Locação</h2>
                                     <div>
                                         <label>Data de início da locação</label>
                                         <input
@@ -1097,13 +1174,13 @@ export default function LocacaoEquipamentos() {
 
                             {step === 31 && (
                                 <>
-                                    <h2>Prazo da Locação</h2>
+                                    <h2>Prazo Da Locação</h2>
                                     <div>
-                                        <label>Data de término da locação</label>
+                                        <label>Duração do contrato (ex.: 12 meses, 24 meses)</label>
                                         <input
-                                            type='date'
+                                            type='text'
                                             placeholder=''
-                                            name="dataTerminoLocacao"
+                                            name="duracaoContrato"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1114,7 +1191,7 @@ export default function LocacaoEquipamentos() {
 
                             {step === 32 && (
                                 <>
-                                    <h2>Prazo da Locação</h2>
+                                    <h2>Prazo Da Locação</h2>
                                     <div>
                                         <label>Há possibilidade de renovação?</label>
                                         <select name='possibilidadeRenovacao' onChange={handleChange}>
@@ -1128,18 +1205,17 @@ export default function LocacaoEquipamentos() {
                                 </>
                             )}
 
-
-                            {possibilidadeRenovacao && (
+                            {renovacao && (
                                 <>
                                     {step === 33 && (
                                         <>
-                                            <h2>Prazo da Locação</h2>
+                                            <h2>Prazo Da Locação</h2>
                                             <div>
-                                                <label>Quais são as condições?</label>
+                                                <label>Sob quais condições?</label>
                                                 <input
                                                     type='text'
                                                     placeholder=''
-                                                    name="condicao"
+                                                    name="quaisCondicoes"
                                                     onChange={handleChange}
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
@@ -1152,13 +1228,14 @@ export default function LocacaoEquipamentos() {
 
                             {step === 34 && (
                                 <>
-                                    <h2>Valor e Condições de Pagamento</h2>
+                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
-                                        <label>Valor total da locação</label>
+                                        <label>Valor mensal do aluguel</label>
+
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="valorTotalLocacao"
+                                            name="valorMensalAluguel"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1169,17 +1246,32 @@ export default function LocacaoEquipamentos() {
 
                             {step === 35 && (
                                 <>
-                                    <h2>Valor e Condições de Pagamento</h2>
+                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
-                                        <label>Forma de pagamento (à vista, parcelado, etc.)</label>
-                                        <select name='formaPagamento' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="Pix">Pix</option>
-                                            <option value="Dinheiro">Dinheiro</option>
-                                            <option value="Cartão">Cartão</option>
-                                            <option value="Boleto">Dinheiro</option>
-                                            <option value="Parcelado">Parcelado</option>
-                                        </select>
+                                        <label>Data de vencimento mensal</label>
+                                        <input
+                                            type='date'
+                                            placeholder=''
+                                            name="dataVenc"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 36 && (
+                                <>
+                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
+                                    <div>
+                                        <label>Forma de pagamento (ex.: depósito bancário, boleto, Pix)</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="formaPagamento"
+                                            onChange={handleChange}
+                                        />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
@@ -1187,51 +1279,33 @@ export default function LocacaoEquipamentos() {
                             )}
 
 
-                            {Parcelado && (
+                            {step === 37 && (
                                 <>
-                                    {step === 36 && (
-                                        <>
-                                            <h2>Valor e Condições de Pagamento</h2>
-                                            <div>
-                                                <label>Datas de vencimento das parcelas</label>
-                                                <input
-                                                    type='date'
-                                                    placeholder=''
-                                                    name="dataVencimentoParcela"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
+                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
+                                    <div>
+                                        <label>Reajuste anual do aluguel?</label>
+                                        <select name='reajusteAnual' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
 
-                                    {step === 37 && (
-                                        <>
-                                            <h2>Valor e Condições de Pagamento</h2>
-                                            <div>
-                                                <label>Multa por atraso no pagamento</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder='Porcentagem .ex.:2% mês , ano ou dia'
-                                                    name="multaPorAtrasoPagamento"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
+                            {reajusteAnual && (
+                                <>
                                     {step === 38 && (
                                         <>
-                                            <h2>Valor e Condições de Pagamento</h2>
+                                            <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                             <div>
-                                                <label>Juros aplicáveis em caso de atraso</label>
+                                                <label>Qual índice será utilizado (ex.: IGPM, IPCA)?</label>
                                                 <input
                                                     type='text'
-                                                    placeholder='porcentagem.ex.: 1% mês'
-                                                    name="jurosporatraso"
+                                                    placeholder=''
+                                                    name="qualIndice"
                                                     onChange={handleChange}
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
@@ -1242,7 +1316,45 @@ export default function LocacaoEquipamentos() {
                                 </>
                             )}
 
+
+
                             {step === 39 && (
+                                <>
+                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
+                                    <div>
+                                        <label>Multa por atraso no pagamento</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="multaPorAtrasoPagamento"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 40 && (
+                                <>
+                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
+                                    <div>
+                                        <label>Juros aplicáveis em caso de atraso</label>
+                                        <input
+                                            type='text'
+                                            placeholder='porcentagem.ex.: 1% mês'
+                                            name="jurosporatraso"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+
+                            {step === 41 && (
                                 <>
                                     <h2>Garantias</h2>
                                     <div>
@@ -1260,7 +1372,7 @@ export default function LocacaoEquipamentos() {
 
                             {garantia && (
                                 <>
-                                    {step === 40 && (
+                                    {step === 42 && (
                                         <>
                                             <h2>Garantias</h2>
                                             <div>
@@ -1283,7 +1395,7 @@ export default function LocacaoEquipamentos() {
 
                             {fiador && (
                                 <>
-                                    {step === 41 && (
+                                    {step === 43 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1295,12 +1407,13 @@ export default function LocacaoEquipamentos() {
                                                         <option value="M">Masculino</option>
                                                     </select>
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 42 && (
+                                    {step === 44 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1313,12 +1426,13 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 43 && (
+                                    {step === 45 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1332,12 +1446,13 @@ export default function LocacaoEquipamentos() {
                                                         <option value="viuvo">Viuvo(a)</option>
                                                     </select>
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 44 && (
+                                    {step === 46 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1350,12 +1465,13 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 45 && (
+                                    {step === 47 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1368,12 +1484,13 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 46 && (
+                                    {step === 48 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1388,11 +1505,12 @@ export default function LocacaoEquipamentos() {
                                                     <option value="Passaporte">Passaporte</option>
                                                 </select>
                                                 <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>                                                    </div>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
                                         </>
                                     )}
 
-                                    {step === 47 && (
+                                    {step === 49 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1405,12 +1523,13 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 48 && (
+                                    {step === 50 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1423,12 +1542,13 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
 
-                                    {step === 49 && (
+                                    {step === 51 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1441,7 +1561,8 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1451,7 +1572,7 @@ export default function LocacaoEquipamentos() {
 
                             {caucaoDep && (
                                 <>
-                                    {step === 50 && (
+                                    {step === 52 && (
                                         <>
                                             <h2>Dados do Titulo do Caução</h2>
                                             <div>
@@ -1464,7 +1585,8 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1476,7 +1598,7 @@ export default function LocacaoEquipamentos() {
 
                             {caucaoBemIM && (
                                 <>
-                                    {step === 51 && (
+                                    {step === 53 && (
                                         <>
                                             <h2>Dados do Caução de imóvel</h2>
                                             <div>
@@ -1489,7 +1611,8 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1498,7 +1621,7 @@ export default function LocacaoEquipamentos() {
 
                             {titulos && (
                                 <>
-                                    {step === 52 && (
+                                    {step === 54 && (
                                         <>
                                             <h2>Dados do Título de Credito</h2>
                                             <div>
@@ -1511,7 +1634,8 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1520,7 +1644,7 @@ export default function LocacaoEquipamentos() {
 
                             {seguroFi && (
                                 <>
-                                    {step === 53 && (
+                                    {step === 55 && (
                                         <>
                                             <h2>Dados do Seguro Fiança</h2>
                                             <div>
@@ -1533,219 +1657,213 @@ export default function LocacaoEquipamentos() {
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
-                                </>
-                            )}
-
-                            {step === 54 && (
-                                <>
-                                    <h2>Obrigações do Locador</h2>
-                                    <div>
-                                        <label>O locador se responsabiliza pela entrega do equipamento em perfeito estado de funcionamento?  </label>
-                                        <select name='entregaEquipLocador' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="Sim">Sim</option>
-                                            <option value="Não">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>                                                        </div>
-
-                                </>
-                            )}
-
-                            {step === 55 && (
-                                <>
-                                    <h2>Obrigações do Locador</h2>
-                                    <div>
-                                        <label>Há garantia para manutenção ou reparos durante o período de locação?</label>
-                                        <select name='garantiaManutencao' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="Sim">Sim</option>
-                                            <option value="Não">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>                                                        </div>
-
                                 </>
                             )}
 
 
                             {step === 56 && (
                                 <>
-                                    <h2>Obrigações do Locador</h2>
+                                    <h2>Obrigações do Locador(Proprietário do Imóvel)</h2>
                                     <div>
-                                        <label>O locador fornecerá suporte técnico?</label>
-                                        <select name='forneceraSuporte' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="Sim">Sim</option>
-                                            <option value="Não">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>                                                        </div>
-
+                                        <label>O locador se responsabiliza por quais manutenções ou reparos?</label>
+                                        <div>
+                                            <select name='locadorManuRep' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
                                 </>
                             )}
 
-                            {garantiaManutencao && (
+                            {step === 57 && (
                                 <>
-                                    {step === 57 && (
+                                    <h2>Obrigações do Locador(Proprietário do Imóvel)</h2>
+                                    <div>
+                                        <label>O locador fornecerá algum serviço adicional (ex.: segurança, limpeza das áreas comuns)?</label>
+                                        <div>
+                                            <select name='locadorServAdicional' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {servicoAdicional && (
+                                <>
+                                    {step === 58 && (
                                         <>
-                                            <h2>Obrigações do Locador</h2>
+                                            <h2>Obrigações do Locador(Proprietário do Imóvel)</h2>
                                             <div>
-                                                <label>Em quais condições? </label>
+                                                <label>Qual serviço fornecerá ?</label>
                                                 <div>
                                                     <input
                                                         type='text'
                                                         placeholder=''
-                                                        name="quaisCondicoes"
+                                                        name="qualServico"
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
                                 </>
                             )}
 
-                            {step === 58 && (
-                                <>
-                                    <h2>Obrigações do Locatário</h2>
-                                    <div>
-                                        <label>O locatário se compromete a utilizar o equipamento conforme as instruções fornecidas? </label>
-                                        <div>
-                                            <select name='compromeUso' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="Sim">Sim</option>
-                                                <option value="Não">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
-                                    </div>
-                                </>
-                            )}
                             {step === 59 && (
                                 <>
-                                    <h2>Obrigações do Locatário</h2>
+                                    <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
                                     <div>
-                                        <label>O locatário é responsável por danos causados por uso inadequado? </label>
+                                        <label>O locatário pode realizar reformas ou modificações no imóvel?</label>
                                         <div>
-                                            <select name='danosUso' onChange={handleChange}>
+                                            <select name='locatarioRealiza' onChange={handleChange}>
                                                 <option value="">Selecione</option>
-                                                <option value="Sim">Sim</option>
-                                                <option value="Não">Não</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
                                             </select>
                                             <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
                                     </div>
                                 </>
                             )}
 
-                            {step === 60 && (
+                            {locatarioRealiza && (
                                 <>
-                                    <h2>Obrigações do Locatário</h2>
-                                    <div>
-                                        <label>Há restrições quanto ao local de uso do equipamento? </label>
-                                        <div>
-                                            <select name='restricoesLocal' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="Sim">Sim</option>
-                                                <option value="Não">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
-                                    </div>
+                                    {step === 60 && (
+                                        <>
+                                            <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
+                                            <div>
+                                                <label>Quais são as condições?</label>
+                                                <div>
+                                                    <input
+                                                        type='text'
+                                                        placeholder=''
+                                                        name="quaisLocatarioCondicoes"
+                                                        onChange={handleChange}
+                                                    />
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
+
+                                    {step === 61 && (
+                                        <>
+                                            <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
+                                            <div>
+                                                <label>O locatário é responsável por quais manutenções?</label>
+                                                <div>
+                                                    <input
+                                                        type='text'
+                                                        placeholder=''
+                                                        name="locatarioManu"
+                                                        onChange={handleChange}
+                                                    />
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </>
                             )}
 
-                            {step === 61 && (
-                                <>
-                                    <h2>Obrigações do Locatário</h2>
-                                    <div>
-                                        <label>O locatário deve arcar com custos de manutenção preventiva ou corretiva durante a locação?  </label>
-                                        <div>
-                                            <select name='arcarCustos' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="Sim">Sim</option>
-                                                <option value="Não">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
-                                    </div>
-                                </>
-                            )}
 
                             {step === 62 && (
                                 <>
-                                    <h2>Devolução do Equipamento</h2>
+                                    <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
                                     <div>
-                                        <label>Local para devolução do equipamento </label>
+                                        <label>Há restrições quanto ao tipo de atividades comerciais permitidas no imóvel?</label>
                                         <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="local"
-                                                onChange={handleChange}
-                                            />
+                                            <select name='restricoes' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
                                             <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
                                     </div>
                                 </>
                             )}
 
-                            {step === 63 && (
+                            {restricoes && (
                                 <>
-                                    <h2>Devolução do Equipamento</h2>
-                                    <div>
-                                        <label>Condições para devolução do equipamento</label>
-                                        <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="condicoesDevolucao"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
-                                    </div>
+                                    {step === 63 && (
+                                        <>
+                                            <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
+                                            <div>
+                                                <label>Quais restrições?</label>
+                                                <div>
+                                                    <input
+                                                        type='text'
+                                                        placeholder=''
+                                                        name="quaisRestricoes"
+                                                        onChange={handleChange}
+                                                    />
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </>
                             )}
+
 
                             {step === 64 && (
                                 <>
-                                    <h2>Devolução do Equipamento</h2>
+                                    <h2>Despesas e Tributos</h2>
                                     <div>
-                                        <label>Qual será o procedimento para inspeção do equipamento na devolução ?</label>
+                                        <label>Quais despesas são de responsabilidade do locatário (Inquilino do imóvel)? (ex.: IPTU, contas de água, luz, condomínio)</label>
                                         <div>
                                             <input
                                                 type='text'
                                                 placeholder=''
-                                                name="procedimentoInspec"
+                                                name="despesasLocatario"
                                                 onChange={handleChange}
                                             />
                                             <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
                                     </div>
                                 </>
                             )}
 
                             {step === 65 && (
                                 <>
-                                    <h2>Devolução do Equipamento</h2>
+                                    <h2>Despesas e Tributos</h2>
                                     <div>
-                                        <label>Qual será as penalidades em caso de danos ou avarias identificadas ?</label>
+                                        <label>Quais despesas são de responsabilidade do locador?</label>
                                         <div>
                                             <input
                                                 type='text'
                                                 placeholder=''
-                                                name="penalidades"
+                                                name="despesasLocador"
                                                 onChange={handleChange}
                                             />
                                             <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1754,7 +1872,7 @@ export default function LocacaoEquipamentos() {
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
-                                        <label>Qual será as condições para rescisão antecipada por ambas as partes ?</label>
+                                        <label>Condições para rescisão antecipada por ambas as partes</label>
                                         <div>
                                             <input
                                                 type='text'
@@ -1763,7 +1881,8 @@ export default function LocacaoEquipamentos() {
                                                 onChange={handleChange}
                                             />
                                             <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1772,16 +1891,20 @@ export default function LocacaoEquipamentos() {
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
-                                        <label>Qual será a Multa aplicável em caso de rescisão antecipada ?</label>
+                                        <label>Multas ou penalidades aplicáveis em caso de rescisão antecipada</label>
                                         <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="multasRescisao"
+
+                                            <textarea
+                                                id="multasPenalidades"
+                                                name="multasPenalidades"
                                                 onChange={handleChange}
+                                                rows={10}
+                                                cols={50}
+                                                placeholder="Descrição"
                                             />
                                             <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>                                                        </div>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -1790,12 +1913,13 @@ export default function LocacaoEquipamentos() {
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
-                                        <label>Qual será o prazo para notificação prévia de rescisão ?</label>
+                                        <label>Prazo para notificação prévia de rescisão</label>
                                         <div>
+
                                             <input
                                                 type='text'
                                                 placeholder=''
-                                                name="prazoNotificacaoRescisao"
+                                                name="prazo"
                                                 onChange={handleChange}
                                             />
                                             <button onClick={handleBack}>Voltar</button>
@@ -1807,9 +1931,71 @@ export default function LocacaoEquipamentos() {
 
                             {step === 69 && (
                                 <>
-                                    <h2>Disposições Gerais</h2>
+                                    <h2>Direito de Preferência</h2>
                                     <div>
-                                        <label>Foro eleito para resolução de conflitos </label>
+                                        <label>Em caso de venda do imóvel, o locatário terá direito de preferência para compra?</label>
+                                        <div>
+                                            <select name='direitoPreferencia' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {direitoPreferencia && (
+                                <>
+                                    {step === 70 && (
+                                        <>
+                                            <h2>Direito de Preferência</h2>
+                                            <div>
+                                                <label>Condições para exercício desse direito</label>
+                                                <div>
+                                                    <input
+                                                        type='text'
+                                                        placeholder=''
+                                                        name="condicoesExec"
+                                                        onChange={handleChange}
+                                                    />
+                                                    <button onClick={handleBack}>Voltar</button>
+                                                    <button onClick={handleNext}>Próximo</button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {step === 71 && (
+                                <>
+                                    <h2>Direito de Preferência</h2>
+                                    <div>
+                                        <label>Condições para exercício desse direito</label>
+                                        <div>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="condicoesExec"
+                                                onChange={handleChange}
+                                            />
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {step === 72 && (
+                                <>
+                                    <h2>Disposição Gerais</h2>
+                                    <div>
+                                        <label>Condições para exercício desse direito</label>
                                         <div>
                                             <input
                                                 type='text'
@@ -1823,27 +2009,46 @@ export default function LocacaoEquipamentos() {
                                     </div>
                                 </>
                             )}
-                            {step === 70 && (
+
+
+
+                            {step === 73 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
-                                        <label>Gostaria de adicionar testemunhas?</label>
-                                        <div>
-                                            <select name='testemunhasNecessarias' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="Sim">Sim</option>
-                                                <option value="Não">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>Foro eleito para resolução de conflitos</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="foroeleito"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-                            {testemunhas && (
+                            {step === 74 && (
                                 <>
-                                    {step === 71 && (
+                                    <h2>Disposições Gerais</h2>
+                                    <div>
+                                        <label>Necessidade de testemunhas para assinatura do contrato</label>
+                                        <select name='testemunhas' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {Testemunhas && (
+                                <>
+                                    {step === 75 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1862,7 +2067,7 @@ export default function LocacaoEquipamentos() {
                                         </>
                                     )}
 
-                                    {step === 72 && (
+                                    {step === 76 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1871,7 +2076,7 @@ export default function LocacaoEquipamentos() {
                                                     <input
                                                         type='text'
                                                         placeholder=''
-                                                        name="nomeTest1"
+                                                        name="cpfTest1"
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
@@ -1881,7 +2086,7 @@ export default function LocacaoEquipamentos() {
                                         </>
                                     )}
 
-                                    {step === 73 && (
+                                    {step === 77 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1901,7 +2106,7 @@ export default function LocacaoEquipamentos() {
                                         </>
                                     )}
 
-                                    {step === 74 && (
+                                    {step === 78 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1922,7 +2127,7 @@ export default function LocacaoEquipamentos() {
                                 </>
                             )}
 
-                            {step === 75 && (
+                            {step === 79 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1940,8 +2145,7 @@ export default function LocacaoEquipamentos() {
                                 </>
                             )}
 
-
-                            {step === 76 && (
+                            {step === 80 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -1962,24 +2166,27 @@ export default function LocacaoEquipamentos() {
                         </div>
                     </div>
                 </div>
-
                 <div className="right-panel">
                     <div className="pdf-preview">
                         {pdfDataUrl && (
                             <iframe
-                                src={`${pdfDataUrl}#toolbar=0&navpanes=0&scrollbar=0`} // Desativa a barra de ferramentas do PDF
+                                src={`${pdfDataUrl}#toolbar=0&navpanes=0`} // Desativa a barra de ferramentas e o painel de navegação
                                 title="Pré-visualização do PDF"
                                 frameBorder="0"
                                 width="100%"
                                 height="100%"
                                 style={{
-                                    pointerEvents: 'auto',
-                                    userSelect: 'none',
+                                    pointerEvents: 'none', // Impede interações (como cliques)
+                                    overflow: 'auto',      // Permite apenas a rolagem
                                 }}
+
                             ></iframe>
                         )}
+
+
                     </div>
                 </div>
+
             </div>
 
             {modalPagamento && (
@@ -2006,11 +2213,9 @@ export default function LocacaoEquipamentos() {
                 </>
             )}
 
-
-
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { gerarContratoLocacaoEquipamentoPDF(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorDeContratoImovelComercialPago(formData) }}>
                         Baixar PDF
                     </button>
                 ) : (
@@ -2019,6 +2224,7 @@ export default function LocacaoEquipamentos() {
                     </button>
                 )}
             </div>
+
         </>
     );
 }

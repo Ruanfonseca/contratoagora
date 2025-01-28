@@ -392,10 +392,11 @@ export default function LocacaobemMovel() {
 
         // Configuração inicial de fonte e margens
         const marginX = 10;
+        const pageWidth = 190; // Largura máxima da área de texto
         let posY = 20;
 
         // Função auxiliar para adicionar cláusulas e ajustar a posição Y
-        const addClause = (title: any, content: any) => {
+        const addClause = (title: string, content: string[]) => {
             if (posY + 10 >= 280) {
                 doc.addPage();
                 posY = 20;
@@ -404,16 +405,18 @@ export default function LocacaobemMovel() {
             doc.text(title, 105, posY, { align: "center" });
             posY += 10;
             doc.setFontSize(10);
-            content.forEach((line: any) => {
-                if (posY + 10 >= 280) {
-                    doc.addPage();
-                    posY = 20;
-                }
-                doc.text(line, marginX, posY);
-                posY += 10; // Espaço entre linhas aumentado
+            content.forEach((line) => {
+                const wrappedText = doc.splitTextToSize(line, pageWidth);
+                wrappedText.forEach((textLine: string) => {
+                    if (posY + 10 >= 280) {
+                        doc.addPage();
+                        posY = 20;
+                    }
+                    doc.text(textLine, marginX, posY);
+                    posY += 10; // Espaçamento entre as linhas
+                });
             });
         };
-
         // Página 1 - Título
         doc.setFontSize(14);
         doc.text("CONTRATO DE LOCAÇÃO DE BENS MÓVEIS", 105, posY, { align: "center" });
@@ -1985,13 +1988,13 @@ export default function LocacaobemMovel() {
                     <div className="pdf-preview">
                         {pdfDataUrl && (
                             <iframe
-                                src={pdfDataUrl}
+                                src={`${pdfDataUrl}#toolbar=0&navpanes=0&scrollbar=0`} // Desativa a barra de ferramentas do PDF
                                 title="Pré-visualização do PDF"
                                 frameBorder="0"
                                 width="100%"
                                 height="100%"
                                 style={{
-                                    pointerEvents: 'none',
+                                    pointerEvents: 'auto',
                                     userSelect: 'none',
                                 }}
                             ></iframe>
