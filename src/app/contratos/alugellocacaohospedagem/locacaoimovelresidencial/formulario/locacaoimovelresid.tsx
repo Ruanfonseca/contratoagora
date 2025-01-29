@@ -609,7 +609,7 @@ export default function LocacaoImovelResidencial() {
     return (
         <>
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">Contrato de Locação de Equipamentos</h1>
+                <h1 className="title">Contrato de Locação de Imóvel Residencial</h1>
             </div>
             <div className="container">
                 <div className="left-panel">

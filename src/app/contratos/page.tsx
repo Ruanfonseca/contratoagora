@@ -28,7 +28,7 @@ export default function contratos() {
             <li><Link className='' href="/contratos/alugellocacaohospedagem/locacaoespacoevento">Contrato de locação de espaço para evento - R$ 19,90</Link></li>
             <li><Link className='' href="/contratos/alugellocacaohospedagem/locacaoimovelcomercial">Contrato de locação de imóvel comercial - R$ 29,90</Link></li>
             <li><Link className='' href="/contratos/alugellocacaohospedagem/locacaoimovelresidencial">Contrato de locação de imóvel residencial - R$ 24,90</Link></li>
-            <li>Contrato de locação de imóvel residencial para temporada - R$ 19,90</li>
+            <li><Link className='' href="/contratos/alugellocacaohospedagem/locacaoimovelresidencialtemporada">Contrato de locação de imóvel residencial para temporada - R$ 19,90</Link></li>
             <li>Contrato de locação de quarto em imóvel residencial - R$ 19,90</li>
             <li>Contrato de locação de vaga de garagem - R$ 19,90</li>
             <li>Contrato de locação de veículo - R$ 24,90</li>

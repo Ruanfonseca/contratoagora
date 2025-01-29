@@ -166,5 +166,5 @@ export default function geradorImovelResidencialPDF(dados: any) {
 
 
     // Exportar o PDF
-    doc.save("Contrato_Locacao_Imovel_Residencial.pdf");
+    doc.save(`contrato_hospedagem_${dados.nomeLocador || dados.nomelocatario}.pdf`);
 }
