@@ -29,9 +29,9 @@ export default function LocacaoEquipamentos() {
                 </div>
 
                 <div className="texto-2">
-                    <h1 className="subtitle">Contrato de Hospedagem</h1>
+                    <h1 className="subtitle">Contrato de Locação de Equipamentos</h1>
                     <p>
-                        Como fazer um contrato de hospedagem?
+                        Como fazer um contrato de locação de equipamentos?
                         Elaborar um contrato de locação de equipamentos é fácil, rápido e seguro com nosso modelo customizado. Basta fornecer as informações solicitadas, respondendo às perguntas apresentadas, e o documento será ajustado automaticamente em tempo real. As cláusulas serão personalizadas conforme suas necessidades, incluindo detalhes como prazos, valores e responsabilidades.
                     </p>
                 </div>
