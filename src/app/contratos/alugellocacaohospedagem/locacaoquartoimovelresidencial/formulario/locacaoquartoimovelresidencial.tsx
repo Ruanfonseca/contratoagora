@@ -1,22 +1,19 @@
-import Pilha from '@/lib/pilha';
-import { verificarValor, verificarValorEspecial } from '@/lib/utils';
+'use client'
+import { verificarValor } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
-import geradorpdflocacaoveiculopago from '../util/pdf';
 
-
-const Locacaoveiculoschema = z.object({
+const locacaoquartoimovelresidencialschema = z.object({
     locador: z.enum(['pf', 'pj']).default('pf'),
-
     /**
-     * Dados Locador pj
-     */
+    * Dados Locador pj
+    */
     razaoSocial: z.string(),
-    cnpj: z.string(),
+    cnpjlocador: z.string(),
     cpfLocador: z.string(),
     enderecoCNPJ: z.string(),
     telefoneCNPJ: z.string(),
@@ -39,7 +36,8 @@ const Locacaoveiculoschema = z.object({
      * Dados Locatario pj
      */
     razaoSociallocatario: z.string(),
-    cnpjLocatario: z.string(),
+    cpflocatario: z.string(),
+    cnpj: z.string(),
     enderecolocatarioCNPJ: z.string(),
     telefonelocatarioCNPJ: z.string(),
     emaillocatarioCNPJ: z.string(),
@@ -55,40 +53,26 @@ const Locacaoveiculoschema = z.object({
     emaillocatario: z.string(),
     /** */
 
-    /**DESCRIÇÃO DO VEICULO */
-    marca: z.string(),
-    modelo: z.string(),
-    anoFabricacao: z.string(),
-    cor: z.string(),
-    placa: z.string(),
-    renavam: z.string(),
-    quilometragem: z.string(),
-    estadoGeral: z.string(),
+    /**DESCRIÇÃO DO IMÓVEL */
+    enderecoImovel: z.string(),
+    descQuarto: z.string(),
+    areaComum: z.string(),
+    condicoesAtuais: z.string(),
     /** */
 
-    /**PRAZO DA LOCAÇÃO */
-    dataInicioLoc: z.string(),
-    dataFimLoc: z.string(),
-
-    possibilidadeRenov: z.enum(['S', 'N']),
-
-    //se sim
+    /** PRAZO DA LOCAÇÃO **/
+    dataInicioLocacao: z.string(),
+    duracaoContrato: z.string(),
+    possibilidadeRenovacao: z.enum(['S', 'N']),
     quaisCondicoes: z.string(),
-    /** */
+    /**********/
 
-    /**VALOR DO ALUGUEL E CONDIÇÕES DE PAGAMENTO */
-    valor: z.string(),
-    comoSeraCobrado: z.enum(['dia', 'semana', 'mês']),
+    /**VALOR DO ALUGUEL E FORMA DE PAGAMENTO */
+    valorMensal: z.string(),
+    dataVencMensal: z.string(),
     formaPagamento: z.string(),
-    dataPag: z.string(),
-    sinal: z.enum(['S', 'N']),
-
-    //se sim
-    qualValor: z.string(),
-    dataPagSinal: z.string(),
-
-    multaPagamento: z.string(),
-    juros: z.string(),
+    multaAtraso: z.string(),
+    jurosAplicaveis: z.string(),
     /** */
 
     /** GARANTIAS */
@@ -122,52 +106,57 @@ const Locacaoveiculoschema = z.object({
     procedimentoDevolucao: z.string(),
     /** */
 
-    /**OBRIGAÇÕES DO LOCADOR */
-    locadorResponsaManu: z.string(),
-    locadorServicoAdicional: z.string(),
-    /** */
+    /** OBRIGAÇÕES DO LOCADOR **/
+    locadorManuRep: z.string(),
+    locadorServAdicional: z.string(),
+    /******/
 
-    /**OBRIGAÇÃO DO LOCATÁRIO */
-    locatarioSublocar: z.string(),
+    /**OBRIGAÇÕES DO LOCATÁRIO */
+    locatarioModifica: z.enum(['S', 'N']),
+
+    //se sim
+    quaiCondicoes: z.string(),
+
     locatarioManu: z.string(),
-    locatarioLeis: z.string(),
-    locatarioMultas: z.string(),
-    locatarioComuni: z.string(),
-    locatarioDesgaste: z.string(),
+    restricoesUso: z.string(),
+    permiteFumar: z.string(),
+    animais: z.string(),
     /** */
 
     /**DESPESAS E TRIBUTOS */
     despesasLocatario: z.string(),
-    despesaLocador: z.string(),
+    despesasLocador: z.string(),
+    /*** */
+
+    /*REGRAS DE CONVIVÊNCIA */
+    horaSilencio: z.string(),
+    politicaVisita: z.string(),
+    regrasLimpeza: z.string(),
     /** */
 
     /**RESCISÃO DO CONTRATO */
-    condicoesAntecipada: z.string(),
-    multasRescisao: z.string(),
-    prazoNoti: z.string(),
+    condicoesRescisao: z.string(),
+    multasPenalidades: z.string(),
+    prazo: z.string(),
     /** */
 
-
-
-
-    /**DISPOSICOES GERAIS */
+    /**DISPOSIÇÕES GERAIS */
     foroeleito: z.string(),
     testemunhas: z.enum(['S', 'N']),
-
-    //se sim 
     nomeTest1: z.string(),
-    cpfTest1: z.string(),
     nomeTest2: z.string(),
+    cpfTest1: z.string(),
     cpfTest2: z.string(),
 
     registroCartorio: z.enum(['S', 'N']),
     /** */
+
+
 });
 
-type FormData = z.infer<typeof Locacaoveiculoschema>;
+type FormData = z.infer<typeof locacaoquartoimovelresidencialschema>
 
-
-export default function LocacaoVeiculo() {
+export default function Locacaoquartoimovelresidencial() {
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
@@ -191,137 +180,26 @@ export default function LocacaoVeiculo() {
     //VARIAVEIS DE CONTROLE DE FLUXO
     const [locadorJuri, setLocadorJuri] = useState(false);
     const [locadorioJuri, setLocadorioJuri] = useState(false);
-    const [possibilidadeRenov, setPossibilidadeRenov] = useState(false);
-    const [tempoAdicional, setTempoAdicional] = useState(false);
-    const [Parcelado, setParcelado] = useState(false);
+    const [finsResidenciais, setFinsResidenciais] = useState(false);
+    const [renovacao, setRenovacao] = useState(false);
+    const [reajuste, setReajuste] = useState(false);
     const [garantia, setGarantia] = useState(false);
     const [fiador, setFiador] = useState(false);
     const [caucaoDep, setCaucaoDep] = useState(false);
     const [caucaoBemIM, setCaucaoBemIM] = useState(false);
     const [titulos, setTitulos] = useState(false);
     const [seguroFi, setSeguroFi] = useState(false);
-    const [garantiaManutencao, setGarantiaManutencao] = useState(false);
-    const [testemunhas, setTestemunhas] = useState(false);
-    const [sinal, setSinal] = useState(false);
-    const pilhaSteps = useRef(new Pilha());
+    const [locatarioModifica, setLocatarioModifica] = useState(false);
+    const [preferenciaLocatario, setPreferenciaLocatario] = useState(false);
+    const [Testemunhas, setTestemunhas] = useState(false);
+    /** */
 
 
-
-
-    const handleNext = () => {
-        setFormData((prev) => ({ ...prev, ...currentStepData }));
-
-        let nextStep = step;
-
-
-        if (currentStepData.locador === 'pj') {
-            setLocadorJuri(true);
-            nextStep = 7
-        } else if (!locadorJuri && nextStep === 6) {
-            nextStep = 13;
-        }
-
-        if (currentStepData.locatario === 'pj') {
-            setLocadorioJuri(true);
-            nextStep = 19
-        } else if (!locadorioJuri && nextStep === 18) {
-            nextStep = 25;
-        }
-
-        if (currentStepData.possibilidadeRenov === 'S') {
-            setPossibilidadeRenov(true)
-            nextStep = 36;
-        } else if (currentStepData.possibilidadeRenov === 'N') {
-            nextStep = 37;
-        }
-
-        if (currentStepData.sinal === 'S') {
-            setSinal(true)
-            nextStep = 40;
-        } else if (currentStepData.sinal === 'N') {
-            nextStep = 42;
-        }
-
-
-
-        if (currentStepData.garantia === 'S') {
-            setGarantia(true);
-            nextStep = 45;
-        } else if (currentStepData.garantia === 'N') {
-            nextStep = 59;
-        }
-
-
-        if (nextStep === 54) {
-            nextStep = 59
-        } else if (nextStep === 55) {
-            nextStep = 59
-        } else if (nextStep === 56) {
-            nextStep = 59
-        } else if (nextStep === 57) {
-            nextStep = 59
-        }
-
-
-        switch (currentStepData.qualgarantidor) {
-            case "fi":
-                setFiador(true);
-                break;
-            case "caudep":
-                setCaucaoDep(true);
-                nextStep = 55;
-                break;
-            case "caubem":
-                setCaucaoBemIM(true);
-                nextStep = 56;
-                break;
-            case "ti":
-                setTitulos(true);
-                nextStep = 57;
-                break;
-            case "segfianca":
-                setSeguroFi(true);
-                nextStep = 58;
-                break;
-            default:
-                break;
-        }
-
-
-
-
-        if (currentStepData.testemunhas === 'S') {
-            setTestemunhas(true);
-            nextStep = 74
-        } else if (currentStepData.testemunhas === 'N') {
-            nextStep = 78
-        }
-
-
-        if (nextStep === step) {
-            nextStep += 1;
-        }
-
-        setStep(nextStep);
-
-        pilhaSteps.current.empilhar(nextStep);
-
-        // Limpar os dados do passo atual.
-        setCurrentStepData({});
-    }
-
-
-
-    const handleBack = () => {
-        setStep(pilhaSteps.current.desempilhar());
-    }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setCurrentStepData((prev) => ({ ...prev, [name]: value }));
     };
-
-
 
     const handleFinalize = () => {
         setIsLoading(true)
@@ -405,208 +283,203 @@ export default function LocacaoVeiculo() {
         }
     }
 
+    const handleBack = () => setStep((prev) => prev - 1);
 
-    const geradorlocacaoVeiculoPdf = (dados: any) => {
+    const handleNext = () => {
+
+        setFormData((prev) => ({ ...prev, ...currentStepData }));
+
+        let nextStep = step;
+
+
+
+
+        if (nextStep === step) {
+            nextStep += 1;
+        }
+
+        setStep(nextStep);
+
+        // Logs para depuração
+        console.log(`qtd step depois do ajuste: ${nextStep}`);
+
+        // Limpar os dados do passo atual.
+        setCurrentStepData({});
+
+    }
+
+    const gerandorLocacaoQuartoPDF = (dados: any) => {
         const doc = new jsPDF();
 
         // Configuração inicial de fonte e margens
         const marginX = 10;
-        const pageWidth = 190; // Largura da página útil (A4 menos margens)
         let posY = 20;
 
-        // Função auxiliar para adicionar seções e ajustar a posição Y
-        const addSection = (title: string, content: string[]) => {
-            if (posY + 10 >= 280) {
+        const maxPageHeight = 280;
+        const maxTextWidth = 190;
+
+        const checkPageBreak = (additionalHeight: number) => {
+            if (posY + additionalHeight >= maxPageHeight) {
                 doc.addPage();
                 posY = 20;
             }
+        };
+
+        const addSection = (title: string, content: string[]) => {
+            const titleHeight = 15;
+            const lineHeight = 10;
+
+            checkPageBreak(titleHeight);
             doc.setFontSize(12);
-            doc.text(title, 105, posY, { align: "center" }); // Centralizado
-            posY += 10;
+            doc.text(title, 105, posY, { align: "center" });
+            posY += titleHeight;
 
             doc.setFontSize(10);
-            content.forEach((text) => {
-                const lines = doc.splitTextToSize(text, pageWidth - 2 * marginX); // Divide o texto automaticamente
-                lines.forEach((line: any) => {
-                    if (posY + 7 >= 280) {
-                        doc.addPage();
-                        posY = 20;
-                    }
-                    doc.text(line, marginX, posY);
-                    posY += 7;
+            content.forEach((line: string) => {
+                const splitLines = doc.splitTextToSize(line, maxTextWidth);
+                splitLines.forEach((splitLine: string) => {
+                    checkPageBreak(lineHeight);
+                    doc.text(splitLine, marginX, posY);
+                    posY += lineHeight;
                 });
             });
         };
 
-        // Cabeçalho
+        // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE LOCAÇÃO DE VEÍCULOS", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE LOCAÇÃO DE QUARTO EM IMÓVEL RESIDENCIAL ", 105, posY, { align: "center" });
         posY += 15;
 
-        // CLÁUSULA PRIMEIRA – DA IDENTIFICAÇÃO DAS PARTES
-        addSection("\nCLÁUSULA PRIMEIRA – DA IDENTIFICAÇÃO DAS PARTES", [
-            "Conforme o Código Civil Brasileiro (Art. 104 e Art. 566), as partes devem ser plenamente capazes e identificadas de forma clara. O locador e o locatário declaram estar aptos para firmar o presente contrato.",
-            "- As partes devem ser plenamente capazes e identificadas de forma clara.",
-            `Locador: ${verificarValor(dados.locador) === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}`,
-            verificarValor(dados.locador) === "pf"
-                ? `Nome: ${verificarValor(dados.nomeLocador)}, CPF: ${verificarValor(dados.CPFLocador)}`
-                : `Razão Social: ${verificarValor(dados.razaoSocial)}, CNPJ: ${verificarValor(dados.cnpj)}`,
-            `Endereço: ${verificarValor(dados.enderecoLocador)}`,
-            `Telefone: ${verificarValor(dados.telefoneLocador)}`,
-            `E-mail: ${verificarValor(dados.emailLocador)}`,
+        // Seções do contrato
+        addSection("CLÁUSULA 1 - IDENTIFICAÇÃO DAS PARTES", [
+            "(Artigos 104, 421 e 425 do Código Civil Brasileiro)",
+            "Nesta seção, é feita a descrição detalhada do imóvel objeto do contrato, incluindo seu endereço completo, características e condições.\n Também são especificadas a destinação (residencial ou comercial) e o estado de conservação, conforme o que foi verificado pelas partes.",
+            "Locador:",
+            `Nome ou Razão Social: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.nomeLocador) : verificarValor(dados.razaoSocial)}`,
+            `CPF ou CNPJ: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.CPFLocador) : verificarValor(dados.cnpjlocador)}`,
+            `Endereço: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.enderecoLocador) : verificarValor(dados.enderecoCNPJ)}`,
+            `Telefone: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.telefoneLocador) : verificarValor(dados.telefoneCNPJ)}`,
+            `E-mail: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.emailLocador) : verificarValor(dados.emailCNPJ)}`,
             verificarValor(dados.locador) === "pj" ? `Representante Legal: ${verificarValor(dados.nomeRepresentanteCNPJ)}, CPF: ${verificarValor(dados.CPFRepresentanteCNPJ)}` : "",
             "",
-            `Locatário: ${verificarValor(dados.locatario) === "pf" ? "Pessoa Física" : "Pessoa Jurídica"}`,
-            verificarValor(dados.locatario) === "pf"
-                ? `Nome: ${verificarValor(dados.nomelocatario)}, CPF: ${verificarValor(dados.CPFlocatario)}`
-                : `Razão Social: ${verificarValor(dados.razaoSociallocatario)}, CNPJ: ${verificarValor(dados.cnpjLocatario)}`,
-            `Endereço: ${verificarValor(dados.enderecolocatario)}`,
-            `Telefone: ${verificarValor(dados.telefonelocatario)}`,
-            `E-mail: ${verificarValor(dados.emaillocatario)}`,
+            "Locatário:",
+            `Nome ou Razão Social: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.nomelocatario) : verificarValor(dados.razaoSociallocatario)}`,
+            `CPF ou CNPJ: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.CPFlocatario) : verificarValor(dados.cpflocatario)}`,
+            `Endereço: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.enderecolocatario) : verificarValor(dados.enderecolocatarioCNPJ)}`,
+            `Telefone: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.telefonelocatario) : verificarValor(dados.telefonelocatarioCNPJ)}`,
+            `E-mail: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.emaillocatario) : verificarValor(dados.emaillocatarioCNPJ)}`,
             verificarValor(dados.locatario) === "pj" ? `Representante Legal: ${verificarValor(dados.nomeRepresentantelocatarioCNPJ)}, CPF: ${verificarValor(dados.CPFRepresentantelocatarioCNPJ)}` : "",
         ]);
 
-        // CLÁUSULA SEGUNDA – DESCRIÇÃO DO VEÍCULO
-        addSection("\nCLÁUSULA SEGUNDA – DESCRIÇÃO DO VEÍCULO", [
-
-            `Marca: ${verificarValor(dados.marca)}`,
-            `Modelo: ${verificarValor(dados.modelo)}`,
-            `Ano de Fabricação: ${verificarValor(dados.anoFabricacao)}`,
-            `Cor: ${verificarValor(dados.cor)}`,
-            `Placa: ${verificarValor(dados.placa)}`,
-            `Renavam: ${verificarValor(dados.renavam)}`,
-            `Quilometragem Atual: ${verificarValor(dados.quilometragem)}`,
-            `Estado Geral do Veículo: ${verificarValor(dados.estadoGeral)}`,
+        addSection("CLÁUSULA 2 - DESCRIÇÃO DO QUARTO E DO IMÓVEL", [
+            "(Lei 8.245/1991, artigo 22: determina que o locador deve entregar o imóvel em estado de servir ao uso a que se destina.)",
+            `Endereço completo do imóvel: ${verificarValor(dados.enderecoImovel)}`,
+            `Descrição do quarto a ser locado: ${verificarValor(dados.descQuarto)}`,
+            `Áreas comuns do imóvel que o locatário terá direito de usar: ${verificarValor(dados.areaComum)}`,
+            `Condições atuais do quarto e das áreas comuns: ${verificarValor(dados.condicoesAtuais)}`,
         ]);
 
-        // CLÁUSULA TERCEIRA – PRAZO DA LOCAÇÃO
-        addSection("\nCLÁUSULA TERCEIRA – PRAZO DA LOCAÇÃO", [
-            "Nos termos do Art. 565 do Código Civil, o locador se obriga a ceder o uso do veículo ao locatário pelo período e condições estabelecidos neste contrato.",
-            `Data de Início da Locação: ${verificarValor(dados.dataInicioLoc)}`,
-            `Data de Término da Locação: ${verificarValor(dados.dataFimLoc)}`,
-            `Possibilidade de Renovação: ${verificarValor(dados.possibilidadeRenov) === "S" ? "Sim" : "Não"}`,
-            verificarValor(dados.possibilidadeRenov) === "S" ? `Condições de Renovação: ${verificarValor(dados.quaisCondicoes)}` : "",
+        addSection("CLÁUSULA 3 - PRAZO DA LOCAÇÃO", [
+            "(Lei 8.245/1991, artigo 46: trata da renovação automática do contrato por prazo indeterminado.)",
+            `Data de início da locação: ${verificarValor(dados.dataInicioLocacao)}`,
+            `Duração do contrato: ${verificarValor(dados.duracaoContrato)}`,
+            `Há possibilidade de renovação? ${verificarValor(dados.possibilidadeRenovacao) === 'S' ? 'Sim' : 'Não'}`,
+            verificarValor(dados.possibilidadeRenovacao) === 'S' ? `Quais são as condições? ${verificarValor(dados.quaisCondicoes)}` : "",
         ]);
 
-        // CLÁUSULA QUARTA – VALOR DO ALUGUEL E CONDIÇÕES DE PAGAMENTO
-        addSection("\nCLÁUSULA QUARTA – VALOR DO ALUGUEL E CONDIÇÕES DE PAGAMENTO", [
-            "O pagamento do aluguel deverá seguir as disposições do Art. 565 do Código Civil, sendo que qualquer atraso poderá acarretar penalidades previstas em lei.",
-
-            `Valor do Aluguel: ${verificarValor(dados.valor)} (${verificarValor(dados.comoSeraCobrado)})`,
-            `Forma de Pagamento: ${verificarValor(dados.formaPagamento)}`,
-            `Data(s) de Pagamento: ${verificarValor(dados.dataPag)}`,
-            `Exigência de Sinal ou Adiantamento: ${verificarValor(dados.sinal) === "S" ? "Sim" : "Não"}`,
-            verificarValor(dados.sinal) === "S" ? `Valor do Sinal: ${verificarValor(dados.qualValor)}, Data de Pagamento: ${verificarValor(dados.dataPagSinal)}` : "",
-            `Multa por Atraso no Pagamento: ${verificarValor(dados.multaPagamento)}`,
-            `Juros Aplicáveis em Caso de Atraso: ${verificarValor(dados.juros)}`,
+        addSection("CLÁUSULA 4 - VALOR DO ALUGUEL E CONDIÇÕES DE PAGAMENTO", [
+            "(Lei 8.245/1991, artigo 23: o locatário deve pagar pontualmente o aluguel e demais encargos.)",
+            `Valor mensal do aluguel: ${verificarValor(dados.valorMensal)}`,
+            `Data de vencimento mensal: ${verificarValor(dados.dataVencMensal)}`,
+            `Forma de pagamento: ${verificarValor(dados.formaPagamento)}`,
+            `Multa por atraso no pagamento: ${verificarValor(dados.multaAtraso)}`,
+            `Juros aplicáveis em caso de atraso: ${verificarValor(dados.jurosAplicaveis)}`,
         ]);
 
-        // CLÁUSULA QUINTA – GARANTIAS LOCATÍCIAS
-        addSection("\nCLÁUSULA QUINTA – GARANTIAS LOCATÍCIAS", [
-            "Nos termos do Art. 602 do Código Civil, poderá ser exigida garantia para assegurar o cumprimento do contrato, conforme acordado entre as partes.",
-
-            `Tipo de Garantia Exigida: ${verificarValor(verificarValor(dados.garantia) === "S" ? "Sim" : "Não")}`,
-            verificarValor(dados.garantia) === "S" ? `Detalhes da Garantia: ${verificarValor(dados.qualgarantidor)}` : "",
-            verificarValor(dados.qualgarantidor) === "fi"
-                ? `Fiador: ${verificarValor(dados.nomeFiador)}, CPF: ${verificarValor(dados.cpfFiador)}, Endereço: ${verificarValor(dados.enderecoFiador)}`
-                : "",
-            verificarValor(dados.qualgarantidor) === "caudep" ? `Valor da Caução em Dinheiro: ${verificarValor(dados.valorTitCaucao)}` : "",
-            verificarValor(dados.qualgarantidor) === "caubem" ? `Descrição do Bem em Caução: ${verificarValor(dados.descBemCaucao)}` : "",
-            verificarValor(dados.qualgarantidor) === "ti" ? `Título de Crédito Utilizado: ${verificarValor(dados.descCredUtili)}` : "",
-            verificarValor(dados.qualgarantidor) === "segfianca" ? `Seguro-Fiança: ${verificarValor(dados.segFianca)}` : "",
-            `Procedimento para Devolução da Garantia: ${verificarValor(dados.procedimentoDevolucao)}`,
+        addSection("CLÁUSULA 5 - GARANTIAS LOCATÍCIAS", [
+            "(Lei 8.245/1991, artigo 37: regulação sobre as garantias locatícias, como caução, fiança, seguro-fiança ou cessão fiduciária.)",
+            `Tipo de garantia exigida: ${verificarValor(dados.garantia) === 'S' ? 'Sim' : 'Não'}`,
+            verificarValor(dados.garantia) === 'S' ? `Detalhes da garantia: ${verificarValor(dados.qualgarantidor)}` : "",
+            verificarValor(dados.qualgarantidor) === 'fi' ? `Nome do fiador: ${verificarValor(dados.nomeFiador)}, CPF: ${verificarValor(dados.cpfFiador)}, Endereço: ${verificarValor(dados.enderecoFiador)}` : "",
+            verificarValor(dados.qualgarantidor) === 'caudep' ? `Valor do título de caução: ${verificarValor(dados.valorTitCaucao)}` : "",
+            verificarValor(dados.qualgarantidor) === 'caubem' ? `Descrição do bem de caução: ${verificarValor(dados.descBemCaucao)}` : "",
+            verificarValor(dados.qualgarantidor) === 'ti' ? `Descrição do título de crédito utilizado: ${verificarValor(dados.descCredUtili)}` : "",
+            verificarValor(dados.qualgarantidor) === 'segfianca' ? `Seguro-fiança: ${verificarValor(dados.segFianca)}` : "",
+            `Procedimento para devolução da garantia ao término do contrato: ${verificarValor(dados.procedimentoDevolucao)}`,
         ]);
 
-        // CLÁUSULA SEXTA – OBRIGAÇÕES DO LOCADOR
-        addSection("\nCLÁUSULA SEXTA – OBRIGAÇÕES DO LOCADOR", [
-            "O locador deverá garantir ao locatário o uso pacífico do bem locado, nos termos do Art. 569 do Código Civil, sendo responsável por manutenções essenciais ao funcionamento do veículo.",
-
-            `O locador se responsabiliza por: ${verificarValor(dados.locadorResponsaManu)}`,
-            `Serviços Adicionais Fornecidos: ${verificarValor(dados.locadorServicoAdicional)}`,
+        addSection("CLÁUSULA 6 - OBRIGAÇÕES DO LOCADOR", [
+            "(Lei 8.245/1991, artigo 22, inciso IV: o locador é responsável pelas despesas extraordinárias do condomínio e por manter o imóvel em condições de habitabilidade.)",
+            `O locador se responsabiliza por quais manutenções ou reparos no quarto e nas áreas comuns? ${verificarValor(dados.locadorManuRep)}`,
+            `O locador fornecerá algum serviço adicional? ${verificarValor(dados.locadorServAdicional)}`,
         ]);
 
-        // CLÁUSULA SÉTIMA – OBRIGAÇÕES DO LOCATÁRIO
-        addSection("\nCLÁUSULA SÉTIMA – OBRIGAÇÕES DO LOCATÁRIO", [
-            "Conforme o Art. 570 do Código Civil, o locatário deverá utilizar o veículo de forma adequada e devolver o bem no estado em que o recebeu, salvo o desgaste natural.",
-
-            `O locatário pode sublocar ou ceder o veículo a terceiros? ${verificarValor(dados.locatarioSublocar)}`,
-            `O locatário é responsável por: ${verificarValor(dados.locatarioManu)}`,
-            `O locatário deve respeitar as leis de trânsito? ${verificarValor(dados.locatarioLeis)}`,
-            `O locatário é responsável por multas e infrações? ${verificarValor(dados.locatarioMultas)}`,
-            `O locatário deve comunicar acidentes ou danos? ${verificarValor(dados.locatarioComuni)}`,
-            `O locatário deve devolver o veículo no mesmo estado? ${verificarValor(dados.locatarioDesgaste)}`,
+        addSection("CLÁUSULA 7 - OBRIGAÇÕES DO LOCATÁRIO", [
+            "(Lei 8.245/1991, artigo 23, inciso I: o locatário deve conservar o imóvel e não pode realizar modificações sem consentimento.)",
+            `O locatário pode realizar modificações no quarto? ${verificarValor(dados.locatarioModifica) === 'S' ? 'Sim' : 'Não'}`,
+            verificarValor(dados.locatarioModifica) === 'S' ? `Quais são as condições? ${verificarValor(dados.quaiCondicoes)}` : "",
+            `O locatário é responsável por quais manutenções no quarto? ${verificarValor(dados.locatarioManu)}`,
+            `Há restrições quanto ao uso das áreas comuns? ${verificarValor(dados.restricoesUso)}`,
+            `É permitido fumar no interior do imóvel? ${verificarValor(dados.permiteFumar)}`,
+            `São permitidos animais de estimação? ${verificarValor(dados.animais)}`,
         ]);
 
-        // CLÁUSULA OITAVA – DESPESAS E TRIBUTOS
-        addSection("\nCLÁUSULA OITAVA – DESPESAS E TRIBUTOS", [
-            "Nos termos do Código Civil, despesas ordinárias decorrentes do uso do veículo são de responsabilidade do locatário, enquanto despesas extraordinárias ficam a cargo do locador.",
-
-            `Despesas do Locatário: ${verificarValor(dados.despesasLocatario)}`,
-            `Despesas do Locador: ${verificarValor(dados.despesaLocador)}`,
+        addSection("CLÁUSULA 8 - DESPESAS E TRIBUTOS", [
+            "(Lei 8.245/1991, artigo 22 e 23: o locador é responsável por impostos e taxas extraordinárias, e o locatário pelas despesas ordinárias.)",
+            `Quais despesas são de responsabilidade do locatário? ${verificarValor(dados.despesasLocatario)}`,
+            `Quais despesas são de responsabilidade do locador? ${verificarValor(dados.despesasLocador)}`,
         ]);
 
-        // CLÁUSULA NONA – RESCISÃO DO CONTRATO
-        addSection("\nCLÁUSULA NONA – RESCISÃO DO CONTRATO", [
-            "A rescisão do contrato poderá ocorrer conforme as regras do Art. 474 do Código Civil, sendo aplicáveis penalidades em caso de descumprimento.",
-
-            `Condições para Rescisão Antecipada: ${verificarValor(dados.condicoesAntecipada)}`,
-            `Multas ou Penalidades: ${verificarValor(dados.multasRescisao)}`,
-            `Prazo para Notificação Prévia: ${verificarValor(dados.prazoNoti)}`,
+        addSection("CLÁUSULA 9 - REGRAS DE CONVIVÊNCIA", [
+            "(Lei 8.245/1991, artigo 23, inciso IV: o locatário deve respeitar regras de convivência do imóvel.)",
+            `Horários de silêncio ou restrições de horário para uso das áreas comuns: ${verificarValor(dados.horaSilencio)}`,
+            `Política de visitas: ${verificarValor(dados.politicaVisita)}`,
+            `Regras sobre limpeza e organização das áreas comuns: ${verificarValor(dados.regrasLimpeza)}`,
         ]);
 
-        // CLÁUSULA DÉCIMA – DISPOSIÇÕES GERAIS
-        addSection("\nCLÁUSULA DÉCIMA – DISPOSIÇÕES GERAIS", [
-            "Nos termos do Art. 585 do Código Civil, este contrato constitui título executivo extrajudicial, podendo ser levado a juízo para cobrança de valores inadimplidos.",
-
-            `Foro Eleito para Resolução de Conflitos: ${verificarValor(dados.foroeleito)}`,
-            `Necessidade de Testemunhas: ${verificarValor(dados.testemunhas) === "S" ? "Sim" : "Não"}`,
-            dados.testemunhas === "S"
-                ? `Testemunha 1: ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}`
-                : "",
-            dados.testemunhas === "S"
-                ? `Testemunha 2: ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}`
-                : "",
-            `O contrato será registrado em cartório? ${verificarValor(dados.registroCartorio) === "S" ? "Sim" : "Não"}`,
+        addSection("CLÁUSULA 10 - RESCISÃO DO CONTRATO", [
+            "(Lei 12.112/2009: alteração na Lei do Inquilinato, permitindo retomada do imóvel com menor prazo de notificação.)",
+            `Condições para rescisão antecipada por ambas as partes: ${verificarValor(dados.condicoesRescisao)}`,
+            `Multas ou penalidades aplicáveis em caso de rescisão antecipada: ${verificarValor(dados.multasPenalidades)}`,
+            `Prazo para notificação prévia de rescisão: ${verificarValor(dados.prazo)}`,
         ]);
 
-        addSection("\nCLÁUSULA DÉCIMA PRIMEIRA – ASSINATURAS", [
-            "As partes contratantes, após leitura e entendimento das condições estabelecidas neste contrato, assinam o presente em duas vias de igual teor e forma.",
-            "",
-            `Locador: _____________________________  (Assinatura)`,
-            `Locatário: _____________________________  (Assinatura)`,
-            verificarValorEspecial(dados.testemunhas) === "S" ? `Testemunha 1: _____________________________  (Assinatura)` : "",
-            verificarValorEspecial(dados.testemunhas) === "S" ? `Testemunha 2: _____________________________  (Assinatura)` : "",
+        addSection("CLÁUSULA 11 - DISPOSIÇÕES GERAIS", [
+            "(Lei 8.245/1991, artigo 8º: necessidade de registro para valer contra terceiros.)",
+            `Foro eleito para resolução de conflitos: ${verificarValor(dados.foroeleito)}`,
+            `Necessidade de testemunhas para assinatura do contrato: ${verificarValor(dados.testemunhas) === 'S' ? 'Sim' : 'Não'}`,
+            verificarValor(dados.testemunhas) === 'S' ? `Nome da primeira testemunha: ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}` : "",
+            verificarValor(dados.testemunhas) === 'S' ? `Nome da segunda testemunha: ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}` : "",
+            `O contrato será registrado em cartório? ${verificarValor(dados.registroCartorio) === 'S' ? 'Sim' : 'Não'}`,
         ]);
 
-        // Salvar o PDF
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
 
     useEffect(() => {
-        geradorlocacaoVeiculoPdf({ ...formData });
-    }, [formData]);
+        gerandorLocacaoQuartoPDF({ ...formData })
+    }, [formData])
+
 
     return (
         <>
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">Contrato de Locação de Veículo</h1>
-
+                <h1 className="title">Contrato de Locação de Imóvel Residencial</h1>
             </div>
             <div className="container">
                 <div className="left-panel">
                     <div className="scrollable-card">
-
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 78) * 100}%` }}
+                                style={{ width: `${(step / 76) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
                             {step === 1 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Veículo</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>O Responsavel é pessoa?</label>
                                         <select name='locador' onChange={handleChange}>
@@ -622,7 +495,7 @@ export default function LocacaoVeiculo() {
                             {/**Pessoa Fisica */}
                             {step === 2 && (
                                 <>
-                                    <h2> Dados do Responsável pelo Veículo </h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>Nome do Locador</label>
                                         <input
@@ -638,7 +511,7 @@ export default function LocacaoVeiculo() {
                             )}
                             {step === 3 && (
                                 <>
-                                    <h2> Dados do Responsável pelo Veículo</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>CPF</label>
                                         <input
@@ -654,7 +527,7 @@ export default function LocacaoVeiculo() {
                             )}
                             {step === 4 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Veículo</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>Endereço do Locador</label>
                                         <input
@@ -670,7 +543,7 @@ export default function LocacaoVeiculo() {
                             )}
                             {step === 5 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Veículo</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>Telefone do Locador</label>
                                         <input
@@ -686,7 +559,7 @@ export default function LocacaoVeiculo() {
                             )}
                             {step === 6 && (
                                 <>
-                                    <h2>Dados do Responsável pelo Veículo</h2>
+                                    <h2>Dados do Proprietário do Imóvel</h2>
                                     <div>
                                         <label>Email do Locador</label>
                                         <input
@@ -707,7 +580,7 @@ export default function LocacaoVeiculo() {
                                 <>
                                     {step === 7 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Veículo</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Razão Social</label>
                                                 <input
@@ -731,7 +604,7 @@ export default function LocacaoVeiculo() {
 
                                     {step === 8 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Veículo</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Endereço do onde o CNPJ esta cadastrado</label>
                                                 <input
@@ -747,7 +620,7 @@ export default function LocacaoVeiculo() {
                                     )}
                                     {step === 9 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Veículo</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Telefone</label>
                                                 <input
@@ -763,7 +636,7 @@ export default function LocacaoVeiculo() {
                                     )}
                                     {step === 10 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Veículo</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Email</label>
                                                 <input
@@ -779,7 +652,7 @@ export default function LocacaoVeiculo() {
                                     )}
                                     {step === 11 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Veículo</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>Nome do representante do CNPJ</label>
                                                 <input
@@ -793,9 +666,10 @@ export default function LocacaoVeiculo() {
                                             </div>
                                         </>
                                     )}
+
                                     {step === 12 && (
                                         <>
-                                            <h2>Dados do Responsável pelo Veículo</h2>
+                                            <h2>Dados do Proprietário do Imóvel</h2>
                                             <div>
                                                 <label>CPF do representante do CNPJ</label>
                                                 <input
@@ -814,10 +688,9 @@ export default function LocacaoVeiculo() {
                             )}
 
                             {/**Locatário */}
-
                             {step === 13 && (
                                 <>
-                                    <h2>Dados do Locatário do Veículo</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>O Responsavel é pessoa?</label>
                                         <select name='locatario' onChange={handleChange}>
@@ -829,10 +702,12 @@ export default function LocacaoVeiculo() {
                                     </div>
                                 </>
                             )}
+
+
                             {/**Pessoa Fisica */}
                             {step === 14 && (
                                 <>
-                                    <h2>Dados do Locatário do Veículo</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>Nome do Locatário</label>
                                         <input
@@ -848,7 +723,7 @@ export default function LocacaoVeiculo() {
                             )}
                             {step === 15 && (
                                 <>
-                                    <h2>Dados do Locatário do Veículo</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>CPF</label>
                                         <input
@@ -864,7 +739,7 @@ export default function LocacaoVeiculo() {
                             )}
                             {step === 16 && (
                                 <>
-                                    <h2>Dados do Locatário do Veículo</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>Endereço do Locatário</label>
                                         <input
@@ -880,7 +755,7 @@ export default function LocacaoVeiculo() {
                             )}
                             {step === 17 && (
                                 <>
-                                    <h2>Dados do Locatário do Veículo</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>Telefone do Locatário</label>
                                         <input
@@ -896,7 +771,7 @@ export default function LocacaoVeiculo() {
                             )}
                             {step === 18 && (
                                 <>
-                                    <h2>Dados do Locatário do Veículo</h2>
+                                    <h2>Dados do Inquilino do Imóvel</h2>
                                     <div>
                                         <label>Email do Locatário</label>
                                         <input
@@ -917,7 +792,7 @@ export default function LocacaoVeiculo() {
                                 <>
                                     {step === 19 && (
                                         <>
-                                            <h2>Dados do Locatário do Veículo</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Razão Social</label>
                                                 <input
@@ -941,7 +816,7 @@ export default function LocacaoVeiculo() {
 
                                     {step === 20 && (
                                         <>
-                                            <h2>Dados do Locatário do Veículo</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Endereço do onde o CNPJ esta cadastrado</label>
                                                 <input
@@ -957,7 +832,7 @@ export default function LocacaoVeiculo() {
                                     )}
                                     {step === 21 && (
                                         <>
-                                            <h2>Dados do Locatário do Veículo</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Telefone</label>
                                                 <input
@@ -973,7 +848,7 @@ export default function LocacaoVeiculo() {
                                     )}
                                     {step === 22 && (
                                         <>
-                                            <h2>Dados do Locatário do Veículo</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Email</label>
                                                 <input
@@ -989,7 +864,7 @@ export default function LocacaoVeiculo() {
                                     )}
                                     {step === 23 && (
                                         <>
-                                            <h2>Dados do Locatário do Veículo</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>Nome do representante do CNPJ</label>
                                                 <input
@@ -1005,7 +880,7 @@ export default function LocacaoVeiculo() {
                                     )}
                                     {step === 24 && (
                                         <>
-                                            <h2>Dados do Locatário do Veículo</h2>
+                                            <h2>Dados do Inquilino do Imóvel</h2>
                                             <div>
                                                 <label>CPF do representante do CNPJ</label>
                                                 <input
@@ -1019,19 +894,18 @@ export default function LocacaoVeiculo() {
                                             </div>
                                         </>
                                     )}
-
                                 </>
                             )}
 
                             {step === 25 && (
                                 <>
-                                    <h2>Descrição do Veículo</h2>
+                                    <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Marca</label>
+                                        <label>Endereço completo do imóvel</label>
                                         <input
                                             type='text'
-                                            placeholder='Marca do veiculo'
-                                            name="marca"
+                                            placeholder=''
+                                            name="enderecoImovel"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1042,14 +916,16 @@ export default function LocacaoVeiculo() {
 
                             {step === 26 && (
                                 <>
-                                    <h2>Descrição do Veículo</h2>
+                                    <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Modelo</label>
-                                        <input
-                                            type='text'
-                                            placeholder='Modelo do veiculo'
-                                            name="modelo"
+                                        <label>Descrição do quarto a ser locado (ex.: tamanho, mobiliário incluído)</label>
+                                        <textarea
+                                            id="descQuarto"
+                                            name="descQuarto"
                                             onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
                                         />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1059,14 +935,16 @@ export default function LocacaoVeiculo() {
 
                             {step === 27 && (
                                 <>
-                                    <h2>Descrição do Veículo</h2>
+                                    <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Ano de Fabricação</label>
-                                        <input
-                                            type='text'
-                                            placeholder='Ano de fabricação'
-                                            name="anoFabricacao"
+                                        <label>Áreas comuns do imóvel que o locatário terá direito de usar (ex.: cozinha, banheiro, sala de estar)</label>
+                                        <textarea
+                                            id="areaComum"
+                                            name="areaComum"
                                             onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
                                         />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1076,14 +954,16 @@ export default function LocacaoVeiculo() {
 
                             {step === 28 && (
                                 <>
-                                    <h2>Descrição do Veículo</h2>
+                                    <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Cor</label>
-                                        <input
-                                            type='text'
-                                            placeholder='cor do veiculo'
-                                            name="cor"
+                                        <label>Áreas comuns do imóvel que o locatário terá direito de usar (ex.: cozinha, banheiro, sala de estar)</label>
+                                        <textarea
+                                            id="condicoesAtuais"
+                                            name="condicoesAtuais"
                                             onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
                                         />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1094,13 +974,13 @@ export default function LocacaoVeiculo() {
 
                             {step === 29 && (
                                 <>
-                                    <h2>Descrição do Veículo</h2>
+                                    <h2>Prazo da Locação</h2>
                                     <div>
-                                        <label>Cor</label>
+                                        <label>Data de início da locação</label>
                                         <input
                                             type='text'
-                                            placeholder='cor do veiculo'
-                                            name="cor"
+                                            placeholder=''
+                                            name="dataInicioLocacao"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1111,13 +991,13 @@ export default function LocacaoVeiculo() {
 
                             {step === 30 && (
                                 <>
-                                    <h2>Descrição do Veículo</h2>
+                                    <h2>Prazo da Locação</h2>
                                     <div>
-                                        <label>Placa</label>
+                                        <label>Duração do contrato (em meses)</label>
                                         <input
                                             type='text'
-                                            placeholder='placa do veiculo'
-                                            name="placa"
+                                            placeholder=''
+                                            name="duracaoContrato"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1128,110 +1008,26 @@ export default function LocacaoVeiculo() {
 
                             {step === 31 && (
                                 <>
-                                    <h2>Descrição do Veículo</h2>
+                                    <h2>Prazo Da Locação</h2>
                                     <div>
-                                        <label>Renavam</label>
-                                        <input
-                                            type='renavam'
-                                            placeholder='renavam'
-                                            name="placa"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
+                                        <label>Há possibilidade de renovação?</label>
 
-                            {step === 32 && (
-                                <>
-                                    <h2>Descrição do Veículo</h2>
-                                    <div>
-                                        <label>Quilometragem atual</label>
-                                        <input
-                                            type='text'
-                                            placeholder='quilometragem do veiculo'
-                                            name="quilometragem"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 33 && (
-                                <>
-                                    <h2>Descrição do Veículo</h2>
-                                    <div>
-                                        <label>Estado geral do veículo (incluir laudo de vistoria, se necessário)</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="estadoGeral"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-
-                            {step === 34 && (
-                                <>
-                                    <h2>Prazo da Locação </h2>
-                                    <div>
-                                        <label>Data de início da locação</label>
-                                        <input
-                                            type='date'
-                                            placeholder=''
-                                            name="dataInicioLoc"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 35 && (
-                                <>
-                                    <h2>Prazo da Locação </h2>
-                                    <div>
-                                        <label>Data de término da locação</label>
-                                        <input
-                                            type='date'
-                                            placeholder=''
-                                            name="dataFimLoc"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 36 && (
-                                <>
-                                    <h2>Prazo da Locação</h2>
-                                    <div>
-                                        <label>Possibilidade de renovação?</label>
-                                        <select name='possibilidadeRenov' onChange={handleChange}>
+                                        <select name='possibilidadeRenovacao' onChange={handleChange}>
                                             <option value="">Selecione</option>
                                             <option value="S">Sim</option>
                                             <option value="N">Não</option>
                                         </select>
+                                        <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-                            {possibilidadeRenov && (
+                            {renovacao && (
                                 <>
-                                    {step === 36 && (
+                                    {step === 32 && (
                                         <>
-                                            <h2>Prazo da Locação </h2>
+                                            <h2>Prazo Da Locação</h2>
                                             <div>
                                                 <label>Quais são as condições?</label>
                                                 <input
@@ -1248,32 +1044,15 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-                            {step === 37 && (
+                            {step === 33 && (
                                 <>
-                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
+                                    <h2>Valor do Aluguel e Forma de Pagamento</h2>
                                     <div>
-                                        <label>Será cobrado por dia,semana ou mês ?</label>
-                                        <select name='comoSeraCobrado' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="dia">Dia</option>
-                                            <option value="semana">Semana</option>
-                                            <option value="mês">Mês</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 36 && (
-                                <>
-                                    <h2>Valor do Aluguel e Condições de Pagamento </h2>
-                                    <div>
-                                        <label>Valor da Locação </label>
+                                        <label>Valor mensal do aluguel</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="valor"
+                                            name="valorMensal"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1282,11 +1061,29 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-                            {step === 37 && (
+                            {step === 34 && (
                                 <>
-                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
+                                    <h2>Valor do Aluguel e Forma de Pagamento</h2>
                                     <div>
-                                        <label>Forma de pagamento (ex.: depósito bancário, boleto, Pix) </label>
+                                        <label>Data de vencimento mensal</label>
+                                        <input
+                                            type='date'
+                                            placeholder=''
+                                            name="dataVencMensal"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {step === 35 && (
+                                <>
+                                    <h2>Valor do Aluguel e Forma de Pagamento</h2>
+                                    <div>
+                                        <label>Forma de pagamento (depósito bancário, boleto, Pix, etc.)</label>
                                         <input
                                             type='text'
                                             placeholder=''
@@ -1299,85 +1096,15 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-                            {step === 38 && (
+                            {step === 36 && (
                                 <>
-                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
-                                    <div>
-                                        <label>Data(s) de pagamento</label>
-                                        <input
-                                            type='date'
-                                            placeholder=''
-                                            name="dataPag"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 39 && (
-                                <>
-                                    <h2>Valor do Aluguel e Condições de Pagamento </h2>
-                                    <div>
-                                        <label>Exigência de sinal ou adiantamento</label>
-                                        <select name='sinal' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {sinal && (
-                                <>
-                                    {step === 40 && (
-                                        <>
-                                            <h2>Valor do Aluguel e Condições de Pagamento</h2>
-                                            <div>
-                                                <label>Qual valor</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="qualValor"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                    {step === 41 && (
-                                        <>
-                                            <h2>Valor do Aluguel e Condições de Pagamento</h2>
-                                            <div>
-                                                <label>Qual é data de pagamento ?</label>
-                                                <input
-                                                    type='date'
-                                                    placeholder=''
-                                                    name="dataPagSinal"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                </>
-                            )}
-
-                            {step === 42 && (
-                                <>
-                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
+                                    <h2>Valor do Aluguel e Forma de Pagamento</h2>
                                     <div>
                                         <label>Multa por atraso no pagamento</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="multaPagamento"
+                                            name="multaAtraso"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1386,15 +1113,15 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-                            {step === 43 && (
+                            {step === 37 && (
                                 <>
-                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
+                                    <h2>Valor do Aluguel e Forma de Pagamento</h2>
                                     <div>
                                         <label>Juros aplicáveis em caso de atraso</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="juros"
+                                            placeholder='porcentagem.ex.: 1% mês'
+                                            name="jurosAplicaveis"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1403,8 +1130,7 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-
-                            {step === 44 && (
+                            {step === 38 && (
                                 <>
                                     <h2>Garantias</h2>
                                     <div>
@@ -1422,7 +1148,7 @@ export default function LocacaoVeiculo() {
 
                             {garantia && (
                                 <>
-                                    {step === 45 && (
+                                    {step === 39 && (
                                         <>
                                             <h2>Garantias</h2>
                                             <div>
@@ -1445,7 +1171,7 @@ export default function LocacaoVeiculo() {
 
                             {fiador && (
                                 <>
-                                    {step === 46 && (
+                                    {step === 40 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1463,7 +1189,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 47 && (
+                                    {step === 41 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1482,7 +1208,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 48 && (
+                                    {step === 42 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1502,7 +1228,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 49 && (
+                                    {step === 43 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1521,7 +1247,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 50 && (
+                                    {step === 44 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1540,7 +1266,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 51 && (
+                                    {step === 45 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1560,7 +1286,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 52 && (
+                                    {step === 46 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1579,7 +1305,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 53 && (
+                                    {step === 47 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1598,7 +1324,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 54 && (
+                                    {step === 48 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1622,7 +1348,7 @@ export default function LocacaoVeiculo() {
 
                             {caucaoDep && (
                                 <>
-                                    {step === 55 && (
+                                    {step === 49 && (
                                         <>
                                             <h2>Dados do Titulo do Caução</h2>
                                             <div>
@@ -1648,7 +1374,7 @@ export default function LocacaoVeiculo() {
 
                             {caucaoBemIM && (
                                 <>
-                                    {step === 56 && (
+                                    {step === 50 && (
                                         <>
                                             <h2>Dados do Caução de imóvel</h2>
                                             <div>
@@ -1671,7 +1397,7 @@ export default function LocacaoVeiculo() {
 
                             {titulos && (
                                 <>
-                                    {step === 57 && (
+                                    {step === 51 && (
                                         <>
                                             <h2>Dados do Título de Credito</h2>
                                             <div>
@@ -1694,7 +1420,7 @@ export default function LocacaoVeiculo() {
 
                             {seguroFi && (
                                 <>
-                                    {step === 58 && (
+                                    {step === 52 && (
                                         <>
                                             <h2>Dados do Seguro Fiança</h2>
                                             <div>
@@ -1715,40 +1441,143 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-                            {step === 59 && (
+                            {step === 53 && (
                                 <>
                                     <h2>Obrigações do Locador</h2>
                                     <div>
-                                        <label>O locador se responsabiliza por quais manutenções ou reparos no veículo?</label>
-                                        <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="locadorResponsaManu"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>O locador se responsabiliza por quais manutenções ou reparos no quarto e nas áreas comuns? </label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="locadorManuRep"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 54 && (
+                                <>
+                                    <h2>Obrigações do Locador</h2>
+                                    <div>
+                                        <label>O locador fornecerá algum serviço adicional (ex.: limpeza das áreas comuns, internet)? </label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="locadorServAdicional"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 55 && (
+                                <>
+                                    <h2>Obrigações do Locatário</h2>
+                                    <div>
+                                        <label>O locatário pode realizar modificações no quarto? </label>
+                                        <select name='locatarioModifica' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {locatarioModifica && (
+                                <>
+                                    {step === 56 && (
+                                        <>
+                                            <h2>Obrigações do Locatário</h2>
+                                            <div>
+                                                <label>Quais Condições ?</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="quaiCondicoes"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+
+                            {step === 57 && (
+                                <>
+                                    <h2>Obrigações do Locatário</h2>
+                                    <div>
+                                        <label>O locatário é responsável por quais manutenções no quarto? </label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="locatarioManu"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {step === 58 && (
+                                <>
+                                    <h2>Obrigações do Locatário</h2>
+                                    <div>
+                                        <label>O locatário é responsável por quais manutenções no quarto? </label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="locatarioManu"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 59 && (
+                                <>
+                                    <h2>Obrigações do Locatário</h2>
+                                    <div>
+                                        <label>Há restrições quanto ao uso das áreas comuns?</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="restricoesUso"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
                             {step === 60 && (
                                 <>
-                                    <h2>Obrigações do Locador</h2>
+                                    <h2>Obrigações do Locatário</h2>
                                     <div>
-                                        <label>O locador fornecerá algum serviço adicional (ex.: seguro, assistência 24h)?</label>
-                                        <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="locadorServicoAdicional"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>É permitido fumar no interior do imóvel?</label>
+                                        <select name='permiteFumar' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
@@ -1757,199 +1586,157 @@ export default function LocacaoVeiculo() {
                                 <>
                                     <h2>Obrigações do Locatário</h2>
                                     <div>
-                                        <label>O locatário pode sublocar ou ceder o veículo a terceiros? </label>
-                                        <div>
-                                            <select name='locatarioSublocar' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>São permitidos animais de estimação? </label>
+                                        <select name='animais' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
                             {step === 62 && (
                                 <>
-                                    <h2>Obrigações do Locatário</h2>
+                                    <h2>Despesas e Tributos</h2>
                                     <div>
-                                        <label>O locatário é responsável por quais manutenções no veículo?</label>
-                                        <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="locatarioManu"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>Quais despesas são de responsabilidade do locatário? (ex.: contas de água, luz, internet) </label>
+                                        <textarea
+                                            id="despesasLocatario"
+                                            name="despesasLocatario"
+                                            onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
                             {step === 63 && (
                                 <>
-                                    <h2>Obrigações do Locatário</h2>
+                                    <h2>Despesas e Tributos</h2>
                                     <div>
-                                        <label>O locatário deve respeitar as leis de trânsito e utilizar o veículo de forma adequada?</label>
-                                        <div>
-                                            <select name='locatarioLeis' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>Quais despesas são de responsabilidade do locador? </label>
+                                        <textarea
+                                            id="despesasLocador"
+                                            name="despesasLocador"
+                                            onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
+
                             {step === 64 && (
                                 <>
-                                    <h2>Obrigações do Locatário</h2>
+                                    <h2>Regras de Convivência</h2>
                                     <div>
-                                        <label>O locatário é responsável por multas e infrações de trânsito ocorridas durante o período de locação? </label>
-                                        <div>
-                                            <select name='locatarioMultas' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>Há restrições quanto ao uso das áreas comuns?</label>
+                                        <textarea
+                                            id="horaSilencio"
+                                            name="horaSilencio"
+                                            onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
                             {step === 65 && (
                                 <>
-                                    <h2>Obrigações do Locatário</h2>
+                                    <h2>Regras de Convivência</h2>
                                     <div>
-                                        <label>O locatário deve comunicar imediatamente ao locador sobre qualquer acidente ou dano ao veículo? </label>
-                                        <div>
-                                            <select name='locatarioComuni' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>Política de visitas (ex.: número máximo de visitantes, horários permitidos)</label>
+                                        <textarea
+                                            id="politicaVisita"
+                                            name="politicaVisita"
+                                            onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
                             {step === 66 && (
                                 <>
-                                    <h2>Obrigações do Locatário</h2>
+                                    <h2>Regras de Convivência</h2>
                                     <div>
-                                        <label>O locatário deve devolver o veículo no mesmo estado em que o recebeu, salvo desgaste natural? </label>
-                                        <div>
-                                            <select name='locatarioDesgaste' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>Regras sobre limpeza e organização das áreas comuns</label>
+                                        <textarea
+                                            id="regrasLimpeza"
+                                            name="regrasLimpeza"
+                                            onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="Descrição"
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-
                             {step === 67 && (
                                 <>
-                                    <h2>Despesas e Tributos</h2>
+                                    <h2>Rescisão do Contrato</h2>
                                     <div>
-                                        <label>Quais despesas são de responsabilidade do locatário? (ex.: combustível, pedágios, multas)  </label>
-                                        <div>
-                                            <textarea
-                                                id="despesasLocatario"
-                                                name="despesasLocatario"
-                                                onChange={handleChange}
-                                                rows={10}
-                                                cols={50}
-                                                placeholder="Descrição"
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>Condições para rescisão antecipada por ambas as partes</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="condicoesRescisao"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
                             {step === 68 && (
                                 <>
-                                    <h2>Despesas e Tributos</h2>
+                                    <h2>Rescisão do Contrato</h2>
                                     <div>
-                                        <label>Quais despesas são de responsabilidade do locador? (ex.: manutenção preventiva, seguro) </label>
-                                        <div>
-                                            <textarea
-                                                id="despesaLocador"
-                                                name="despesaLocador"
-                                                onChange={handleChange}
-                                                rows={10}
-                                                cols={50}
-                                                placeholder="Descrição"
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <label>Multas ou penalidades aplicáveis em caso de rescisão antecipada</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="multasPenalidades"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
                             {step === 69 && (
                                 <>
-                                    <h2>Recisão de Contrato</h2>
-                                    <div>
-                                        <label>Condições para rescisão antecipada por ambas as partes</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="condicoesAntecipada"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-
-
-                            {step === 70 && (
-                                <>
-                                    <h2>Recisão de Contrato</h2>
-                                    <div>
-                                        <label>Multas ou penalidades aplicáveis em caso de rescisão antecipada</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="multasRescisao"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 71 && (
-                                <>
-                                    <h2>Recisão de Contrato</h2>
+                                    <h2>Rescisão do Contrato</h2>
                                     <div>
                                         <label>Prazo para notificação prévia de rescisão</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="prazoNoti"
+                                            name="prazo"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1958,9 +1745,9 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-                            {step === 72 && (
+                            {step === 70 && (
                                 <>
-                                    <h2>Disposições Gerais</h2>
+                                    <h2>Disposição Gerais</h2>
                                     <div>
                                         <label>Foro eleito para resolução de conflitos</label>
                                         <input
@@ -1975,9 +1762,9 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-                            {step === 73 && (
+                            {step === 71 && (
                                 <>
-                                    <h2>Disposições Gerais</h2>
+                                    <h2>Disposição Gerais</h2>
                                     <div>
                                         <label>Necessidade de testemunhas para assinatura do contrato</label>
                                         <select name='testemunhas' onChange={handleChange}>
@@ -1991,10 +1778,9 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-
-                            {testemunhas && (
+                            {Testemunhas && (
                                 <>
-                                    {step === 74 && (
+                                    {step === 72 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2013,7 +1799,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 75 && (
+                                    {step === 73 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2022,7 +1808,7 @@ export default function LocacaoVeiculo() {
                                                     <input
                                                         type='text'
                                                         placeholder=''
-                                                        name="nomeTest1"
+                                                        name="cpfTest1"
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
@@ -2032,7 +1818,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 76 && (
+                                    {step === 74 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2052,7 +1838,7 @@ export default function LocacaoVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 77 && (
+                                    {step === 75 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2073,7 +1859,7 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-                            {step === 78 && (
+                            {step === 76 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2091,8 +1877,7 @@ export default function LocacaoVeiculo() {
                                 </>
                             )}
 
-
-                            {step === 79 && (
+                            {step === 77 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -2110,26 +1895,29 @@ export default function LocacaoVeiculo() {
                                     </button>
                                 </>
                             )}
+
                         </div>
                     </div>
                 </div>
-
 
                 <div className="right-panel">
                     <div className="pdf-preview">
                         {pdfDataUrl && (
                             <iframe
-                                src={`${pdfDataUrl}#toolbar=0&navpanes=0&scrollbar=0`} // Desativa a barra de ferramentas do PDF
+                                src={`${pdfDataUrl}#toolbar=0&navpanes=0`} // Desativa a barra de ferramentas e o painel de navegação
                                 title="Pré-visualização do PDF"
                                 frameBorder="0"
                                 width="100%"
                                 height="100%"
                                 style={{
-                                    pointerEvents: 'auto',
-                                    userSelect: 'none',
+                                    pointerEvents: 'none', // Impede interações (como cliques)
+                                    overflow: 'auto',      // Permite apenas a rolagem
                                 }}
+
                             ></iframe>
                         )}
+
+
                     </div>
                 </div>
             </div>
@@ -2160,7 +1948,7 @@ export default function LocacaoVeiculo() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorpdflocacaoveiculopago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { }}>
                         Baixar PDF
                     </button>
                 ) : (
@@ -2169,7 +1957,6 @@ export default function LocacaoVeiculo() {
                     </button>
                 )}
             </div>
-
         </>
     );
 }

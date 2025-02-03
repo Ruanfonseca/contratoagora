@@ -54,7 +54,7 @@ export default function contratos() {
 
           <h2 className="subtitle">CESSÃO DE POSSE</h2>
           <ul>
-            <li>Contrato de cessão de posse de imóvel - R$ 29,90</li>
+            <li><Link className='' href="/contratos/cessaodeposse">Contrato de cessão de posse de imóvel - R$ 29,90</Link></li>
             <li>Contrato de cessão de posse de terreno - R$ 29,90</li>
           </ul>
 

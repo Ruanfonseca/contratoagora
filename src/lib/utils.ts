@@ -22,3 +22,4 @@ export function verificarValor(valor: string) {
 export function verificarValorEspecial(valor: string) {
   return valor === undefined || valor === null || valor === "" ? " " : `${valor}`;
 }
+

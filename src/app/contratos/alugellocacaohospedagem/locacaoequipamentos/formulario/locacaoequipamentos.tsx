@@ -549,11 +549,6 @@ export default function LocacaoEquipamentos() {
         setPdfDataUrl(pdfDataUri);
     };
 
-
-
-
-
-
     useEffect(() => {
         gerarContratoLocacaoEquipamento({ ...formData });
     }, [formData]);

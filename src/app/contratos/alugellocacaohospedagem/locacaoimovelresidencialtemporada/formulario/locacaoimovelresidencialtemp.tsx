@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
+import geradorLocacaoResiPago from '../util/pdf';
 
 
 
@@ -2236,7 +2237,7 @@ export default function LocacaoImovelResidencialPorTemp() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorLocacaoResiPago(formData) }}>
                         Baixar PDF
                     </button>
                 ) : (
