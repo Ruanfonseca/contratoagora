@@ -1,10 +1,11 @@
 'use client'
 
+import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
 import gerarContratoPago from '../util/pdf';
@@ -246,6 +247,8 @@ export default function LocacaoEspacoEvento() {
     const [seguroFi, setSeguroFi] = useState(false);
     const [garantiaManutencao, setGarantiaManutencao] = useState(false);
     const [testemunhas, setTestemunhas] = useState(false);
+    const pilha = useRef(new Pilha());
+
 
     const handleNext = () => {
         setFormData((prev) => ({ ...prev, ...currentStepData }));
@@ -367,6 +370,7 @@ export default function LocacaoEspacoEvento() {
         }
 
         setStep(nextStep);
+        pilha.current.empilhar(nextStep);
 
         // Logs para depuração
         console.log(`qtd step depois do ajuste: ${nextStep}`);
@@ -465,7 +469,9 @@ export default function LocacaoEspacoEvento() {
         }
     }
 
-    const handleBack = () => setStep((prev) => prev - 1);
+    const handleBack = () => {
+        setStep(pilha.current.desempilhar());
+    }
 
     function gerarContratoPDF(dados: any): void {
         const doc = new jsPDF();

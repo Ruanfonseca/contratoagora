@@ -1,9 +1,10 @@
 'use client'
+import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from "jspdf";
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
 import gerarContratoLocacaoEquipamentoPDF from '../util/pdf';
@@ -181,6 +182,7 @@ export default function LocacaoEquipamentos() {
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
+    const pilha = useRef(new Pilha());
 
 
     const handleNext = () => {
@@ -290,6 +292,8 @@ export default function LocacaoEquipamentos() {
 
         setStep(nextStep);
 
+        pilha.current.empilhar(nextStep);
+
         // Logs para depuração
         console.log(`qtd step depois do ajuste: ${nextStep}`);
 
@@ -303,8 +307,9 @@ export default function LocacaoEquipamentos() {
     };
 
 
-    const handleBack = () => setStep((prev) => prev - 1);
-
+    const handleBack = () => {
+        setStep(pilha.current.desempilhar());
+    }
 
 
     const handleFinalize = () => {
@@ -538,6 +543,15 @@ export default function LocacaoEquipamentos() {
             doc.text("Assinatura da Testemunha 2", 60, posY + 5);
             doc.text(`Nome: ${verificarValor(dados.nomeTestemunha2)}, CPF: ${verificarValor(dados.cpfTestemunha2)}`, 60, posY + 15);
         }
+
+        // Assinaturas do Locador e Locatário
+        posY += 40;
+        doc.text("__________________________", 60, posY);
+        doc.text("Assinatura do Locador", 60, posY + 5);
+
+        posY += 30;
+        doc.text("__________________________", 60, posY);
+        doc.text("Assinatura do Locatário", 60, posY + 5);
 
         // Finalização do documento
         posY += 40;

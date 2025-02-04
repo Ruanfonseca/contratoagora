@@ -1,9 +1,10 @@
 'use client'
+import Pilha from '@/lib/pilha';
 import { verificarValor, verificarValorEspecial } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
 import geradorDeContratoImovelComercialPago from '../util/pdf';
@@ -211,6 +212,7 @@ export default function LocacaoImovelComercial() {
     const [locatarioRealiza, setLocatarioRealiza] = useState(false);
     const [direitoPreferencia, setDireitoPreferencia] = useState(false);
     const [Testemunhas, setTestemunhas] = useState(false);
+    const pilha = useRef(new Pilha());
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -344,6 +346,8 @@ export default function LocacaoImovelComercial() {
         }
 
         setStep(nextStep);
+        pilha.current.empilhar(nextStep);
+
 
         // Logs para depuração
         console.log(`qtd step depois do ajuste: ${nextStep}`);
@@ -434,8 +438,9 @@ export default function LocacaoImovelComercial() {
         }
     }
 
-    const handleBack = () => setStep((prev) => prev - 1);
-
+    const handleBack = () => {
+        setStep(pilha.current.desempilhar());
+    }
 
 
     const geradorDeContratoImovelComercial = (dados: any) => {

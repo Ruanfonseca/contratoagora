@@ -1,8 +1,9 @@
 'use client'
+import Pilha from '@/lib/pilha';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
 import gerarContratoHospedagem from '../util/pdf';
@@ -212,13 +213,9 @@ export default function Hospedagem() {
     const [multaPorRompimento, setMultaPorRompimento] = useState(false);
     const [multaPorDescDeContrato, setMultaPorDescDeContrato] = useState(false);
     const [duastestemunhas, setDuastestemunhas] = useState(false);
-
-
-
-
     const [locadorPessoaJuri, setLocadorPessoaJuri] = useState(false);
     const [HospedePessoaJuri, setHospedePessoaJuri] = useState(false);
-
+    const pilha = useRef(new Pilha());
 
     const [paymentId, setPaymentId] = useState('');
     const [isPaymentApproved, setIsPaymentApproved] = useState(false)
@@ -227,7 +224,7 @@ export default function Hospedagem() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 1.00;
+    const valor = 19.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -242,133 +239,151 @@ export default function Hospedagem() {
 
         let nextStep = step;
 
-        // Lógica do Locador
-        if (currentStepData.locador === "pj") {
+        if (currentStepData.locador === 'pj') {
             setLocadorPessoaJuri(true);
-            nextStep = 11;
-        } else if (currentStepData.enderecoLocador) {
+            nextStep = 11
+        } else if (!locadorPessoaJuri && nextStep === 10) {
+
             nextStep = 25;
-        } else if (currentStepData.pessoasAssinantes === "2") {
-            setMaisUmAssinante(true);
-        } else if (nextStep === 19 && maisUmAssinante === false) {
-            nextStep = 25
+
+        } else if (currentStepData.pessoasAssinantes === '2') {
+
+            setMaisUmAssinante(true)
+            nextStep = 20;
+
+        } else if (!maisUmAssinante && nextStep === 19) {
+            nextStep = 25;
         }
 
-        // Lógica do Hóspede
-        if (currentStepData.hospede === "pj") {
+
+        if (currentStepData.hospede === 'pj') {
             setHospedePessoaJuri(true);
-            nextStep = 35;
-        } else if (currentStepData.enderecoHospede) {
+            nextStep = 35
+        } else if (!HospedePessoaJuri && nextStep === 34) {
             nextStep = 49;
-        } else if (currentStepData.pessoasHospedeAssinantes === "2") {
-            setMaisUmAssinanteHosp(true);
-            nextStep = 39;
-        } else if (nextStep === 43 && maisUmAssinanteHosp === false) {
-            nextStep = 49
+
+        } else if (currentStepData.pessoasHospedeAssinantes === '2') {
+
+            setMaisUmAssinanteHosp(true)
+            nextStep = 44;
+
+        } else if (!maisUmAssinante && nextStep === 43) {
+            nextStep = 49;
         }
 
-        // Lógica do Imóvel
-        if (currentStepData.regrasExpeHospedes === "S") {
+
+
+        if (currentStepData.regrasExpeHospedes === 'S') {
             setRegrasHospedes(true);
             nextStep = 55;
-        } else if (currentStepData.regrasExpeHospedes === "N") {
+        } else if (currentStepData.regrasExpeHospedes === 'N') {
             nextStep = 56;
         }
 
-        // Pagamento antecipado e multas
-        if (currentStepData.antecipaPagReserva === "S") {
+        if (currentStepData.antecipaPagReserva === 'S') {
             setPagamentoAntecipado(true);
-        } else if (currentStepData.antecipaPagReserva === "N" || currentStepData.cobrancaMulta === "N") {
-            nextStep = 63;
-        } else if (currentStepData.cobrancaMulta === "S") {
-            setMultapordesistencia(true);
+            nextStep = 60;
+        } else if (currentStepData.antecipaPagReserva === 'N') {
+            nextStep = 61;
         }
 
-        // Contas básicas
-        if (currentStepData.contasBasicas === "S") {
+        if (currentStepData.cobrancaMulta === 'S') {
+            setMultapordesistencia(true);
+            nextStep = 62;
+        } else if (currentStepData.cobrancaMulta === 'N') {
+            nextStep = 63;
+        }
+
+        if (currentStepData.contasBasicas === 'S') {
             setContasBasicas(true);
-        } else if (currentStepData.contasBasicas === "N") {
+            nextStep = 66;
+        } else if (currentStepData.contasBasicas === 'N') {
             nextStep = 67;
         }
 
-        // Resgate anual
-        if (currentStepData.resgateAnual === "S") {
+        if (currentStepData.resgateAnual === 'S') {
             setResgateAnual(true);
-        } else if (currentStepData.resgateAnual === "N") {
+            nextStep = 68;
+        } else if (currentStepData.resgateAnual === 'N') {
             nextStep = 69;
         }
 
-        // Garantias
-        if (currentStepData.garantiaHosp === "S") {
-            setGarantidorHosp(true);
-        } else if (currentStepData.garantiaHosp === "N") {
+        if (currentStepData.garantiaHosp === 'S') {
+            setResgateAnual(true);
+            nextStep = 75;
+        } else if (currentStepData.garantiaHosp === 'N') {
             nextStep = 89;
         }
 
-        // Tipos de garantia
-        if (currentStepData.garantidorHosp) {
-            switch (currentStepData.garantidorHosp) {
-                case "fi":
-                    setFiador(true);
-                    break;
-                case "caudep":
-                    setCaucaoDep(true);
-                    nextStep = 85;
-                    break;
-                case "caubem":
-                    setCaucaoBemIM(true);
-                    nextStep = 86;
-                    break;
-                case "ti":
-                    setTitulos(true);
-                    nextStep = 87;
-                    break;
-                case "segfianca":
-                    setSeguroFi(true);
-                    nextStep = 88;
-                    break;
-                default:
-                    break;
-            }
+        if (nextStep === 84) {
+            nextStep = 89
+        } else if (nextStep === 85) {
+            nextStep = 89
+        } else if (nextStep === 86) {
+            nextStep = 89
+        } else if (nextStep === 87) {
+            nextStep = 89
         }
 
-        if (
-            currentStepData.enderecoFiador ||
-            currentStepData.valorTitCaucao ||
-            currentStepData.descBemCaucao ||
-            currentStepData.descCredUtili ||
-            currentStepData.segFianca
-        ) {
-            nextStep = 89;
+        switch (currentStepData.garantidorHosp) {
+            case "fi":
+                setFiador(true);
+                break;
+            case "caudep":
+                setCaucaoDep(true);
+                nextStep = 85;
+                break;
+            case "caubem":
+                setCaucaoBemIM(true);
+                nextStep = 86;
+                break;
+            case "ti":
+                setTitulos(true);
+                nextStep = 87;
+                break;
+            case "segfianca":
+                setSeguroFi(true);
+                nextStep = 88;
+                break;
+            default:
+                break;
         }
 
-        // Multas e cláusulas específicas
-        if (currentStepData.multaPorRompimento === "S") {
+
+
+        if (currentStepData.multaPorRompimento === 'S') {
             setMultaPorRompimento(true);
-        } else if (currentStepData.multaPorRompimento === "N") {
+            nextStep = 93;
+        } else if (currentStepData.multaPorRompimento === 'N') {
             nextStep = 94;
         }
 
-        if (currentStepData.multaPorDescDeContrato === "S") {
+        if (currentStepData.multaPorDescDeContrato === 'S') {
             setMultaPorDescDeContrato(true);
-        } else if (currentStepData.multaPorDescDeContrato === "N") {
+            nextStep = 95;
+        } else if (currentStepData.multaPorDescDeContrato === 'N') {
             nextStep = 96;
         }
 
-        // Testemunhas
-        if (currentStepData.duastestemunhas === "S") {
+        if (currentStepData.duastestemunhas === 'S') {
             setDuastestemunhas(true);
-        } else if (currentStepData.duastestemunhas === "N") {
+            nextStep = 99;
+        } else if (currentStepData.duastestemunhas === 'N') {
             nextStep = 103;
         }
 
-        // Caso nenhuma condição seja satisfeita, incrementar o passo.
+
+
+
         if (nextStep === step) {
             nextStep += 1;
         }
 
         // Atualizar o passo final.
         setStep(nextStep);
+
+
+        pilha.current.empilhar(nextStep);
 
         // Logs para depuração
         console.log(`qtd step depois do ajuste: ${nextStep}`);
@@ -379,7 +394,9 @@ export default function Hospedagem() {
     };
 
 
-    const handleBack = () => setStep((prev) => prev - 1);
+    const handleBack = () => {
+        setStep(pilha.current.desempilhar());
+    }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -703,10 +720,6 @@ export default function Hospedagem() {
         setPdfDataUrl(pdfDataUri);
     };
 
-
-
-
-
     useEffect(() => {
         gerandoPdf({ ...formData });
     }, [formData]);
@@ -726,7 +739,7 @@ export default function Hospedagem() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 100) * 100}%` }}
+                                style={{ width: `${(step / 102) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
@@ -2614,15 +2627,15 @@ export default function Hospedagem() {
                     <div className="pdf-preview">
                         {pdfDataUrl && (
                             <iframe
-                                src={pdfDataUrl}
+                                src={`${pdfDataUrl}#toolbar=0&navpanes=0&scrollbar=0`} // Desativa a barra de ferramentas do PDF
                                 title="Pré-visualização do PDF"
                                 frameBorder="0"
                                 width="100%"
                                 height="100%"
-                            // style={{
-                            //     pointerEvents: 'none',
-                            //     userSelect: 'none',
-                            // }}
+                                style={{
+                                    pointerEvents: 'auto',
+                                    userSelect: 'none',
+                                }}
                             ></iframe>
                         )}
                     </div>

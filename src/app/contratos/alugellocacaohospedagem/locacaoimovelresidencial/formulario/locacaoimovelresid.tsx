@@ -1,8 +1,9 @@
 'use client'
+import Pilha from '@/lib/pilha';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
 import geradorImovelResidencialPDF from '../util/pdf';
@@ -209,6 +210,7 @@ export default function LocacaoImovelResidencial() {
     const [locatarioReforma, setLocatarioReforma] = useState(false);
     const [preferenciaLocatario, setPreferenciaLocatario] = useState(false);
     const [Testemunhas, setTestemunhas] = useState(false);
+    const pilha = useRef(new Pilha());
     /** */
 
 
@@ -300,7 +302,10 @@ export default function LocacaoImovelResidencial() {
         }
     }
 
-    const handleBack = () => setStep((prev) => prev - 1);
+    const handleBack = () => {
+        setStep(pilha.current.desempilhar());
+    }
+
 
     const handleNext = () => {
 
@@ -423,6 +428,8 @@ export default function LocacaoImovelResidencial() {
         }
 
         setStep(nextStep);
+
+        pilha.current.empilhar(nextStep);
 
         // Logs para depuração
         console.log(`qtd step depois do ajuste: ${nextStep}`);

@@ -1,9 +1,10 @@
 'use client'
+import Pilha from '@/lib/pilha';
 import { verificarValor, verificarValorEspecial } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
 import geradorLocacaoResiPago from '../util/pdf';
@@ -211,6 +212,8 @@ export default function LocacaoImovelResidencialPorTemp() {
     const [Testemunhas, setTestemunhas] = useState(false);
     const [sinalAdiantamento, setSinalAdiantamento] = useState(false);
     const [despesasAdicionais, setDespesasAdicionais] = useState(false);
+    const pilha = useRef(new Pilha());
+
     /** */
 
 
@@ -411,6 +414,8 @@ export default function LocacaoImovelResidencialPorTemp() {
         }
 
         setStep(nextStep);
+        pilha.current.empilhar(nextStep);
+
 
         // Logs para depuração
         console.log(`qtd step depois do ajuste: ${nextStep}`);
@@ -420,7 +425,10 @@ export default function LocacaoImovelResidencialPorTemp() {
 
     }
 
-    const handleBack = () => setStep((prev) => prev - 1);
+    const handleBack = () => {
+        setStep(pilha.current.desempilhar());
+    }
+
 
     const geradorLocacaoResiPorTemp = (dados: any) => {
         const doc = new jsPDF();
