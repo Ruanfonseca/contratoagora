@@ -1,16 +1,13 @@
-'use client'
 import Pilha from '@/lib/pilha';
-import { verificarValor, verificarValorEspecial } from '@/lib/utils';
+import { verificarValor } from '@/lib/utils';
 import api from '@/services';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
-import '../css/form.css';
-import geradorDeContratoImovelComercialPago from '../util/pdf';
+import geradorPdfImovelComercialPago from '../util/pdf';
 
-
-const locacaoimovelcomercialschema = z.object({
+const imovelcomercialschema = z.object({
     locador: z.enum(['pf', 'pj']).default('pf'),
 
     /**
@@ -58,36 +55,78 @@ const locacaoimovelcomercialschema = z.object({
     /** */
 
 
-    /**DESCRIÇÃO DO IMÓVEL */
-    enderecoImovel: z.string(),
-    descImovel: z.string(),
-    destcomercial: z.string(),
-    condicoesImovel: z.string(),
+
+    sublocador: z.enum(['pf', 'pj']).default('pf'),
+
+    /**
+     * Dados sublocador pj
+     */
+    razaoSocialsublocador: z.string(),
+    cnpjsublocador: z.string(),
+    cpfsublocador: z.string(),
+    enderecoCNPJsublocador: z.string(),
+    telefoneCNPJsublocador: z.string(),
+    emailCNPJsublocador: z.string(),
+    nomeRepresentanteCNPJsublocador: z.string(),
+    CPFRepresentanteCNPJsublocador: z.string(),
     /** */
 
-    /**PRAZO DA LOCAÇÃO */
-    dataInicioLocacao: z.string(),
-    duracaoContrato: z.string(),
-    possibilidadeRenovacao: z.enum(['S', 'N']),
+    /** Dados sublocador pf */
+    nomeSublocador: z.string(),
+    CPFSublocador: z.string(),
+    enderecoSublocador: z.string(),
+    telefoneSublocador: z.string(),
+    emailSublocador: z.string(),
+    /** */
 
+    sublocatario: z.enum(['pf', 'pj']).default('pf'),
+
+    /**
+     * Dados Sublocatario pj
+     */
+    razaoSocialsublocatario: z.string(),
+    cpfsublocatario: z.string(),
+    cnpjsublocatario: z.string(),
+    enderecosublocatarioCNPJ: z.string(),
+    telefonesublocatarioCNPJ: z.string(),
+    emailsublocatarioCNPJ: z.string(),
+    nomeRepresentantesublocatarioCNPJ: z.string(),
+    CPFRepresentantesublocatarioCNPJ: z.string(),
+    /** */
+
+    /** Dados Sublocatario pf */
+    nomeSublocatario: z.string(),
+    CPFSublocatario: z.string(),
+    enderecoSublocatario: z.string(),
+    telefoneSublocatario: z.string(),
+    emailSublocatario: z.string(),
+    /** */
+
+    /**DESCRIÇÃO DO IMÓVEL */
+    enderecoImovel: z.string(),
+    descDetalhada: z.string(),
+    finalidade: z.string(),
+    estadoAtual: z.string(),
+    /** */
+
+    /**PRAZO DA SUBLOCAÇÃO */
+    dataInicio: z.string(),
+    dataFim: z.string(),
+    possibilidadeRenovacao: z.enum(['S', 'N']),
     //se sim
     quaisCondicoes: z.string(),
     /** */
 
-    /**VALOR DO ALUGUEL E CONDIÇÕES DE PAGAMENTO */
-    valorMensalAluguel: z.string(),
-    dataVenc: z.string(),
+    /**VALOR DO ALUGUEL  */
+    valorMensal: z.string(),
+    dataVenci: z.string(),
     formaPagamento: z.enum(['Pix', 'Dinheiro', 'Cartão', 'Boleto']),
-
-    reajusteAnual: z.enum(['S', 'N']),
-    //se sim
-    qualIndice: z.string(),
-
-    multaPorAtrasoPagamento: z.string(),
-    jurosporatraso: z.string(),
+    multaAtraso: z.string(),
+    jurosAplicaveis: z.string(),
     /** */
 
-    /** Garantias */
+
+    /** GARANTIAS */
     garantia: z.enum(['S', 'N']),
     qualgarantidor: z.enum(['fi', 'caudep', 'caubem', 'ti', 'segfianca']),
 
@@ -118,23 +157,23 @@ const locacaoimovelcomercialschema = z.object({
     procedimentoDevolucao: z.string(),
     /** */
 
-    /**OBRIGAÇÕES DO LOCADOR */
-    locadorManuRep: z.enum(['S', 'N']),
-    locadorServAdicional: z.enum(['S', 'N']),
+    /**OBRIGAÇÕES DO SUBLOCADOR */
+    sublocadorResponsa: z.string(),
+    sublocadorAdicional: z.string(),
     /** */
 
-    /**OBRIAGAÇÕES DO LOCATARIO */
-    locatarioRealiza: z.enum(['S', 'N']),
-    //sesim
-    quaisLocatarioCondicoes: z.string(),
-
-    locatarioManu: z.string(),
-    restricoes: z.string(),
+    /**OBRIGAÇÕES DO SUBLOCATARIO */
+    sublocatarioCeder: z.string(),
+    sublocatarioManu: z.string(),
+    sublocatarioRespeita: z.string(),
+    sublocatarioMulta: z.string(),
+    sublocatarioComunica: z.string(),
+    sublocatarioDevolve: z.string(),
     /** */
 
     /**DESPESAS E TRIBUTOS */
-    despesasLocatario: z.string(),
-    despesasLocador: z.string(),
+    despesasSublocatario: z.string(),
+    despesasSublocador: z.string(),
     /** */
 
     /**RESCISÃO DO CONTRATO */
@@ -142,12 +181,6 @@ const locacaoimovelcomercialschema = z.object({
     multasPenalidades: z.string(),
     prazo: z.string(),
     /** */
-
-    /**DIREITO DE PREFERÊNCIA */
-    direitoPreferencia: z.enum(['S', 'N']),
-    condicoesExec: z.string(),
-    /** */
-
 
     /**DISPOSIÇÕES GERAIS */
     foroResolucaoConflitos: z.string(), // Foro eleito para resolução de conflitos
@@ -157,20 +190,18 @@ const locacaoimovelcomercialschema = z.object({
     cpfTest1: z.string(),
     nomeTest2: z.string(),
     cpfTest2: z.string(),
-
+    local: z.string(),
+    dataAssinatura: z.string(),
     registroCartorio: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
-
-
-
-
 });
 
-type FormData = z.infer<typeof locacaoimovelcomercialschema>;
+type FormData = z.infer<typeof imovelcomercialschema>;
 
 
 
-export default function LocacaoImovelComercial() {
+
+export default function ImovelComercial() {
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
@@ -196,7 +227,9 @@ export default function LocacaoImovelComercial() {
     //VARIAVEIS DE CONTROLE DE FLUXO
     const [locadorJuri, setLocadorJuri] = useState(false);
     const [locadorioJuri, setLocadorioJuri] = useState(false);
-    const [desmontagem, setDesmontagem] = useState(false);
+    const [sublocadorJuri, setSublocadorJuri] = useState(false);
+    const [sublocatarioJuri, setSublocatarioJuri] = useState(false);
+    const [sublocadorAdicional, setSublocadorAdicional] = useState(false);
     const [tempoAdicional, setTempoAdicional] = useState(false);
     const [Parcelado, setParcelado] = useState(false);
     const [garantia, setGarantia] = useState(false);
@@ -219,142 +252,6 @@ export default function LocacaoImovelComercial() {
         const { name, value } = e.target;
         setCurrentStepData((prev) => ({ ...prev, [name]: value }));
     };
-
-    const handleNext = () => {
-        setFormData((prev) => ({ ...prev, ...currentStepData }));
-
-        let nextStep = step;
-
-        if (currentStepData.locador === 'pj') {
-            setLocadorJuri(true);
-            nextStep = 7
-        } else if (!locadorJuri && nextStep === 6) {
-            nextStep = 13;
-        }
-
-        if (currentStepData.locatario === 'pj') {
-            setLocadorioJuri(true);
-            nextStep = 19
-        } else if (!locadorioJuri && nextStep === 18) {
-            nextStep = 25;
-        }
-
-        if (currentStepData.possibilidadeRenovacao === 'S') {
-            setRenovacao(true);
-            nextStep = 33
-        } else if (currentStepData.possibilidadeRenovacao === 'N') {
-            nextStep = 34;
-        }
-
-        if (currentStepData.reajusteAnual === 'S') {
-            setReajusteAnual(true);
-            nextStep = 38
-        } else if (currentStepData.reajusteAnual === 'N') {
-            nextStep = 39;
-        }
-
-
-
-        if (currentStepData.garantia === 'S') {
-            setGarantia(true);
-            nextStep = 42;
-        } else if (currentStepData.garantia === 'N') {
-            nextStep = 56;
-        }
-
-        //para verificar se o próximo é o ultimo de step de algum garantidor
-        if (nextStep === 51) {
-            nextStep = 56
-        } else if (nextStep === 52) {
-            nextStep = 56
-        } else if (nextStep === 53) {
-            nextStep = 56
-        } else if (nextStep === 54) {
-            nextStep = 56
-        } else if (nextStep === 55) {
-            nextStep = 56
-        }
-
-
-        switch (currentStepData.qualgarantidor) {
-            case "fi":
-                setFiador(true);
-                break;
-            case "caudep":
-                setCaucaoDep(true);
-                nextStep = 52;
-                break;
-            case "caubem":
-                setCaucaoBemIM(true);
-                nextStep = 53;
-                break;
-            case "ti":
-                setTitulos(true);
-                nextStep = 54;
-                break;
-            case "segfianca":
-                setSeguroFi(true);
-                nextStep = 55;
-                break;
-            default:
-                break;
-        }
-
-
-        if (currentStepData.locadorServAdicional === 'S') {
-            setServicoAdicional(true);
-            nextStep = 58;
-        } else if (currentStepData.locadorServAdicional === 'N') {
-            nextStep = 59;
-        }
-
-
-        if (currentStepData.locatarioRealiza === 'S') {
-            setLocatarioRealiza(true);
-            nextStep = 60;
-        } else if (currentStepData.locatarioRealiza === 'N') {
-            nextStep = 62;
-        }
-
-
-        if (currentStepData.restricoes === 'S') {
-            setRestricoes(true);
-            nextStep = 63;
-        } else if (currentStepData.restricoes === 'N') {
-            nextStep = 64;
-        }
-
-        if (currentStepData.direitoPreferencia === 'S') {
-            setDireitoPreferencia(true);
-            nextStep = 70;
-        } else if (currentStepData.direitoPreferencia === 'N') {
-            nextStep = 71;
-        }
-
-        if (currentStepData.testemunhasNecessarias === 'S') {
-            setTestemunhas(true);
-            nextStep = 73;
-        } else if (currentStepData.testemunhasNecessarias === 'N') {
-            nextStep = 77;
-        }
-
-
-
-
-        if (nextStep === step) {
-            nextStep += 1;
-        }
-
-        setStep(nextStep);
-        pilha.current.empilhar(nextStep);
-
-
-        // Logs para depuração
-        console.log(`qtd step depois do ajuste: ${nextStep}`);
-
-        // Limpar os dados do passo atual.
-        setCurrentStepData({});
-    }
 
     const handleFinalize = () => {
         setIsLoading(true)
@@ -442,9 +339,129 @@ export default function LocacaoImovelComercial() {
         setStep(pilha.current.desempilhar());
     }
 
+    const handleNext = () => {
+        setFormData((prev) => ({ ...prev, ...currentStepData }));
 
-    const geradorDeContratoImovelComercial = (dados: any) => {
+        let nextStep = step;
 
+        if (currentStepData.locador === 'pj') {
+            setLocadorJuri(true);
+            nextStep = 7
+        } else if (!locadorJuri && nextStep === 6) {
+            nextStep = 13;
+        }
+
+        if (currentStepData.locatario === 'pj') {
+            setLocadorioJuri(true);
+            nextStep = 19
+        } else if (!locadorioJuri && nextStep === 18) {
+            nextStep = 25;
+        }
+
+        if (currentStepData.sublocador === 'pj') {
+            setSublocadorJuri(true);
+            nextStep = 31
+        } else if (!sublocadorJuri && nextStep === 30) {
+            nextStep = 37;
+        }
+
+        if (currentStepData.sublocatario === 'pj') {
+            setSublocatarioJuri(true);
+            nextStep = 43
+        } else if (!sublocatarioJuri && nextStep === 42) {
+            nextStep = 49;
+        }
+
+
+        if (currentStepData.possibilidadeRenovacao === 'S') {
+            setRenovacao(true);
+            nextStep = 55;
+        } else if (currentStepData.possibilidadeRenovacao === 'N') {
+            nextStep = 56;
+        }
+
+
+        if (currentStepData.garantia === 'S') {
+            setGarantia(true);
+            nextStep = 62;
+        } else if (currentStepData.garantia === 'N') {
+            nextStep = 76;
+        }
+
+        //para verificar se o próximo é o ultimo de step de algum garantidor
+        if (nextStep === 71) {
+            nextStep = 76
+        } else if (nextStep === 72) {
+            nextStep = 76
+        } else if (nextStep === 73) {
+            nextStep = 76
+        } else if (nextStep === 74) {
+            nextStep = 76
+        } else if (nextStep === 75) {
+            nextStep = 76
+        }
+
+
+        switch (currentStepData.qualgarantidor) {
+            case "fi":
+                setFiador(true);
+                break;
+            case "caudep":
+                setCaucaoDep(true);
+                nextStep = 72;
+                break;
+            case "caubem":
+                setCaucaoBemIM(true);
+                nextStep = 73;
+                break;
+            case "ti":
+                setTitulos(true);
+                nextStep = 74;
+                break;
+            case "segfianca":
+                setSeguroFi(true);
+                nextStep = 75;
+                break;
+            default:
+                break;
+        }
+
+        if (currentStepData.sublocadorAdicional === 'S') {
+            setSublocadorAdicional(true);
+            nextStep = 78;
+        } else if (currentStepData.sublocadorAdicional === 'N') {
+            nextStep = 79;
+        }
+
+        if (currentStepData.testemunhasNecessarias === 'S') {
+            setTestemunhas(true);
+            nextStep = 92;
+        } else if (currentStepData.testemunhasNecessarias === 'N') {
+            nextStep = 96;
+        }
+
+
+
+        if (nextStep === step) {
+            nextStep += 1;
+        }
+
+        setStep(nextStep);
+        pilha.current.empilhar(nextStep);
+
+
+        // Logs para depuração
+        console.log(`qtd step depois do ajuste: ${nextStep}`);
+
+        // Limpar os dados do passo atual.
+        setCurrentStepData({});
+    }
+
+
+
+
+
+    const geradorPdfImovelComercial = (dados: any) => {
         const doc = new jsPDF();
 
         // Configuração inicial de fonte e margens
@@ -455,7 +472,7 @@ export default function LocacaoImovelComercial() {
         const maxPageHeight = 280;
 
         // Largura do texto permitida dentro das margens
-        const maxTextWidth = 190; // 210 (largura total) - 10 (margem esquerda) - 10 (margem direita)
+        const maxTextWidth = 190;
 
         // Função auxiliar para verificar espaço restante na página
         const checkPageBreak = (additionalHeight: number) => {
@@ -489,154 +506,146 @@ export default function LocacaoImovelComercial() {
             });
         };
 
-
         // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE LOCAÇÃO DE IMÓVEL COMERCIAL", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE SUBLOCAÇÃO DE IMÓVEL COMERCIAL", 105, posY, { align: "center" });
         posY += 15;
 
-        // Seções do contrato
-        addSection("CLÁUSULA 1 - IDENTIFICAÇÃO DAS PARTES", [
-            "(Artigos 104, 421 e 425 do Código Civil Brasileiro)",
-            "Nesta seção, é feita a descrição detalhada do imóvel objeto do contrato, incluindo seu endereço completo, características e condições.\n Também são especificadas a destinação (residencial ou comercial) e o estado de conservação, conforme o que foi verificado pelas partes.",
-            "\nLocador (Proprietário do Imóvel):",
-            `\nNome ou Razão Social: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.nomeLocador) : verificarValor(dados.razaoSocial)}`,
-            `\nCPF ou CNPJ: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.CPFLocador) : verificarValor(dados.cnpjlocador)}`,
-            `\nEndereço: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.enderecoLocador) : verificarValor(dados.enderecoCNPJ)}`,
-            `\nTelefone: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.telefoneLocador) : verificarValor(dados.telefoneCNPJ)}`,
-            `\nE-mail: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.emailLocador) : verificarValor(dados.emailCNPJ)}`,
-            verificarValor(dados.locador) === "pj" ? `\nRepresentante Legal: ${verificarValor(dados.nomeRepresentanteCNPJ)},\n CPF: ${verificarValor(dados.CPFRepresentanteCNPJ)}` : "",
-            "",
-            "\nLocatário (Inquilino do Imóvel):",
-            `\nNome ou Razão Social: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.nomelocatario) : verificarValor(dados.razaoSociallocatario)}`,
-            `\nCPF ou CNPJ: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.CPFlocatario) : verificarValor(dados.cpflocatario)}`,
-            `\nEndereço: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.enderecolocatario) : verificarValor(dados.enderecolocatarioCNPJ)}`,
-            `\nTelefone: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.telefonelocatario) : verificarValor(dados.telefonelocatarioCNPJ)}`,
-            `\nE-mail: ${verificarValor(dados.locatario) === "pf" ? verificarValor(dados.emaillocatario) : verificarValor(dados.emaillocatarioCNPJ)}`,
-            verificarValor(dados.locatario) === "pj" ? `\nRepresentante Legal: ${verificarValor(dados.nomeRepresentantelocatarioCNPJ)},\n CPF: ${verificarValor(dados.CPFRepresentantelocatarioCNPJ)}` : "",
+        // 1. Identificação das Partes
+        addSection("1. Identificação das Partes", [
+            "Art. 11 da Lei do Inquilinato: O locador é obrigado a entregar ao locatário o imóvel alugado em estado de servir ao uso a que se destina.",
+            `Locador (Proprietário do Imóvel):`,
+            `Nome completo ou Razão Social: ${verificarValor(dados.locador === 'pf' ? dados.nomeLocador : dados.razaoSocial)}`,
+            `CPF ou CNPJ: ${verificarValor(dados.locador === 'pf' ? dados.CPFLocador : dados.cnpjlocador)}`,
+            `Endereço completo: ${verificarValor(dados.locador === 'pf' ? dados.enderecoLocador : dados.enderecoCNPJ)}`,
+            `Telefone e e-mail para contato: ${verificarValor(dados.locador === 'pf' ? dados.telefoneLocador : dados.telefoneCNPJ)}, ${verificarValor(dados.locador === 'pf' ? dados.emailLocador : dados.emailCNPJ)}`,
+            ``,
+            `Locatário (Inquilino Original):`,
+            `Nome completo ou Razão Social: ${verificarValor(dados.locatario === 'pf' ? dados.nomelocatario : dados.razaoSociallocatario)}`,
+            `CPF ou CNPJ: ${verificarValor(dados.locatario === 'pf' ? dados.CPFlocatario : dados.cnpj)}`,
+            `Endereço completo: ${verificarValor(dados.locatario === 'pf' ? dados.enderecolocatario : dados.enderecolocatarioCNPJ)}`,
+            `Telefone e e-mail para contato: ${verificarValor(dados.locatario === 'pf' ? dados.telefonelocatario : dados.telefonelocatarioCNPJ)}, ${verificarValor(dados.locatario === 'pf' ? dados.emaillocatario : dados.emaillocatarioCNPJ)}`,
+            ``,
+            `Sublocador (Pessoa que irá sublocar o imóvel):`,
+            `Nome completo ou Razão Social: ${verificarValor(dados.sublocador === 'pf' ? dados.nomeSublocador : dados.razaoSocialsublocador)}`,
+            `CPF ou CNPJ: ${verificarValor(dados.sublocador === 'pf' ? dados.CPFSublocador : dados.cnpjsublocador)}`,
+            `Endereço completo: ${verificarValor(dados.sublocador === 'pf' ? dados.enderecoSublocador : dados.enderecoCNPJsublocador)}`,
+            `Telefone e e-mail para contato: ${verificarValor(dados.sublocador === 'pf' ? dados.telefoneSublocador : dados.telefoneCNPJsublocador)}, ${verificarValor(dados.sublocador === 'pf' ? dados.emailSublocador : dados.emailCNPJsublocador)}`,
+            ``,
+            `Sublocatário (Pessoa que irá sublocar o imóvel):`,
+            `Nome completo ou Razão Social: ${verificarValor(dados.sublocatario === 'pf' ? dados.nomeSublocatario : dados.razaoSocialsublocatario)}`,
+            `CPF ou CNPJ: ${verificarValor(dados.sublocatario === 'pf' ? dados.CPFSublocatario : dados.cnpjsublocatario)}`,
+            `Endereço completo: ${verificarValor(dados.sublocatario === 'pf' ? dados.enderecoSublocatario : dados.enderecosublocatarioCNPJ)}`,
+            `Telefone e e-mail para contato: ${verificarValor(dados.sublocatario === 'pf' ? dados.telefoneSublocatario : dados.telefonesublocatarioCNPJ)}, ${verificarValor(dados.sublocatario === 'pf' ? dados.emailSublocatario : dados.emailsublocatarioCNPJ)}`,
         ]);
 
-
-        addSection("\nCLÁUSULA 2 - DESCRIÇÃO DO IMÓVEL", [
-            "\n(Artigos 47 e 54 da Lei do Inquilinato - Lei nº 8.245/91)",
-            `\nEndereço do Imóvel: ${verificarValor(dados.enderecoImovel)}`,
-            `\nDescrição: ${verificarValor(dados.descImovel)}`,
-            `\nDestinação Comercial: ${verificarValor(dados.destcomercial)}`,
-            `\nCondições do Imóvel: ${verificarValor(dados.condicoesImovel)}`,
+        // 2. Descrição do Imóvel
+        addSection("2. Descrição do Imóvel", [
+            "Art. 22, I da Lei do Inquilinato: O locador deve entregar ao locatário o imóvel alugado em estado de servir ao uso a que se destina.",
+            `Endereço completo do imóvel: ${verificarValor(dados.enderecoImovel)}`,
+            `Descrição detalhada do imóvel: ${verificarValor(dados.descDetalhada)}`,
+            `Finalidade da sublocação: ${verificarValor(dados.finalidade)}`,
+            `Estado atual do imóvel: ${verificarValor(dados.estadoAtual)}`,
         ]);
 
-        addSection("CLÁUSULA 3 - PRAZO DA LOCAÇÃO", [
-            "(Artigo 565 do Código Civil Brasileiro e Artigo 3º da Lei do Inquilinato)",
-            "O prazo do contrato é definido de forma clara, seja por tempo determinado ou indeterminado, conforme acordado entre as partes. São descritos a data de início, a duração do contrato e a possibilidade de renovação,\n respeitando a legislação aplicável, como o Art. 565 do Código Civil.",
-            `\nData de Início: ${verificarValor(dados.dataInicioLocacao)}`,
-            `\nDuração do Contrato: ${verificarValor(dados.duracaoContrato)}`,
-            `Possibilidade de Renovação: ${verificarValor(dados.possibilidadeRenovacao) === "S" ? "Sim" : "Não"}`,
-            verificarValor(dados.possibilidadeRenovacao) === "S" ? `Condições: ${verificarValor(dados.quaisCondicoes)}` : "",
+        // 3. Prazo da Sublocação
+        addSection("3. Prazo da Sublocação", [
+            "Art. 4º da Lei do Inquilinato: Durante o prazo estipulado para a duração do contrato, não poderá o locador reaver o imóvel alugado.",
+            `Data de início da sublocação: ${verificarValor(dados.dataInicio)}`,
+            `Data de término da sublocação: ${verificarValor(dados.dataFim)}`,
+            `Possibilidade de renovação: ${verificarValor(dados.possibilidadeRenovacao === 'S' ? 'Sim' : 'Não')}`,
+            `Condições de renovação: ${verificarValor(dados.quaisCondicoes)}`,
         ]);
 
-
-        addSection("CLÁUSULA 4 - VALOR DO ALUGUEL E CONDIÇÕES DE PAGAMENTO", [
-            "(Artigos 565 e 578 do Código Civil Brasileiro)",
-            "Conforme o Art. 578 do Código Civil: 'Os aluguéis de prédios urbanos, ou de qualquer outra coisa,\n pagam-se nos prazos ajustados, e, na falta de ajuste, até o sexto dia subsequente ao vencido.'",
-            `Valor Mensal: R$ ${verificarValor(dados.valorMensalAluguel)}`,
-            `Data de Vencimento: ${verificarValor(dados.dataVenc)}`,
-            `Forma de Pagamento: ${verificarValor(dados.formaPagamento)}`,
-            `Reajuste Anual: ${verificarValor(dados.reajusteAnual) === "S" ? "Sim" : "Não"}`,
-            dados.reajusteAnual === "S" ? `Índice: ${verificarValor(dados.qualIndice)}` : "",
-            `Multa por Atraso: ${verificarValor(dados.multaPorAtrasoPagamento)}%`,
-            `Juros por Atraso: ${verificarValor(dados.jurosporatraso)}% ao mês`,
+        // 4. Valor do Aluguel e Condições de Pagamento
+        addSection("4. Valor do Aluguel e Condições de Pagamento", [
+            "Art. 17 da Lei do Inquilinato: É livre a convenção do aluguel, vedada a estipulação em moeda estrangeira.",
+            `Valor mensal do aluguel: ${verificarValor(dados.valorMensal)}`,
+            `Data de vencimento mensal: ${verificarValor(dados.dataVenci)}`,
+            `Forma de pagamento: ${verificarValor(dados.formaPagamento)}`,
+            `Multa por atraso no pagamento: ${verificarValor(dados.multaAtraso)}`,
+            `Juros aplicáveis em caso de atraso: ${verificarValor(dados.jurosAplicaveis)}`,
         ]);
 
-
-        addSection("CLÁUSULA 5 - GARANTIAS LOCATÍCIAS", [
-            "(Artigo 37 da Lei do Inquilinato e Artigos 827 a 838 do Código Civil Brasileiro)",
-            "De acordo com o Art. 37 da Lei do Inquilinato: 'No contrato de locação, pode o locador exigir do locatário\n as seguintes modalidades de garantia: caução, fiança, seguro de fiança locatícia ou cessão fiduciária de quotas de fundo de investimento.'",
-            `Garantia Exigida: ${verificarValor(dados.garantia) === "S" ? "Sim" : "Não"}`,
-            `Detalhes: ${verificarValor(dados.qualgarantidor) === "fi"
-                ? `Fiador: ${verificarValor(dados.nomeFiador)}, CPF: ${verificarValor(dados.cpfFiador)}`
-                : verificarValor(dados.qualgarantidor) === "caudep"
-                    ? `Caução em Dinheiro: R$ ${verificarValor(dados.valorTitCaucao)}`
-                    : verificarValor(dados.qualgarantidor) === "caubem"
-                        ? `Caução em Bem: ${verificarValor(dados.descBemCaucao)}`
-                        : verificarValor(dados.qualgarantidor) === "ti"
-                            ? `Título de Crédito: ${verificarValor(dados.descCredUtili)}`
-                            : `Seguro Fiança: ${verificarValor(dados.segFianca)}`
-            }`,
-            `Procedimento para Devolução: ${verificarValor(dados.procedimentoDevolucao)}`,
+        // 5. Garantias Locatícias
+        addSection("5. Garantias Locatícias", [
+            "Art. 37 da Lei do Inquilinato: No contrato de locação, pode o locador exigir do locatário as seguintes modalidades de garantia: caução, fiança, seguro de fiança locatícia e cessão fiduciária de quotas de fundo de investimento.",
+            `Tipo de garantia exigida: ${verificarValor(dados.garantia === 'S' ? 'Sim' : 'Não')}`,
+            `Detalhes da garantia: ${verificarValor(dados.qualgarantidor)}`,
+            `Procedimento para devolução da garantia: ${verificarValor(dados.procedimentoDevolucao)}`,
         ]);
 
-
-        addSection("CLÁUSULA 6 - OBRIGAÇÕES DO LOCADOR", [
-            "(Artigo 22 da Lei do Inquilinato)",
-            `Responsabilidade por Manutenções/Reparos: ${verificarValor(dados.locadorManuRep) === "S" ? "Sim" : "Não"}`,
-            `Serviços Adicionais: ${verificarValor(dados.locadorServAdicional) === "S" ? "Sim" : "Não"}`,
+        // 6. Obrigações do Sublocador
+        addSection("6. Obrigações do Sublocador", [
+            "Art. 23 da Lei do Inquilinato: O locatário é obrigado a pagar pontualmente o aluguel e os encargos da locação, bem como utilizar o imóvel conforme estipulado.",
+            `O sublocador se responsabiliza por: ${verificarValor(dados.sublocadorResponsa)}`,
+            `Serviços adicionais fornecidos: ${verificarValor(dados.sublocadorAdicional)}`,
         ]);
 
-        addSection("CLÁUSULA 7 - OBRIGAÇÕES DO LOCATÁRIO", [
-            "(Artigos 23 e 24 da Lei do Inquilinato)",
-            `Reformas ou Modificações Permitidas: ${verificarValor(dados.locatarioRealiza) === "S" ? "Sim" : "Não"}`,
-            verificarValor(dados.locatarioRealiza) === "S" ? `Condições: ${verificarValor(dados.quaisLocatarioCondicoes)}` : "",
-            `Responsabilidade por Manutenções: ${verificarValor(dados.locatarioManu)}`,
-            `Restrições de Uso: ${verificarValor(dados.restricoes)}`,
+        // 7. Obrigações do Sublocatário
+        addSection("7. Obrigações do Sublocatário", [
+            "Art. 24 da Lei do Inquilinato: O sublocatário responde perante o locador pela inobservância dos deveres impostos ao locatário.",
+            `O sublocatário pode sublocar ou ceder o imóvel a terceiros: ${verificarValor(dados.sublocatarioCeder)}`,
+            `O sublocatário é responsável por: ${verificarValor(dados.sublocatarioManu)}`,
+            `O sublocatário deve respeitar as leis e regulamentos: ${verificarValor(dados.sublocatarioRespeita)}`,
+            `O sublocatário é responsável por multas e infrações: ${verificarValor(dados.sublocatarioMulta)}`,
+            `O sublocatário deve comunicar acidentes ou danos: ${verificarValor(dados.sublocatarioComunica)}`,
+            `O sublocatário deve devolver o imóvel no mesmo estado: ${verificarValor(dados.sublocatarioDevolve)}`,
         ]);
 
-        addSection("CLÁUSULA 8 - DESPESAS E TRIBUTOS", [
-            "(Artigos 22 e 23 da Lei do Inquilinato)",
-            `Despesas do Locatário: ${verificarValor(dados.despesasLocatario)}`,
-            `Despesas do Locador: ${verificarValor(dados.despesasLocador)}`,
+        // 8. Despesas e Tributos
+        addSection("8. Despesas e Tributos", [
+            "Art. 22, VIII da Lei do Inquilinato: Compete ao locador pagar os impostos e taxas que incidam sobre o imóvel, salvo disposição contratual em contrário.",
+            `Despesas do sublocatário: ${verificarValor(dados.despesasSublocatario)}`,
+            `Despesas do sublocador: ${verificarValor(dados.despesasSublocador)}`,
         ]);
 
-        addSection("CLÁUSULA 9 - RESCISÃO DO CONTRATO", [
-            "(Artigo 4º da Lei do Inquilinato e Artigo 475 do Código Civil Brasileiro)",
-            `Condições: ${verificarValor(dados.condicoesRescisao)}`,
-            `Multas/Penalidades: ${verificarValor(dados.multasPenalidades)}`,
-            `Prazo para Notificação: ${verificarValor(dados.prazo)} dias`,
+        // 9. Rescisão do Contrato
+        addSection("9. Rescisão do Contrato", [
+            "Art. 9º da Lei do Inquilinato: A locação poderá ser desfeita por mútuo acordo, infração contratual ou falta de pagamento.",
+            `Condições para rescisão antecipada: ${verificarValor(dados.condicoesRescisao)}`,
+            `Multas ou penalidades aplicáveis: ${verificarValor(dados.multasPenalidades)}`,
+            `Prazo para notificação prévia: ${verificarValor(dados.prazo)}`,
         ]);
 
-        addSection("CLÁUSULA 10 - DIREITO DE PREFERÊNCIA", [
-            "(Artigo 27 da Lei do Inquilinato)",
-            `Preferência para Compra: ${verificarValor(dados.direitoPreferencia) === "S" ? "Sim" : "Não"}`,
-            verificarValor(dados.direitoPreferencia) === "S" ? `Condições: ${verificarValor(dados.condicoesExec)}` : "",
+        // 10. Disposições Gerais
+        addSection("10. Disposições Gerais", [
+            "Art. 68 da Lei do Inquilinato: Nos litígios entre locador e locatário, é competente o foro da situação do imóvel.",
+            `Foro eleito para resolução de conflitos: ${verificarValor(dados.foroResolucaoConflitos)}`,
+            `Necessidade de testemunhas: ${verificarValor(dados.testemunhasNecessarias === 'S' ? 'Sim' : 'Não')}`,
+            `Testemunha 1: ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}`,
+            `Testemunha 2: ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}`,
+            `Registro em cartório: ${verificarValor(dados.registroCartorio === 'S' ? 'Sim' : 'Não')}`,
+            `Local: ${verificarValor(dados.local)}`,
+            `Data de Assinatura: ${verificarValor(dados.dataAssinatura)}`,
         ]);
 
-        addSection("CLÁUSULA 11 - DISPOSIÇÕES GERAIS", [
-            "(Artigos 421 e 422 do Código Civil Brasileiro)",
-            `Foro: ${verificarValor(dados.foroResolucaoConflitos)}`,
-            `Testemunhas Necessárias: ${verificarValor(dados.testemunhasNecessarias) === "S" ? "Sim" : "Não"}`,
-            `Registro em Cartório: ${verificarValor(dados.registroCartorio) === "S" ? "Sim" : "Não"}`,
-        ]);
-
-        if (dados.testemunhasNecessarias === "S") {
-            posY += 20;
-            doc.text("__________________________", 60, posY);
-            doc.text(`Testemunha 1: ${verificarValorEspecial(dados.nomeTest1)}`, 60, posY + 5);
-            doc.text(`CPF: ${verificarValorEspecial(dados.cpfTest1)}`, 60, posY + 10);
-
-            doc.text("__________________________", 140, posY);
-            doc.text(`Testemunha 2: ${verificarValorEspecial(dados.nomeTest2)}`, 140, posY + 5);
-            doc.text(`CPF: ${verificarValorEspecial(dados.cpfTest2)}`, 140, posY + 10);
-        }
-
+        checkPageBreak(60);
         posY += 20;
-        doc.text("__________________________", 60, posY);
-        doc.text("Assinatura do Locador", 60, posY + 5);
+        doc.setFontSize(12);
+        doc.text("Assinaturas:", 105, posY, { align: "center" });
+        posY += 20;
 
-        doc.text("__________________________", 140, posY);
-        doc.text("Assinatura do Locatário", 140, posY + 5);
+        doc.text("Locador: ___________________________", marginX, posY);
+        posY += 15;
+        doc.text("Locatário: ___________________________", marginX, posY);
+        posY += 15;
+        doc.text("Sublocador: ___________________________", marginX, posY);
+        posY += 15;
+        doc.text("Sublocatário: ___________________________", marginX, posY);
 
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
 
-
     useEffect(() => {
-        geradorDeContratoImovelComercial({ ...formData });
+        geradorPdfImovelComercial({ ...formData });
     }, [formData]);
 
     return (
         <>
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">Contrato de Locação de Imóvel Comercial</h1>
+                <h1 className="title">Contrato de Sublocação de Imóvel Comercial</h1>
             </div>
             <div className="container">
                 <div className="left-panel">
@@ -644,7 +653,7 @@ export default function LocacaoImovelComercial() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 77) * 100}%` }}
+                                style={{ width: `${(step / 96) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
@@ -1073,9 +1082,429 @@ export default function LocacaoImovelComercial() {
 
                             {step === 25 && (
                                 <>
+                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                    <div>
+                                        <label>O Sublocador é pessoa?</label>
+                                        <select name='sublocador' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="pj">Jurídica</option>
+                                            <option value="pf">Física</option>
+                                        </select>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/**Pessoa Fisica */}
+                            {step === 26 && (
+                                <>
+                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                    <div>
+                                        <label>Nome do Sublocador</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Nome do Locador'
+                                            name="nomeSublocador"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {step === 27 && (
+                                <>
+                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                    <div>
+                                        <label>CPF</label>
+                                        <input
+                                            type='text'
+                                            placeholder='CPF do Locador'
+                                            name="CPFSublocador"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {step === 28 && (
+                                <>
+                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                    <div>
+                                        <label>Endereço do Sublocador</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Onde o locador mora'
+                                            name="enderecoSublocador"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {step === 29 && (
+                                <>
+                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                    <div>
+                                        <label>Telefone do Sublocador</label>
+                                        <input
+                                            type='text'
+                                            placeholder='(DDD)número-número'
+                                            name="telefoneSublocador"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {step === 30 && (
+                                <>
+                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                    <div>
+                                        <label>Email do Sublocador</label>
+                                        <input
+                                            type='text'
+                                            placeholder='email@email.com'
+                                            name="emailSublocador"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/**Pessoa Juridica */}
+
+                            {sublocadorJuri && (
+                                <>
+                                    {step === 31 && (
+                                        <>
+                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                            <div>
+                                                <label>Razão Social</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="razaoSocialsublocador"
+                                                    onChange={handleChange}
+                                                />
+                                                <label>CNPJ</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="cnpjsublocador"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 32 && (
+                                        <>
+                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                            <div>
+                                                <label>Endereço de onde o CNPJ esta cadastrado</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="enderecoCNPJsublocador"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 33 && (
+                                        <>
+                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                            <div>
+                                                <label>Telefone</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder='(DDD)número-número'
+                                                    name="telefoneCNPJsublocador"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 34 && (
+                                        <>
+                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                            <div>
+                                                <label>Email</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder='(DDD)número-número'
+                                                    name="emailCNPJsublocador"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 35 && (
+                                        <>
+                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                            <div>
+                                                <label>Nome do representante do CNPJ</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="nomeRepresentanteCNPJsublocador"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 36 && (
+                                        <>
+                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
+                                            <div>
+                                                <label>CPF do representante do CNPJ</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="CPFRepresentanteCNPJsublocador"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                </>
+                            )}
+
+                            {/**Sublocatário */}
+                            {step === 37 && (
+                                <>
+                                    <h2>Dados do Sublocatário </h2>
+                                    <div>
+                                        <label>O Sublocatário é pessoa?</label>
+                                        <select name='sublocatario' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="pj">Jurídica</option>
+                                            <option value="pf">Física</option>
+                                        </select>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {/**Pessoa Fisica */}
+                            {step === 38 && (
+                                <>
+                                    <h2>Dados do Sublocatário </h2>
+                                    <div>
+                                        <label>Nome do Sublocatário</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Nome do Locatário'
+                                            name="nomeSublocatario"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {step === 39 && (
+                                <>
+                                    <h2>Dados do Sublocatário </h2>
+                                    <div>
+                                        <label>CPF</label>
+                                        <input
+                                            type='text'
+                                            placeholder='CPF do Locatário'
+                                            name="CPFSublocatario"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {step === 40 && (
+                                <>
+                                    <h2>Dados do Sublocatário </h2>
+                                    <div>
+                                        <label>Endereço do Sublocatário</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Onde o locatário mora'
+                                            name="enderecoSublocatario"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {step === 41 && (
+                                <>
+                                    <h2>Dados do Sublocatário </h2>
+                                    <div>
+                                        <label>Telefone do Sublocatário</label>
+                                        <input
+                                            type='text'
+                                            placeholder='(DDD)número-número'
+                                            name="telefoneSublocatario"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {step === 42 && (
+                                <>
+                                    <h2>Dados do Sublocatário </h2>
+                                    <div>
+                                        <label>Email do Sublocatário</label>
+                                        <input
+                                            type='text'
+                                            placeholder='email@email.com'
+                                            name="emailSublocatario"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/**Pessoa Juridica */}
+
+                            {sublocatarioJuri && (
+                                <>
+                                    {step === 43 && (
+                                        <>
+                                            <h2>Dados do Sublocatário </h2>
+                                            <div>
+                                                <label>Razão Social</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="razaoSocialsublocatario"
+                                                    onChange={handleChange}
+                                                />
+                                                <label>CNPJ</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="cnpjsublocatario"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 44 && (
+                                        <>
+                                            <h2>Dados do Sublocatário </h2>
+                                            <div>
+                                                <label>Endereço do onde o CNPJ esta cadastrado</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="enderecosublocatarioCNPJ"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 45 && (
+                                        <>
+                                            <h2>Dados do Sublocatário </h2>
+                                            <div>
+                                                <label>Telefone</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder='(DDD)número-número'
+                                                    name="telefonesublocatarioCNPJ"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 46 && (
+                                        <>
+                                            <h2>Dados do Sublocatário </h2>
+                                            <div>
+                                                <label>Email</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder='email@email.com'
+                                                    name="emailsublocatarioCNPJ"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 47 && (
+                                        <>
+                                            <h2>Dados do Sublocatário </h2>
+                                            <div>
+                                                <label>Nome do representante do CNPJ</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="nomeRepresentantesublocatarioCNPJ"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 48 && (
+                                        <>
+                                            <h2>Dados do Sublocatário </h2>
+                                            <div>
+                                                <label>CPF do representante do CNPJ</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="CPFRepresentantesublocatarioCNPJ"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {step === 49 && (
+                                <>
                                     <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Endereço completo do imóvel</label>
+                                        <label>Endereço completo do imóvel </label>
                                         <input
                                             type='text'
                                             placeholder=''
@@ -1088,36 +1517,34 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-
-                            {step === 26 && (
+                            {step === 50 && (
                                 <>
                                     <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Descrição detalhada do imóvel (ex.: área total, número de salas, banheiros, estacionamento, etc.)</label>
+                                        <label>Descrição detalhada do imóvel (ex.: número de salas, banheiros, área total) </label>
                                         <textarea
-                                            id="descImovel"
-                                            name="descImovel"
+                                            id="descDetalhada"
+                                            name="descDetalhada"
                                             onChange={handleChange}
                                             rows={10}
                                             cols={50}
                                             placeholder="Descrição"
                                         />
-
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-                            {step === 27 && (
+                            {step === 51 && (
                                 <>
                                     <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Destinação comercial específica (ex.: escritório, loja, restaurante, etc.)</label>
+                                        <label>Finalidade da sublocação (ex.: comércio de roupas, restaurante, escritório) </label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="destcomercial"
+                                            name="finalidade"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1126,15 +1553,15 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 28 && (
+                            {step === 51 && (
                                 <>
                                     <h2>Descrição do Imóvel</h2>
                                     <div>
-                                        <label>Condições atuais do imóvel (se necessário, incluir um relatório ou fotos)</label>
+                                        <label>Estado atual do imóvel (anexar laudo de vistoria, se necessário)</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="condicoesImovel"
+                                            name="estadoAtual"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1143,15 +1570,15 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 29 && (
+                            {step === 52 && (
                                 <>
-                                    <h2>Prazo Da Locação</h2>
+                                    <h2>Prazo da Sublocação</h2>
                                     <div>
-                                        <label>Condições atuais do imóvel (se necessário, incluir um relatório ou fotos)</label>
+                                        <label>Data de início da sublocação</label>
                                         <input
                                             type='date'
                                             placeholder=''
-                                            name="dataInicioLocacao"
+                                            name="dataInicio"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1159,16 +1586,15 @@ export default function LocacaoImovelComercial() {
                                     </div>
                                 </>
                             )}
-
-                            {step === 30 && (
+                            {step === 53 && (
                                 <>
-                                    <h2>Prazo Da Locação</h2>
+                                    <h2>Prazo da Sublocação</h2>
                                     <div>
-                                        <label>Data de início da locação</label>
+                                        <label>Data de término da sublocação</label>
                                         <input
                                             type='date'
                                             placeholder=''
-                                            name="dataInicioLocacao"
+                                            name="dataFim"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1177,46 +1603,31 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 31 && (
+                            {step === 54 && (
                                 <>
-                                    <h2>Prazo Da Locação</h2>
+                                    <h2>Prazo da Sublocação</h2>
                                     <div>
-                                        <label>Duração do contrato (ex.: 12 meses, 24 meses)</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="duracaoContrato"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 32 && (
-                                <>
-                                    <h2>Prazo Da Locação</h2>
-                                    <div>
-                                        <label>Há possibilidade de renovação?</label>
-                                        <select name='possibilidadeRenovacao' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
+                                        <label>Possibilidade de renovação?</label>
+                                        <div>
+                                            <select name='possibilidadeRenovacao' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
                                     </div>
                                 </>
                             )}
 
                             {renovacao && (
                                 <>
-                                    {step === 33 && (
+                                    {step === 55 && (
                                         <>
-                                            <h2>Prazo Da Locação</h2>
+                                            <h2>Descrição do Imóvel</h2>
                                             <div>
-                                                <label>Sob quais condições?</label>
+                                                <label>Sob quais condições ?</label>
                                                 <input
                                                     type='text'
                                                     placeholder=''
@@ -1231,16 +1642,15 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 34 && (
+                            {step === 56 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
                                         <label>Valor mensal do aluguel</label>
-
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="valorMensalAluguel"
+                                            name="valorMensal"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1249,7 +1659,7 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 35 && (
+                            {step === 57 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
@@ -1257,7 +1667,7 @@ export default function LocacaoImovelComercial() {
                                         <input
                                             type='date'
                                             placeholder=''
-                                            name="dataVenc"
+                                            name="dataVenci"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1266,72 +1676,35 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 36 && (
+                            {step === 58 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
                                         <label>Forma de pagamento (ex.: depósito bancário, boleto, Pix)</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="formaPagamento"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
+                                        <div>
+                                            <select name='formaPagamento' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="Pix">Pix</option>
+                                                <option value="Dinheiro">Dinheiro</option>
+                                                <option value="Cartao">Cartão</option>
+                                                <option value="Boleto">Boleto</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
                                     </div>
                                 </>
                             )}
 
-
-                            {step === 37 && (
-                                <>
-                                    <h2>Valor do Aluguel e Condições de Pagamento</h2>
-                                    <div>
-                                        <label>Reajuste anual do aluguel?</label>
-                                        <select name='reajusteAnual' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {reajusteAnual && (
-                                <>
-                                    {step === 38 && (
-                                        <>
-                                            <h2>Valor do Aluguel e Condições de Pagamento</h2>
-                                            <div>
-                                                <label>Qual índice será utilizado (ex.: IGPM, IPCA)?</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="qualIndice"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                </>
-                            )}
-
-
-
-                            {step === 39 && (
+                            {step === 59 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
                                         <label>Multa por atraso no pagamento</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="multaPorAtrasoPagamento"
+                                            placeholder='ex.: 3.25 , 1.00 ...'
+                                            name="multaAtraso"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1340,15 +1713,16 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 40 && (
+
+                            {step === 60 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
                                         <label>Juros aplicáveis em caso de atraso</label>
                                         <input
                                             type='text'
-                                            placeholder='porcentagem.ex.: 1% mês'
-                                            name="jurosporatraso"
+                                            placeholder='porcentagem ex.: %2 mm , 1%aa'
+                                            name="jurosAplicaveis"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1356,10 +1730,7 @@ export default function LocacaoImovelComercial() {
                                     </div>
                                 </>
                             )}
-
-
-
-                            {step === 41 && (
+                            {step === 61 && (
                                 <>
                                     <h2>Garantias</h2>
                                     <div>
@@ -1377,7 +1748,7 @@ export default function LocacaoImovelComercial() {
 
                             {garantia && (
                                 <>
-                                    {step === 42 && (
+                                    {step === 62 && (
                                         <>
                                             <h2>Garantias</h2>
                                             <div>
@@ -1400,7 +1771,7 @@ export default function LocacaoImovelComercial() {
 
                             {fiador && (
                                 <>
-                                    {step === 43 && (
+                                    {step === 63 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1418,7 +1789,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 44 && (
+                                    {step === 64 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1437,7 +1808,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 45 && (
+                                    {step === 65 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1457,7 +1828,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 46 && (
+                                    {step === 66 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1476,7 +1847,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 47 && (
+                                    {step === 67 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1495,7 +1866,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 48 && (
+                                    {step === 68 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1515,7 +1886,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 49 && (
+                                    {step === 69 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1534,7 +1905,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 50 && (
+                                    {step === 70 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1553,7 +1924,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 51 && (
+                                    {step === 71 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1577,7 +1948,7 @@ export default function LocacaoImovelComercial() {
 
                             {caucaoDep && (
                                 <>
-                                    {step === 52 && (
+                                    {step === 72 && (
                                         <>
                                             <h2>Dados do Titulo do Caução</h2>
                                             <div>
@@ -1603,7 +1974,7 @@ export default function LocacaoImovelComercial() {
 
                             {caucaoBemIM && (
                                 <>
-                                    {step === 53 && (
+                                    {step === 73 && (
                                         <>
                                             <h2>Dados do Caução de imóvel</h2>
                                             <div>
@@ -1626,7 +1997,7 @@ export default function LocacaoImovelComercial() {
 
                             {titulos && (
                                 <>
-                                    {step === 54 && (
+                                    {step === 74 && (
                                         <>
                                             <h2>Dados do Título de Credito</h2>
                                             <div>
@@ -1649,7 +2020,7 @@ export default function LocacaoImovelComercial() {
 
                             {seguroFi && (
                                 <>
-                                    {step === 55 && (
+                                    {step === 75 && (
                                         <>
                                             <h2>Dados do Seguro Fiança</h2>
                                             <div>
@@ -1670,14 +2041,13 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-
-                            {step === 56 && (
+                            {step === 76 && (
                                 <>
-                                    <h2>Obrigações do Locador(Proprietário do Imóvel)</h2>
+                                    <h2>Obrigações do Sublocador</h2>
                                     <div>
-                                        <label>O locador se responsabiliza por quais manutenções ou reparos?</label>
+                                        <label>O sublocador se responsabiliza por quais manutenções ou reparos no imóvel? </label>
                                         <div>
-                                            <select name='locadorManuRep' onChange={handleChange}>
+                                            <select name='sublocadorResponsa' onChange={handleChange}>
                                                 <option value="">Selecione</option>
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
@@ -1689,13 +2059,13 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 57 && (
+                            {step === 77 && (
                                 <>
-                                    <h2>Obrigações do Locador(Proprietário do Imóvel)</h2>
+                                    <h2>Obrigações do Sublocador</h2>
                                     <div>
-                                        <label>O locador fornecerá algum serviço adicional (ex.: segurança, limpeza das áreas comuns)?</label>
+                                        <label>O sublocador fornecerá algum serviço adicional (ex.: limpeza, segurança)? </label>
                                         <div>
-                                            <select name='locadorServAdicional' onChange={handleChange}>
+                                            <select name='sublocadorAdicional' onChange={handleChange}>
                                                 <option value="">Selecione</option>
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
@@ -1707,19 +2077,18 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-
-                            {servicoAdicional && (
+                            {sublocadorAdicional && (
                                 <>
-                                    {step === 58 && (
+                                    {step === 78 && (
                                         <>
-                                            <h2>Obrigações do Locador(Proprietário do Imóvel)</h2>
+                                            <h2>Dados do Seguro Fiança</h2>
                                             <div>
-                                                <label>Qual serviço fornecerá ?</label>
+                                                <label>Qual serviço em específico? </label>
                                                 <div>
                                                     <input
                                                         type='text'
                                                         placeholder=''
-                                                        name="qualServico"
+                                                        name="qual"
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
@@ -1731,13 +2100,13 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 59 && (
+                            {step === 79 && (
                                 <>
-                                    <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
+                                    <h2>Obrigações do Sublocatário</h2>
                                     <div>
-                                        <label>O locatário pode realizar reformas ou modificações no imóvel?</label>
+                                        <label>O sublocatário pode sublocar ou ceder o imóvel a terceiros? </label>
                                         <div>
-                                            <select name='locatarioRealiza' onChange={handleChange}>
+                                            <select name='sublocatarioCeder' onChange={handleChange}>
                                                 <option value="">Selecione</option>
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
@@ -1749,57 +2118,13 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {locatarioRealiza && (
+                            {step === 80 && (
                                 <>
-                                    {step === 60 && (
-                                        <>
-                                            <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
-                                            <div>
-                                                <label>Quais são as condições?</label>
-                                                <div>
-                                                    <input
-                                                        type='text'
-                                                        placeholder=''
-                                                        name="quaisLocatarioCondicoes"
-                                                        onChange={handleChange}
-                                                    />
-                                                    <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-
-
-                                    {step === 61 && (
-                                        <>
-                                            <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
-                                            <div>
-                                                <label>O locatário é responsável por quais manutenções?</label>
-                                                <div>
-                                                    <input
-                                                        type='text'
-                                                        placeholder=''
-                                                        name="locatarioManu"
-                                                        onChange={handleChange}
-                                                    />
-                                                    <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </>
-                            )}
-
-
-                            {step === 62 && (
-                                <>
-                                    <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
+                                    <h2>Obrigações do Sublocatário</h2>
                                     <div>
-                                        <label>Há restrições quanto ao tipo de atividades comerciais permitidas no imóvel?</label>
+                                        <label>O sublocatário é responsável por quais manutenções no imóvel? </label>
                                         <div>
-                                            <select name='restricoes' onChange={handleChange}>
+                                            <select name='sublocatarioManu' onChange={handleChange}>
                                                 <option value="">Selecione</option>
                                                 <option value="S">Sim</option>
                                                 <option value="N">Não</option>
@@ -1811,40 +2136,88 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {restricoes && (
+                            {step === 81 && (
                                 <>
-                                    {step === 63 && (
-                                        <>
-                                            <h2>Obrigações do locatário(Inquilino do imóvel)</h2>
-                                            <div>
-                                                <label>Quais restrições?</label>
-                                                <div>
-                                                    <input
-                                                        type='text'
-                                                        placeholder=''
-                                                        name="quaisRestricoes"
-                                                        onChange={handleChange}
-                                                    />
-                                                    <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
+                                    <h2>Obrigações do Sublocatário</h2>
+                                    <div>
+                                        <label>O sublocatário deve respeitar as leis e regulamentos aplicáveis ao uso do imóvel?</label>
+                                        <div>
+                                            <select name='sublocatarioRespeita' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
                                 </>
                             )}
 
+                            {step === 82 && (
+                                <>
+                                    <h2>Obrigações do Sublocatário</h2>
+                                    <div>
+                                        <label>O sublocatário é responsável por multas e infrações ocorridas durante o período de sublocação?</label>
+                                        <div>
+                                            <select name='sublocatarioMulta' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
-                            {step === 64 && (
+                            {step === 83 && (
+                                <>
+                                    <h2>Obrigações do Sublocatário</h2>
+                                    <div>
+                                        <label>O sublocatário deve comunicar imediatamente ao sublocador sobre qualquer acidente ou dano ao imóvel?</label>
+                                        <div>
+                                            <select name='sublocatarioComunica' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 84 && (
+                                <>
+                                    <h2>Obrigações do Sublocatário</h2>
+                                    <div>
+                                        <label>O sublocatário deve devolver o imóvel no mesmo estado em que o recebeu, salvo desgaste natural?</label>
+                                        <div>
+                                            <select name='sublocatarioDevolve' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="S">Sim</option>
+                                                <option value="N">Não</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 85 && (
                                 <>
                                     <h2>Despesas e Tributos</h2>
                                     <div>
-                                        <label>Quais despesas são de responsabilidade do locatário (Inquilino do imóvel)? (ex.: IPTU, contas de água, luz, condomínio)</label>
+                                        <label>Quais despesas são de responsabilidade do sublocatário? (ex.: contas de água, luz, internet, IPTU) </label>
                                         <div>
                                             <input
                                                 type='text'
                                                 placeholder=''
-                                                name="despesasLocatario"
+                                                name="despesasSublocatario"
                                                 onChange={handleChange}
                                             />
                                             <button onClick={handleBack}>Voltar</button>
@@ -1854,16 +2227,16 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 65 && (
+                            {step === 86 && (
                                 <>
                                     <h2>Despesas e Tributos</h2>
                                     <div>
-                                        <label>Quais despesas são de responsabilidade do locador?</label>
+                                        <label>Quais despesas são de responsabilidade do sublocador?</label>
                                         <div>
                                             <input
                                                 type='text'
                                                 placeholder=''
-                                                name="despesasLocador"
+                                                name="despesasSublocador"
                                                 onChange={handleChange}
                                             />
                                             <button onClick={handleBack}>Voltar</button>
@@ -1873,7 +2246,7 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 66 && (
+                            {step === 87 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -1892,20 +2265,17 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 67 && (
+                            {step === 88 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
                                         <label>Multas ou penalidades aplicáveis em caso de rescisão antecipada</label>
                                         <div>
-
-                                            <textarea
-                                                id="multasPenalidades"
+                                            <input
+                                                type='text'
+                                                placeholder=''
                                                 name="multasPenalidades"
                                                 onChange={handleChange}
-                                                rows={10}
-                                                cols={50}
-                                                placeholder="Descrição"
                                             />
                                             <button onClick={handleBack}>Voltar</button>
                                             <button onClick={handleNext}>Próximo</button>
@@ -1914,13 +2284,12 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 68 && (
+                            {step === 89 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
                                         <label>Prazo para notificação prévia de rescisão</label>
                                         <div>
-
                                             <input
                                                 type='text'
                                                 placeholder=''
@@ -1934,52 +2303,7 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 69 && (
-                                <>
-                                    <h2>Direito de Preferência</h2>
-                                    <div>
-                                        <label>Em caso de venda do imóvel, o locatário terá direito de preferência para compra?</label>
-                                        <div>
-                                            <select name='direitoPreferencia' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-
-                            {direitoPreferencia && (
-                                <>
-                                    {step === 70 && (
-                                        <>
-                                            <h2>Direito de Preferência</h2>
-                                            <div>
-                                                <label>Condições para exercício desse direito</label>
-                                                <div>
-                                                    <input
-                                                        type='text'
-                                                        placeholder=''
-                                                        name="condicoesExec"
-                                                        onChange={handleChange}
-                                                    />
-                                                    <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </>
-                            )}
-
-
-
-
-                            {step === 71 && (
+                            {step === 90 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1987,7 +2311,7 @@ export default function LocacaoImovelComercial() {
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="foroeleito"
+                                            name="foroResolucaoConflitos"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1996,12 +2320,12 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 72 && (
+                            {step === 91 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
                                         <label>Necessidade de testemunhas para assinatura do contrato</label>
-                                        <select name='testemunhas' onChange={handleChange}>
+                                        <select name='testemunhasNecessarias' onChange={handleChange}>
                                             <option value="">Selecione</option>
                                             <option value="S">Sim</option>
                                             <option value="N">Não</option>
@@ -2015,7 +2339,7 @@ export default function LocacaoImovelComercial() {
 
                             {Testemunhas && (
                                 <>
-                                    {step === 73 && (
+                                    {step === 92 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2034,7 +2358,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 74 && (
+                                    {step === 93 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2053,7 +2377,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 75 && (
+                                    {step === 94 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2073,7 +2397,7 @@ export default function LocacaoImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 76 && (
+                                    {step === 95 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2094,7 +2418,7 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 77 && (
+                            {step === 96 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2112,7 +2436,44 @@ export default function LocacaoImovelComercial() {
                                 </>
                             )}
 
-                            {step === 78 && (
+                            {step === 96 && (
+                                <>
+                                    <h2>Disposições Gerais</h2>
+                                    <div>
+                                        <label>Local de Assinatura</label>
+                                        <div>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="local"
+                                                onChange={handleChange}
+                                            />
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            {step === 97 && (
+                                <>
+                                    <h2>Disposições Gerais</h2>
+                                    <div>
+                                        <label>Data da Assinatura</label>
+                                        <div>
+                                            <input
+                                                type='date'
+                                                placeholder=''
+                                                name="dataAssinatura"
+                                                onChange={handleChange}
+                                            />
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 98 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -2130,6 +2491,7 @@ export default function LocacaoImovelComercial() {
                                     </button>
                                 </>
                             )}
+
                         </div>
                     </div>
                 </div>
@@ -2153,7 +2515,6 @@ export default function LocacaoImovelComercial() {
 
                     </div>
                 </div>
-
             </div>
 
             {modalPagamento && (
@@ -2182,7 +2543,7 @@ export default function LocacaoImovelComercial() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorDeContratoImovelComercialPago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorPdfImovelComercialPago(formData) }}>
                         Baixar PDF
                     </button>
                 ) : (
@@ -2191,7 +2552,6 @@ export default function LocacaoImovelComercial() {
                     </button>
                 )}
             </div>
-
         </>
     );
 }
