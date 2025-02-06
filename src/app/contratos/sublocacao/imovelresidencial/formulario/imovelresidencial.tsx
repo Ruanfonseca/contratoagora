@@ -1,4 +1,5 @@
 'use client'
+
 import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
@@ -8,9 +9,9 @@ import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
 
-import geradorPdfImovelComercialPago from '../util/pdf';
 
-const imovelcomercialschema = z.object({
+const imovelresidencialschema = z.object({
+
     locador: z.enum(['pf', 'pj']).default('pf'),
 
     /**
@@ -58,30 +59,6 @@ const imovelcomercialschema = z.object({
     /** */
 
 
-
-    sublocador: z.enum(['pf', 'pj']).default('pf'),
-
-    /**
-     * Dados sublocador pj
-     */
-    razaoSocialsublocador: z.string(),
-    cnpjsublocador: z.string(),
-    cpfsublocador: z.string(),
-    enderecoCNPJsublocador: z.string(),
-    telefoneCNPJsublocador: z.string(),
-    emailCNPJsublocador: z.string(),
-    nomeRepresentanteCNPJsublocador: z.string(),
-    CPFRepresentanteCNPJsublocador: z.string(),
-    /** */
-
-    /** Dados sublocador pf */
-    nomeSublocador: z.string(),
-    CPFSublocador: z.string(),
-    enderecoSublocador: z.string(),
-    telefoneSublocador: z.string(),
-    emailSublocador: z.string(),
-    /** */
-
     sublocatario: z.enum(['pf', 'pj']).default('pf'),
 
     /**
@@ -105,11 +82,15 @@ const imovelcomercialschema = z.object({
     emailSublocatario: z.string(),
     /** */
 
+    /**AUTORIZAÇÃO PARA SUBLOCAÇÃO */
+    locadorAutoriza: z.enum(['S', 'N']),
+    /** */
+
     /**DESCRIÇÃO DO IMÓVEL */
-    enderecoImovel: z.string(),
+    enderecoCompleto: z.string(),
     descDetalhada: z.string(),
+    estado: z.string(),
     finalidade: z.string(),
-    estadoAtual: z.string(),
     /** */
 
     /**PRAZO DA SUBLOCAÇÃO */
@@ -127,7 +108,6 @@ const imovelcomercialschema = z.object({
     multaAtraso: z.string(),
     jurosAplicaveis: z.string(),
     /** */
-
 
     /** GARANTIAS */
     garantia: z.enum(['S', 'N']),
@@ -163,6 +143,7 @@ const imovelcomercialschema = z.object({
     /**OBRIGAÇÕES DO SUBLOCADOR */
     sublocadorResponsa: z.string(),
     sublocadorAdicional: z.string(),
+    qual: z.string(),
     /** */
 
     /**OBRIGAÇÕES DO SUBLOCATARIO */
@@ -197,20 +178,18 @@ const imovelcomercialschema = z.object({
     dataAssinatura: z.string(),
     registroCartorio: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
+
+
 });
 
-type FormData = z.infer<typeof imovelcomercialschema>;
+type FormData = z.infer<typeof imovelresidencialschema>;
 
-
-
-
-export default function ImovelComercial() {
+export default function ImovelResidencial() {
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
     const [step, setStep] = useState(1);
     /** */
-
 
     //PAGAMENTO
     const [paymentId, setPaymentId] = useState('');
@@ -220,12 +199,11 @@ export default function ImovelComercial() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 29.90;
+    const valor = 19.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
     /** */
-
 
     //VARIAVEIS DE CONTROLE DE FLUXO
     const [locadorJuri, setLocadorJuri] = useState(false);
@@ -342,10 +320,12 @@ export default function ImovelComercial() {
         setStep(pilha.current.desempilhar());
     }
 
+
     const handleNext = () => {
         setFormData((prev) => ({ ...prev, ...currentStepData }));
 
         let nextStep = step;
+
 
         if (currentStepData.locador === 'pj') {
             setLocadorJuri(true);
@@ -361,7 +341,7 @@ export default function ImovelComercial() {
             nextStep = 25;
         }
 
-        if (currentStepData.sublocador === 'pj') {
+        if (currentStepData.sublocatario === 'pj') {
             setSublocadorJuri(true);
             nextStep = 31
         } else if (!sublocadorJuri && nextStep === 30) {
@@ -369,39 +349,47 @@ export default function ImovelComercial() {
         }
 
         if (currentStepData.sublocatario === 'pj') {
-            setSublocatarioJuri(true);
-            nextStep = 43
-        } else if (!sublocatarioJuri && nextStep === 42) {
-            nextStep = 49;
+            setSublocadorJuri(true);
+            nextStep = 31
+        } else if (!sublocadorJuri && nextStep === 30) {
+            nextStep = 37;
+        }
+
+
+        if (currentStepData.locadorAutoriza === 'N') {
+            nextStep = 0
+            alert(`Obter a autorização por escrito antes de prosseguir !`);
+            return;
         }
 
 
         if (currentStepData.possibilidadeRenovacao === 'S') {
             setRenovacao(true);
-            nextStep = 55;
+            nextStep = 45
         } else if (currentStepData.possibilidadeRenovacao === 'N') {
-            nextStep = 56;
+            nextStep = 46;
         }
+
 
 
         if (currentStepData.garantia === 'S') {
             setGarantia(true);
-            nextStep = 62;
+            nextStep = 52;
         } else if (currentStepData.garantia === 'N') {
-            nextStep = 76;
+            nextStep = 66;
         }
 
         //para verificar se o próximo é o ultimo de step de algum garantidor
-        if (nextStep === 71) {
-            nextStep = 76
-        } else if (nextStep === 72) {
-            nextStep = 76
-        } else if (nextStep === 73) {
-            nextStep = 76
-        } else if (nextStep === 74) {
-            nextStep = 76
-        } else if (nextStep === 75) {
-            nextStep = 76
+        if (nextStep === 61) {
+            nextStep = 66
+        } else if (nextStep === 62) {
+            nextStep = 66
+        } else if (nextStep === 63) {
+            nextStep = 66
+        } else if (nextStep === 64) {
+            nextStep = 66
+        } else if (nextStep === 65) {
+            nextStep = 66
         }
 
 
@@ -411,36 +399,38 @@ export default function ImovelComercial() {
                 break;
             case "caudep":
                 setCaucaoDep(true);
-                nextStep = 72;
+                nextStep = 62;
                 break;
             case "caubem":
                 setCaucaoBemIM(true);
-                nextStep = 73;
+                nextStep = 63;
                 break;
             case "ti":
                 setTitulos(true);
-                nextStep = 74;
+                nextStep = 64;
                 break;
             case "segfianca":
                 setSeguroFi(true);
-                nextStep = 75;
+                nextStep = 65;
                 break;
             default:
                 break;
         }
 
+
+
         if (currentStepData.sublocadorAdicional === 'S') {
             setSublocadorAdicional(true);
-            nextStep = 78;
+            nextStep = 69;
         } else if (currentStepData.sublocadorAdicional === 'N') {
-            nextStep = 79;
+            nextStep = 70;
         }
 
         if (currentStepData.testemunhasNecessarias === 'S') {
             setTestemunhas(true);
-            nextStep = 92;
+            nextStep = 83;
         } else if (currentStepData.testemunhasNecessarias === 'N') {
-            nextStep = 96;
+            nextStep = 87;
         }
 
 
@@ -460,7 +450,8 @@ export default function ImovelComercial() {
         setCurrentStepData({});
     }
 
-    const geradorPdfImovelComercial = (dados: any) => {
+
+    const geradorPdfImovelResidencial = (dados: any) => {
         const doc = new jsPDF();
 
         // Configuração inicial de fonte e margens
@@ -507,138 +498,147 @@ export default function ImovelComercial() {
 
         // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE SUBLOCAÇÃO DE IMÓVEL COMERCIAL", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE SUBLOCAÇÃO DE IMÓVEL RESIDÊNCIAL", 105, posY, { align: "center" });
         posY += 15;
 
         // 1. Identificação das Partes
         addSection("1. Identificação das Partes", [
-            "Art. 11 da Lei do Inquilinato: O locador é obrigado a entregar ao locatário o imóvel alugado em estado de servir ao uso a que se destina.",
-            `Locador (Proprietário do Imóvel):`,
-            `Nome completo ou Razão Social: ${verificarValor(dados.locador === 'pf' ? dados.nomeLocador : dados.razaoSocial)}`,
-            `CPF ou CNPJ: ${verificarValor(dados.locador === 'pf' ? dados.CPFLocador : dados.cnpjlocador)}`,
-            `Endereço completo: ${verificarValor(dados.locador === 'pf' ? dados.enderecoLocador : dados.enderecoCNPJ)}`,
-            `Telefone e e-mail para contato: ${verificarValor(dados.locador === 'pf' ? dados.telefoneLocador : dados.telefoneCNPJ)}, ${verificarValor(dados.locador === 'pf' ? dados.emailLocador : dados.emailCNPJ)}`,
-            ``,
-            `Locatário (Inquilino Original):`,
-            `Nome completo ou Razão Social: ${verificarValor(dados.locatario === 'pf' ? dados.nomelocatario : dados.razaoSociallocatario)}`,
-            `CPF ou CNPJ: ${verificarValor(dados.locatario === 'pf' ? dados.CPFlocatario : dados.cnpj)}`,
-            `Endereço completo: ${verificarValor(dados.locatario === 'pf' ? dados.enderecolocatario : dados.enderecolocatarioCNPJ)}`,
-            `Telefone e e-mail para contato: ${verificarValor(dados.locatario === 'pf' ? dados.telefonelocatario : dados.telefonelocatarioCNPJ)}, ${verificarValor(dados.locatario === 'pf' ? dados.emaillocatario : dados.emaillocatarioCNPJ)}`,
-            ``,
-            `Sublocador (Pessoa que irá sublocar o imóvel):`,
-            `Nome completo ou Razão Social: ${verificarValor(dados.sublocador === 'pf' ? dados.nomeSublocador : dados.razaoSocialsublocador)}`,
-            `CPF ou CNPJ: ${verificarValor(dados.sublocador === 'pf' ? dados.CPFSublocador : dados.cnpjsublocador)}`,
-            `Endereço completo: ${verificarValor(dados.sublocador === 'pf' ? dados.enderecoSublocador : dados.enderecoCNPJsublocador)}`,
-            `Telefone e e-mail para contato: ${verificarValor(dados.sublocador === 'pf' ? dados.telefoneSublocador : dados.telefoneCNPJsublocador)}, ${verificarValor(dados.sublocador === 'pf' ? dados.emailSublocador : dados.emailCNPJsublocador)}`,
-            ``,
-            `Sublocatário (Pessoa que irá sublocar o imóvel):`,
-            `Nome completo ou Razão Social: ${verificarValor(dados.sublocatario === 'pf' ? dados.nomeSublocatario : dados.razaoSocialsublocatario)}`,
-            `CPF ou CNPJ: ${verificarValor(dados.sublocatario === 'pf' ? dados.CPFSublocatario : dados.cnpjsublocatario)}`,
-            `Endereço completo: ${verificarValor(dados.sublocatario === 'pf' ? dados.enderecoSublocatario : dados.enderecosublocatarioCNPJ)}`,
-            `Telefone e e-mail para contato: ${verificarValor(dados.sublocatario === 'pf' ? dados.telefoneSublocatario : dados.telefonesublocatarioCNPJ)}, ${verificarValor(dados.sublocatario === 'pf' ? dados.emailSublocatario : dados.emailsublocatarioCNPJ)}`,
+            "Art. 14 - O locatário não poderá sublocar o imóvel no todo ou em parte sem o consentimento prévio e por escrito do locador.",
+            "Locador (Proprietário do Imóvel):",
+            `Nome completo ou Razão Social: ${verificarValor(dados.locador) === 'pf' ? verificarValor(dados.nomeLocador) : verificarValor(dados.razaoSocial)}`,
+            `CPF ou CNPJ: ${verificarValor(dados.locador) === 'pf' ? verificarValor(dados.CPFLocador) : verificarValor(dados.cnpjlocador)}`,
+            `Endereço completo: ${verificarValor(dados.locador) === 'pf' ? verificarValor(dados.enderecoLocador) : verificarValor(dados.enderecoCNPJ)}`,
+            `Telefone e e-mail para contato: ${verificarValor(dados.locador) === 'pf' ? verificarValor(dados.telefoneLocador) : verificarValor(dados.telefoneCNPJ)}, ${verificarValor(dados.locador) === 'pf' ? verificarValor(dados.emailLocador) : verificarValor(dados.emailCNPJ)}`,
+            "",
+            "Locatário (Inquilino Original):",
+            `Nome completo: ${verificarValor(dados.locatario) === 'pf' ? verificarValor(dados.nomelocatario) : verificarValor(dados.razaoSociallocatario)}`,
+            `CPF: ${verificarValor(dados.locatario) === 'pf' ? verificarValor(dados.CPFlocatario) : verificarValor(dados.cpflocatario)}`,
+            `Endereço completo: ${verificarValor(dados.locatario) === 'pf' ? verificarValor(dados.enderecolocatario) : verificarValor(dados.enderecolocatarioCNPJ)}`,
+            `Telefone e e-mail para contato: ${verificarValor(dados.locatario) === 'pf' ? verificarValor(dados.telefonelocatario) : verificarValor(dados.telefonelocatarioCNPJ)}, ${verificarValor(dados.locatario) === 'pf' ? verificarValor(dados.emaillocatario) : verificarValor(dados.emaillocatarioCNPJ)}`,
+            "",
+            "Sublocatário (Novo Inquilino):",
+            `Nome completo: ${verificarValor(dados.sublocatario) === 'pf' ? verificarValor(dados.nomeSublocatario) : verificarValor(dados.razaoSocialsublocatario)}`,
+            `CPF: ${verificarValor(dados.sublocatario) === 'pf' ? verificarValor(dados.CPFSublocatario) : verificarValor(dados.cpfsublocatario)}`,
+            `Endereço completo: ${verificarValor(dados.sublocatario) === 'pf' ? verificarValor(dados.enderecoSublocatario) : verificarValor(dados.enderecosublocatarioCNPJ)}`,
+            `Telefone e e-mail para contato: ${verificarValor(dados.sublocatario) === 'pf' ? verificarValor(dados.telefoneSublocatario) : verificarValor(dados.telefonesublocatarioCNPJ)}, ${verificarValor(dados.sublocatario) === 'pf' ? verificarValor(dados.emailSublocatario) : verificarValor(dados.emailsublocatarioCNPJ)}`,
         ]);
 
-        // 2. Descrição do Imóvel
-        addSection("2. Descrição do Imóvel", [
-            "Art. 22, I da Lei do Inquilinato: O locador deve entregar ao locatário o imóvel alugado em estado de servir ao uso a que se destina.",
-            `Endereço completo do imóvel: ${verificarValor(dados.enderecoImovel)}`,
+        // 2. Autorização para Sublocação
+        addSection("2. Autorização para Sublocação", [
+            `O locador original autorizou formalmente a sublocação ? ${verificarValor(dados.locadorAutoriza) === 'S' ? 'Sim' : 'Não'}`,
+            verificarValor(dados.locadorAutoriza) === 'S' ? "Anexar a autorização por escrito ao contrato." : "Obter a autorização por escrito antes de prosseguir."
+        ]);
+
+        // 3. Descrição do Imóvel
+        addSection("3. Descrição do Imóvel", [
+            `Endereço completo do imóvel: ${verificarValor(dados.enderecoCompleto)}`,
             `Descrição detalhada do imóvel: ${verificarValor(dados.descDetalhada)}`,
-            `Finalidade da sublocação: ${verificarValor(dados.finalidade)}`,
-            `Estado atual do imóvel: ${verificarValor(dados.estadoAtual)}`,
+            `Estado atual do imóvel: ${verificarValor(dados.estado)}`,
+            `Finalidade: ${verificarValor(dados.finalidade)}`
         ]);
 
-        // 3. Prazo da Sublocação
-        addSection("3. Prazo da Sublocação", [
-            "Art. 4º da Lei do Inquilinato: Durante o prazo estipulado para a duração do contrato, não poderá o locador reaver o imóvel alugado.",
+        // 4. Prazo da Sublocação
+        addSection("4. Prazo da Sublocação", [
             `Data de início da sublocação: ${verificarValor(dados.dataInicio)}`,
             `Data de término da sublocação: ${verificarValor(dados.dataFim)}`,
-            `Possibilidade de renovação: ${verificarValor(dados.possibilidadeRenovacao === 'S' ? 'Sim' : 'Não')}`,
-            `Condições de renovação: ${verificarValor(dados.quaisCondicoes)}`,
+            `Possibilidade de renovação ? ${verificarValor(dados.possibilidadeRenovacao) === 'S' ? 'Sim' : 'Não'}`,
+            verificarValor(dados.possibilidadeRenovacao) === 'S' ? `Condições de renovação: ${verificarValor(dados.quaisCondicoes)}` : ""
         ]);
 
-        // 4. Valor do Aluguel e Condições de Pagamento
-        addSection("4. Valor do Aluguel e Condições de Pagamento", [
-            "Art. 17 da Lei do Inquilinato: É livre a convenção do aluguel, vedada a estipulação em moeda estrangeira.",
+        // 5. Valor do Aluguel e Condições de Pagamento
+        addSection("5. Valor do Aluguel e Condições de Pagamento", [
             `Valor mensal do aluguel: ${verificarValor(dados.valorMensal)}`,
             `Data de vencimento mensal: ${verificarValor(dados.dataVenci)}`,
             `Forma de pagamento: ${verificarValor(dados.formaPagamento)}`,
             `Multa por atraso no pagamento: ${verificarValor(dados.multaAtraso)}`,
-            `Juros aplicáveis em caso de atraso: ${verificarValor(dados.jurosAplicaveis)}`,
+            `Juros aplicáveis em caso de atraso: ${verificarValor(dados.jurosAplicaveis)}`
         ]);
 
-        // 5. Garantias Locatícias
-        addSection("5. Garantias Locatícias", [
-            "Art. 37 da Lei do Inquilinato: No contrato de locação, pode o locador exigir do locatário as seguintes modalidades de garantia: caução, fiança, seguro de fiança locatícia e cessão fiduciária de quotas de fundo de investimento.",
-            `Tipo de garantia exigida: ${verificarValor(dados.garantia === 'S' ? 'Sim' : 'Não')}`,
-            `Detalhes da garantia: ${verificarValor(dados.qualgarantidor)}`,
-            `Procedimento para devolução da garantia: ${verificarValor(dados.procedimentoDevolucao)}`,
+        // 6. Garantias Locatícias
+        addSection("6. Garantias Locatícias", [
+            `Art. 37 - No contrato de locação, pode ser exigida pelo locador uma das seguintes modalidades de garantia:
+            I - caução;
+            II - fiança;
+            III - seguro de fiança locatícia;`,
+            `Tipo de garantia exigida: ${verificarValor(dados.garantia) === 'S' ? verificarValor(dados.qualgarantidor) : 'Nenhuma'}`,
+            verificarValor(dados.garantia) === 'S' ? `Detalhes da garantia: ${verificarValor(dados.qualgarantidor) === 'fi' ? `Fiador: ${verificarValor(dados.nomeFiador)}, CPF: ${verificarValor(dados.cpfFiador)}` : verificarValor(dados.qualgarantidor) === 'caudep' ? `Caução em dinheiro: ${verificarValor(dados.valorTitCaucao)}` : verificarValor(dados.qualgarantidor) === 'caubem' ? `Caução em bem: ${verificarValor(dados.descBemCaucao)}` : verificarValor(dados.qualgarantidor) === 'ti' ? `Título de crédito: ${verificarValor(dados.descCredUtili)}` : `Seguro-fiança: ${verificarValor(dados.segFianca)}`}` : "",
+            `Procedimento para devolução da garantia ao término do contrato: ${verificarValor(dados.procedimentoDevolucao)}`
         ]);
 
-        // 6. Obrigações do Sublocador
-        addSection("6. Obrigações do Sublocador", [
-            "Art. 23 da Lei do Inquilinato: O locatário é obrigado a pagar pontualmente o aluguel e os encargos da locação, bem como utilizar o imóvel conforme estipulado.",
+        // 7. Obrigações do Sublocador
+        addSection("7. Obrigações do Sublocador", [
             `O sublocador se responsabiliza por: ${verificarValor(dados.sublocadorResponsa)}`,
-            `Serviços adicionais fornecidos: ${verificarValor(dados.sublocadorAdicional)}`,
+            `O sublocador fornecerá algum serviço adicional? ${verificarValor(dados.sublocadorAdicional)}`
         ]);
 
-        // 7. Obrigações do Sublocatário
-        addSection("7. Obrigações do Sublocatário", [
-            "Art. 24 da Lei do Inquilinato: O sublocatário responde perante o locador pela inobservância dos deveres impostos ao locatário.",
-            `O sublocatário pode sublocar ou ceder o imóvel a terceiros: ${verificarValor(dados.sublocatarioCeder)}`,
+        // 8. Obrigações do Sublocatário
+        addSection("8. Obrigações do Sublocatário", [
+            `Art. 23 - O locatário é obrigado a:
+             I - pagar pontualmente o aluguel e os encargos da locação, nos prazos ajustados;
+             II - utilizar o imóvel conforme foi ajustado e tratá-lo com o mesmo cuidado como se fosse seu;
+             III - restituir o imóvel, ao fim da locação, no estado em que o recebeu, salvo deteriorações decorrentes do uso normal.`,
+            `O sublocatário pode sublocar ou ceder o imóvel a terceiros? ${verificarValor(dados.sublocatarioCeder)}`,
             `O sublocatário é responsável por: ${verificarValor(dados.sublocatarioManu)}`,
-            `O sublocatário deve respeitar as leis e regulamentos: ${verificarValor(dados.sublocatarioRespeita)}`,
-            `O sublocatário é responsável por multas e infrações: ${verificarValor(dados.sublocatarioMulta)}`,
-            `O sublocatário deve comunicar acidentes ou danos: ${verificarValor(dados.sublocatarioComunica)}`,
-            `O sublocatário deve devolver o imóvel no mesmo estado: ${verificarValor(dados.sublocatarioDevolve)}`,
+            `O sublocatário deve respeitar as leis e regulamentos aplicáveis ao uso do imóvel? ${verificarValor(dados.sublocatarioRespeita)}`,
+            `O sublocatário é responsável por multas e infrações ocorridas durante o período de sublocação? ${verificarValor(dados.sublocatarioMulta)}`,
+            `O sublocatário deve comunicar imediatamente ao sublocador sobre qualquer dano ao imóvel? ${verificarValor(dados.sublocatarioComunica)}`,
+            `O sublocatário deve devolver o imóvel no mesmo estado em que o recebeu, salvo desgaste natural? ${verificarValor(dados.sublocatarioDevolve)}`
         ]);
 
-        // 8. Despesas e Tributos
-        addSection("8. Despesas e Tributos", [
-            "Art. 22, VIII da Lei do Inquilinato: Compete ao locador pagar os impostos e taxas que incidam sobre o imóvel, salvo disposição contratual em contrário.",
+        // 9. Despesas e Tributos
+        addSection("9. Despesas e Tributos", [
+            `Art. 22, VIII - Cabe ao locador pagar os impostos, taxas e o prêmio de seguro complementar contra incêndio, salvo disposição expressa em contrário no contrato.
+             Art. 25 - O sublocatário responde perante o locatário pelos atos que praticar no imóvel e pelas obrigações previstas no contrato de sublocação.`,
             `Despesas do sublocatário: ${verificarValor(dados.despesasSublocatario)}`,
-            `Despesas do sublocador: ${verificarValor(dados.despesasSublocador)}`,
+            `Despesas do sublocador: ${verificarValor(dados.despesasSublocador)}`
         ]);
 
-        // 9. Rescisão do Contrato
-        addSection("9. Rescisão do Contrato", [
-            "Art. 9º da Lei do Inquilinato: A locação poderá ser desfeita por mútuo acordo, infração contratual ou falta de pagamento.",
+        // 10. Rescisão do Contrato
+        addSection("10. Rescisão do Contrato", [
+            `Art. 9º - A locação poderá ser desfeita:
+             I - por mútuo acordo;
+             II - em decorrência da prática de infração legal ou contratual;
+             III - em caso de falta de pagamento do aluguel e encargos;
+             IV - para realização de reparações urgentes determinadas pelo Poder Público.`,
             `Condições para rescisão antecipada: ${verificarValor(dados.condicoesRescisao)}`,
             `Multas ou penalidades aplicáveis: ${verificarValor(dados.multasPenalidades)}`,
-            `Prazo para notificação prévia: ${verificarValor(dados.prazo)}`,
+            `Prazo para notificação prévia de rescisão: ${verificarValor(dados.prazo)}`
         ]);
 
-        // 10. Disposições Gerais
-        addSection("10. Disposições Gerais", [
-            "Art. 68 da Lei do Inquilinato: Nos litígios entre locador e locatário, é competente o foro da situação do imóvel.",
+        // 11. Disposições Gerais
+        addSection("11. Disposições Gerais", [
             `Foro eleito para resolução de conflitos: ${verificarValor(dados.foroResolucaoConflitos)}`,
-            `Necessidade de testemunhas: ${verificarValor(dados.testemunhasNecessarias === 'S' ? 'Sim' : 'Não')}`,
-            `Testemunha 1: ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}`,
-            `Testemunha 2: ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}`,
-            `Registro em cartório: ${verificarValor(dados.registroCartorio === 'S' ? 'Sim' : 'Não')}`,
-            `Local: ${verificarValor(dados.local)}`,
-            `Data de Assinatura: ${verificarValor(dados.dataAssinatura)}`,
+            `Necessidade de testemunhas para assinatura do contrato: ${verificarValor(dados.testemunhasNecessarias) === 'S' ? 'Sim' : 'Não'}`,
+            verificarValor(dados.testemunhasNecessarias) === 'S' ? `Testemunha 1: ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}` : "",
+            verificarValor(dados.testemunhasNecessarias) === 'S' ? `Testemunha 2: ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}` : "",
+            `Local de assinatura: ${verificarValor(dados.local)}`,
+            `Data de assinatura: ${verificarValor(dados.dataAssinatura)}`,
+            `O contrato será registrado em cartório? ${verificarValor(dados.registroCartorio) === 'S' ? 'Sim' : 'Não'}`
         ]);
 
-        checkPageBreak(60);
-        posY += 20;
-        doc.setFontSize(12);
-        doc.text("Assinaturas:", 105, posY, { align: "center" });
-        posY += 20;
-
-        doc.text("Locador: ___________________________", marginX, posY);
-        posY += 15;
-        doc.text("Locatário: ___________________________", marginX, posY);
-        posY += 15;
-        doc.text("Sublocador: ___________________________", marginX, posY);
-        posY += 15;
-        doc.text("Sublocatário: ___________________________", marginX, posY);
+        addSection("12. Assinaturas", [
+            "___________________________________________",
+            `Locador: ${verificarValor(dados.locador) === 'pf' ? verificarValor(dados.nomeLocador) : verificarValor(dados.razaoSocial)}`,
+            "",
+            "___________________________________________",
+            `Locatário: ${verificarValor(dados.locatario) === 'pf' ? verificarValor(dados.nomelocatario) : verificarValor(dados.razaoSociallocatario)}`,
+            "",
+            "___________________________________________",
+            `Sublocatário: ${verificarValor(dados.sublocatario) === 'pf' ? verificarValor(dados.nomeSublocatario) : verificarValor(dados.razaoSocialsublocatario)}`,
+            "",
+            dados.testemunhasNecessarias === 'S' ? "___________________________________________" : "",
+            dados.testemunhasNecessarias === 'S' ? `Testemunha 1: ${verificarValor(dados.nomeTest1)}` : "",
+            dados.testemunhasNecessarias === 'S' ? "" : "",
+            dados.testemunhasNecessarias === 'S' ? "___________________________________________" : "",
+            dados.testemunhasNecessarias === 'S' ? `Testemunha 2: ${verificarValor(dados.nomeTest2)}` : ""
+        ]);
 
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
 
     useEffect(() => {
-        geradorPdfImovelComercial({ ...formData });
+        geradorPdfImovelResidencial({ ...formData });
     }, [formData]);
 
     return (
@@ -652,11 +652,10 @@ export default function ImovelComercial() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 96) * 100}%` }}
+                                style={{ width: `${(step / 97) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
-
                             {step === 1 && (
                                 <>
                                     <h2>Dados do Proprietário do Imóvel</h2>
@@ -1081,218 +1080,7 @@ export default function ImovelComercial() {
 
                             {step === 25 && (
                                 <>
-                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                    <div>
-                                        <label>O Sublocador é pessoa?</label>
-                                        <select name='sublocador' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="pj">Jurídica</option>
-                                            <option value="pf">Física</option>
-                                        </select>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {/**Pessoa Fisica */}
-                            {step === 26 && (
-                                <>
-                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                    <div>
-                                        <label>Nome do Sublocador</label>
-                                        <input
-                                            type='text'
-                                            placeholder='Nome do Locador'
-                                            name="nomeSublocador"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-                            {step === 27 && (
-                                <>
-                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                    <div>
-                                        <label>CPF</label>
-                                        <input
-                                            type='text'
-                                            placeholder='CPF do Locador'
-                                            name="CPFSublocador"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-                            {step === 28 && (
-                                <>
-                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                    <div>
-                                        <label>Endereço do Sublocador</label>
-                                        <input
-                                            type='text'
-                                            placeholder='Onde o locador mora'
-                                            name="enderecoSublocador"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-                            {step === 29 && (
-                                <>
-                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                    <div>
-                                        <label>Telefone do Sublocador</label>
-                                        <input
-                                            type='text'
-                                            placeholder='(DDD)número-número'
-                                            name="telefoneSublocador"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-                            {step === 30 && (
-                                <>
-                                    <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                    <div>
-                                        <label>Email do Sublocador</label>
-                                        <input
-                                            type='text'
-                                            placeholder='email@email.com'
-                                            name="emailSublocador"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {/**Pessoa Juridica */}
-
-                            {sublocadorJuri && (
-                                <>
-                                    {step === 31 && (
-                                        <>
-                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                            <div>
-                                                <label>Razão Social</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="razaoSocialsublocador"
-                                                    onChange={handleChange}
-                                                />
-                                                <label>CNPJ</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="cnpjsublocador"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {step === 32 && (
-                                        <>
-                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                            <div>
-                                                <label>Endereço de onde o CNPJ esta cadastrado</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="enderecoCNPJsublocador"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                    {step === 33 && (
-                                        <>
-                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                            <div>
-                                                <label>Telefone</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder='(DDD)número-número'
-                                                    name="telefoneCNPJsublocador"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                    {step === 34 && (
-                                        <>
-                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                            <div>
-                                                <label>Email</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder='(DDD)número-número'
-                                                    name="emailCNPJsublocador"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                    {step === 35 && (
-                                        <>
-                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                            <div>
-                                                <label>Nome do representante do CNPJ</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="nomeRepresentanteCNPJsublocador"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {step === 36 && (
-                                        <>
-                                            <h2>Dados do Sublocador (Pessoa que irá sublocar o imóvel) </h2>
-                                            <div>
-                                                <label>CPF do representante do CNPJ</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="CPFRepresentanteCNPJsublocador"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
-                                </>
-                            )}
-
-                            {/**Sublocatário */}
-                            {step === 37 && (
-                                <>
-                                    <h2>Dados do Sublocatário </h2>
+                                    <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                     <div>
                                         <label>O Sublocatário é pessoa?</label>
                                         <select name='sublocatario' onChange={handleChange}>
@@ -1305,16 +1093,15 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-
                             {/**Pessoa Fisica */}
-                            {step === 38 && (
+                            {step === 26 && (
                                 <>
-                                    <h2>Dados do Sublocatário </h2>
+                                    <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                     <div>
-                                        <label>Nome do Sublocatário</label>
+                                        <label>Nome do Sublocador</label>
                                         <input
                                             type='text'
-                                            placeholder='Nome do Locatário'
+                                            placeholder='Nome do Locador'
                                             name="nomeSublocatario"
                                             onChange={handleChange}
                                         />
@@ -1323,14 +1110,14 @@ export default function ImovelComercial() {
                                     </div>
                                 </>
                             )}
-                            {step === 39 && (
+                            {step === 27 && (
                                 <>
-                                    <h2>Dados do Sublocatário </h2>
+                                    <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                     <div>
                                         <label>CPF</label>
                                         <input
                                             type='text'
-                                            placeholder='CPF do Locatário'
+                                            placeholder='CPF do Locador'
                                             name="CPFSublocatario"
                                             onChange={handleChange}
                                         />
@@ -1339,14 +1126,14 @@ export default function ImovelComercial() {
                                     </div>
                                 </>
                             )}
-                            {step === 40 && (
+                            {step === 28 && (
                                 <>
-                                    <h2>Dados do Sublocatário </h2>
+                                    <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                     <div>
-                                        <label>Endereço do Sublocatário</label>
+                                        <label>Endereço do Sublocador</label>
                                         <input
                                             type='text'
-                                            placeholder='Onde o locatário mora'
+                                            placeholder='Onde o locador mora'
                                             name="enderecoSublocatario"
                                             onChange={handleChange}
                                         />
@@ -1355,11 +1142,11 @@ export default function ImovelComercial() {
                                     </div>
                                 </>
                             )}
-                            {step === 41 && (
+                            {step === 29 && (
                                 <>
-                                    <h2>Dados do Sublocatário </h2>
+                                    <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                     <div>
-                                        <label>Telefone do Sublocatário</label>
+                                        <label>Telefone do Sublocador</label>
                                         <input
                                             type='text'
                                             placeholder='(DDD)número-número'
@@ -1371,11 +1158,11 @@ export default function ImovelComercial() {
                                     </div>
                                 </>
                             )}
-                            {step === 42 && (
+                            {step === 30 && (
                                 <>
-                                    <h2>Dados do Sublocatário </h2>
+                                    <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                     <div>
-                                        <label>Email do Sublocatário</label>
+                                        <label>Email do Sublocador</label>
                                         <input
                                             type='text'
                                             placeholder='email@email.com'
@@ -1390,11 +1177,11 @@ export default function ImovelComercial() {
 
                             {/**Pessoa Juridica */}
 
-                            {sublocatarioJuri && (
+                            {sublocadorJuri && (
                                 <>
-                                    {step === 43 && (
+                                    {step === 31 && (
                                         <>
-                                            <h2>Dados do Sublocatário </h2>
+                                            <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                             <div>
                                                 <label>Razão Social</label>
                                                 <input
@@ -1416,11 +1203,11 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 44 && (
+                                    {step === 32 && (
                                         <>
-                                            <h2>Dados do Sublocatário </h2>
+                                            <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                             <div>
-                                                <label>Endereço do onde o CNPJ esta cadastrado</label>
+                                                <label>Endereço de onde o CNPJ esta cadastrado</label>
                                                 <input
                                                     type='text'
                                                     placeholder=''
@@ -1432,9 +1219,9 @@ export default function ImovelComercial() {
                                             </div>
                                         </>
                                     )}
-                                    {step === 45 && (
+                                    {step === 33 && (
                                         <>
-                                            <h2>Dados do Sublocatário </h2>
+                                            <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                             <div>
                                                 <label>Telefone</label>
                                                 <input
@@ -1448,14 +1235,14 @@ export default function ImovelComercial() {
                                             </div>
                                         </>
                                     )}
-                                    {step === 46 && (
+                                    {step === 34 && (
                                         <>
-                                            <h2>Dados do Sublocatário </h2>
+                                            <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                             <div>
                                                 <label>Email</label>
                                                 <input
                                                     type='text'
-                                                    placeholder='email@email.com'
+                                                    placeholder='(DDD)número-número'
                                                     name="emailsublocatarioCNPJ"
                                                     onChange={handleChange}
                                                 />
@@ -1464,9 +1251,9 @@ export default function ImovelComercial() {
                                             </div>
                                         </>
                                     )}
-                                    {step === 47 && (
+                                    {step === 35 && (
                                         <>
-                                            <h2>Dados do Sublocatário </h2>
+                                            <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                             <div>
                                                 <label>Nome do representante do CNPJ</label>
                                                 <input
@@ -1480,9 +1267,10 @@ export default function ImovelComercial() {
                                             </div>
                                         </>
                                     )}
-                                    {step === 48 && (
+
+                                    {step === 36 && (
                                         <>
-                                            <h2>Dados do Sublocatário </h2>
+                                            <h2>Dados do Sublocatário (Pessoa que irá sublocar o imóvel) </h2>
                                             <div>
                                                 <label>CPF do representante do CNPJ</label>
                                                 <input
@@ -1496,10 +1284,30 @@ export default function ImovelComercial() {
                                             </div>
                                         </>
                                     )}
+
                                 </>
                             )}
 
-                            {step === 49 && (
+                            {step === 37 && (
+                                <>
+                                    <h2>Autorização para Sublocação</h2>
+                                    <div>
+                                        <label>O locador original autorizou formalmente a sublocação? </label>
+                                        <i>
+                                            Se sim, anexar a autorização por escrito ao contrato.
+                                            Caso contrário, obter a autorização por escrito antes de prosseguir
+                                        </i>
+                                        <select name='locadorAutoriza' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 38 && (
                                 <>
                                     <h2>Descrição do Imóvel</h2>
                                     <div>
@@ -1507,7 +1315,7 @@ export default function ImovelComercial() {
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="enderecoImovel"
+                                            name="enderecoCompleto"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1516,7 +1324,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 50 && (
+                            {step === 39 && (
                                 <>
                                     <h2>Descrição do Imóvel</h2>
                                     <div>
@@ -1535,7 +1343,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 51 && (
+                            {step === 40 && (
                                 <>
                                     <h2>Descrição do Imóvel</h2>
                                     <div>
@@ -1552,7 +1360,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 51 && (
+                            {step === 41 && (
                                 <>
                                     <h2>Descrição do Imóvel</h2>
                                     <div>
@@ -1560,7 +1368,7 @@ export default function ImovelComercial() {
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="estadoAtual"
+                                            name="estado"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1569,7 +1377,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 52 && (
+                            {step === 42 && (
                                 <>
                                     <h2>Prazo da Sublocação</h2>
                                     <div>
@@ -1585,7 +1393,7 @@ export default function ImovelComercial() {
                                     </div>
                                 </>
                             )}
-                            {step === 53 && (
+                            {step === 43 && (
                                 <>
                                     <h2>Prazo da Sublocação</h2>
                                     <div>
@@ -1602,7 +1410,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 54 && (
+                            {step === 44 && (
                                 <>
                                     <h2>Prazo da Sublocação</h2>
                                     <div>
@@ -1622,7 +1430,7 @@ export default function ImovelComercial() {
 
                             {renovacao && (
                                 <>
-                                    {step === 55 && (
+                                    {step === 45 && (
                                         <>
                                             <h2>Descrição do Imóvel</h2>
                                             <div>
@@ -1641,7 +1449,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 56 && (
+                            {step === 46 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
@@ -1658,7 +1466,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 57 && (
+                            {step === 47 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
@@ -1675,7 +1483,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 58 && (
+                            {step === 48 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
@@ -1695,7 +1503,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 59 && (
+                            {step === 49 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
@@ -1713,7 +1521,7 @@ export default function ImovelComercial() {
                             )}
 
 
-                            {step === 60 && (
+                            {step === 50 && (
                                 <>
                                     <h2>Valor do Aluguel e Condições de Pagamento</h2>
                                     <div>
@@ -1729,7 +1537,9 @@ export default function ImovelComercial() {
                                     </div>
                                 </>
                             )}
-                            {step === 61 && (
+
+
+                            {step === 51 && (
                                 <>
                                     <h2>Garantias</h2>
                                     <div>
@@ -1747,7 +1557,7 @@ export default function ImovelComercial() {
 
                             {garantia && (
                                 <>
-                                    {step === 62 && (
+                                    {step === 52 && (
                                         <>
                                             <h2>Garantias</h2>
                                             <div>
@@ -1770,7 +1580,7 @@ export default function ImovelComercial() {
 
                             {fiador && (
                                 <>
-                                    {step === 63 && (
+                                    {step === 53 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1788,7 +1598,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 64 && (
+                                    {step === 54 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1807,7 +1617,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 65 && (
+                                    {step === 55 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1827,7 +1637,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 66 && (
+                                    {step === 56 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1846,7 +1656,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 67 && (
+                                    {step === 57 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1865,7 +1675,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 68 && (
+                                    {step === 58 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1885,7 +1695,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 69 && (
+                                    {step === 59 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1904,7 +1714,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 70 && (
+                                    {step === 60 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1923,7 +1733,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 71 && (
+                                    {step === 61 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1947,7 +1757,7 @@ export default function ImovelComercial() {
 
                             {caucaoDep && (
                                 <>
-                                    {step === 72 && (
+                                    {step === 62 && (
                                         <>
                                             <h2>Dados do Titulo do Caução</h2>
                                             <div>
@@ -1973,7 +1783,7 @@ export default function ImovelComercial() {
 
                             {caucaoBemIM && (
                                 <>
-                                    {step === 73 && (
+                                    {step === 63 && (
                                         <>
                                             <h2>Dados do Caução de imóvel</h2>
                                             <div>
@@ -1996,7 +1806,7 @@ export default function ImovelComercial() {
 
                             {titulos && (
                                 <>
-                                    {step === 74 && (
+                                    {step === 64 && (
                                         <>
                                             <h2>Dados do Título de Credito</h2>
                                             <div>
@@ -2019,7 +1829,7 @@ export default function ImovelComercial() {
 
                             {seguroFi && (
                                 <>
-                                    {step === 75 && (
+                                    {step === 65 && (
                                         <>
                                             <h2>Dados do Seguro Fiança</h2>
                                             <div>
@@ -2040,7 +1850,26 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 76 && (
+                            {step === 66 && (
+                                <>
+                                    <h2>Garantias</h2>
+                                    <div>
+                                        <label>Procedimento para devolução da garantia ao término do contrato </label>
+                                        <div>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="procedimentoDevolucao"
+                                                onChange={handleChange}
+                                            />
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 67 && (
                                 <>
                                     <h2>Obrigações do Sublocador</h2>
                                     <div>
@@ -2058,7 +1887,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 77 && (
+                            {step === 68 && (
                                 <>
                                     <h2>Obrigações do Sublocador</h2>
                                     <div>
@@ -2078,7 +1907,7 @@ export default function ImovelComercial() {
 
                             {sublocadorAdicional && (
                                 <>
-                                    {step === 78 && (
+                                    {step === 69 && (
                                         <>
                                             <h2>Obrigações do Sublocador</h2>
                                             <div>
@@ -2099,17 +1928,18 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 79 && (
+                            {step === 70 && (
                                 <>
                                     <h2>Obrigações do Sublocatário</h2>
                                     <div>
-                                        <label>O sublocatário pode sublocar ou ceder o imóvel a terceiros? </label>
+                                        <label>O sublocatário pode sublocar ou ceder o imóvel a terceiros?</label>
                                         <div>
-                                            <select name='sublocatarioCeder' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="sublocatarioCeder"
+                                                onChange={handleChange}
+                                            />
                                             <button onClick={handleBack}>Voltar</button>
                                             <button onClick={handleNext}>Próximo</button>
                                         </div>
@@ -2117,17 +1947,18 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 80 && (
+                            {step === 71 && (
                                 <>
                                     <h2>Obrigações do Sublocatário</h2>
                                     <div>
-                                        <label>O sublocatário é responsável por quais manutenções no imóvel? </label>
+                                        <label>O sublocatário é responsável por quais manutenções no imóvel?</label>
                                         <div>
-                                            <select name='sublocatarioManu' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="sublocatarioManu"
+                                                onChange={handleChange}
+                                            />
                                             <button onClick={handleBack}>Voltar</button>
                                             <button onClick={handleNext}>Próximo</button>
                                         </div>
@@ -2135,17 +1966,18 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 81 && (
+                            {step === 72 && (
                                 <>
                                     <h2>Obrigações do Sublocatário</h2>
                                     <div>
                                         <label>O sublocatário deve respeitar as leis e regulamentos aplicáveis ao uso do imóvel?</label>
                                         <div>
-                                            <select name='sublocatarioRespeita' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="sublocatarioRespeita"
+                                                onChange={handleChange}
+                                            />
                                             <button onClick={handleBack}>Voltar</button>
                                             <button onClick={handleNext}>Próximo</button>
                                         </div>
@@ -2153,17 +1985,18 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 82 && (
+                            {step === 73 && (
                                 <>
                                     <h2>Obrigações do Sublocatário</h2>
                                     <div>
                                         <label>O sublocatário é responsável por multas e infrações ocorridas durante o período de sublocação?</label>
                                         <div>
-                                            <select name='sublocatarioMulta' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="sublocatarioMulta"
+                                                onChange={handleChange}
+                                            />
                                             <button onClick={handleBack}>Voltar</button>
                                             <button onClick={handleNext}>Próximo</button>
                                         </div>
@@ -2171,17 +2004,18 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 83 && (
+                            {step === 74 && (
                                 <>
                                     <h2>Obrigações do Sublocatário</h2>
                                     <div>
-                                        <label>O sublocatário deve comunicar imediatamente ao sublocador sobre qualquer acidente ou dano ao imóvel?</label>
+                                        <label>O sublocatário deve comunicar imediatamente ao sublocador sobre qualquer dano ao imóvel?</label>
                                         <div>
-                                            <select name='sublocatarioComunica' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="sublocatarioComunica"
+                                                onChange={handleChange}
+                                            />
                                             <button onClick={handleBack}>Voltar</button>
                                             <button onClick={handleNext}>Próximo</button>
                                         </div>
@@ -2189,17 +2023,18 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 84 && (
+                            {step === 75 && (
                                 <>
                                     <h2>Obrigações do Sublocatário</h2>
                                     <div>
-                                        <label>O sublocatário deve devolver o imóvel no mesmo estado em que o recebeu, salvo desgaste natural?</label>
+                                        <label>O sublocatário deve devolver o imóvel no mesmo estado em que o recebeu, salvo desgaste natural? </label>
                                         <div>
-                                            <select name='sublocatarioDevolve' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
-                                            </select>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="sublocatarioDevolve"
+                                                onChange={handleChange}
+                                            />
                                             <button onClick={handleBack}>Voltar</button>
                                             <button onClick={handleNext}>Próximo</button>
                                         </div>
@@ -2207,7 +2042,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 85 && (
+                            {step === 76 && (
                                 <>
                                     <h2>Despesas e Tributos</h2>
                                     <div>
@@ -2226,11 +2061,11 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 86 && (
+                            {step === 77 && (
                                 <>
                                     <h2>Despesas e Tributos</h2>
                                     <div>
-                                        <label>Quais despesas são de responsabilidade do sublocador?</label>
+                                        <label>Quais despesas são de responsabilidade do sublocador? </label>
                                         <div>
                                             <input
                                                 type='text'
@@ -2245,7 +2080,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 87 && (
+                            {step === 78 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -2264,7 +2099,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 88 && (
+                            {step === 79 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -2283,7 +2118,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 89 && (
+                            {step === 80 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -2302,7 +2137,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 90 && (
+                            {step === 81 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2319,7 +2154,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 91 && (
+                            {step === 82 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2338,7 +2173,7 @@ export default function ImovelComercial() {
 
                             {Testemunhas && (
                                 <>
-                                    {step === 92 && (
+                                    {step === 83 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2357,7 +2192,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 93 && (
+                                    {step === 84 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2376,7 +2211,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 94 && (
+                                    {step === 85 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2396,7 +2231,7 @@ export default function ImovelComercial() {
                                         </>
                                     )}
 
-                                    {step === 95 && (
+                                    {step === 86 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2417,7 +2252,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 96 && (
+                            {step === 87 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2435,7 +2270,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 96 && (
+                            {step === 88 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2453,7 +2288,7 @@ export default function ImovelComercial() {
                                     </div>
                                 </>
                             )}
-                            {step === 97 && (
+                            {step === 89 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2472,7 +2307,7 @@ export default function ImovelComercial() {
                                 </>
                             )}
 
-                            {step === 98 && (
+                            {step === 90 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -2494,6 +2329,7 @@ export default function ImovelComercial() {
                         </div>
                     </div>
                 </div>
+
                 <div className="right-panel">
                     <div className="pdf-preview">
                         {pdfDataUrl && (
@@ -2542,7 +2378,7 @@ export default function ImovelComercial() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorPdfImovelComercialPago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { }}>
                         Baixar PDF
                     </button>
                 ) : (

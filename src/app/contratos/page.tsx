@@ -37,7 +37,7 @@ export default function contratos() {
           <h2 className="subtitle">SUBLOCAÇÃO</h2>
           <ul>
             <li><Link className='' href="/contratos/sublocacao/imovelcomercial">Contrato de sublocação de imóvel comercial - R$ 24,90</Link></li>
-            <li>Contrato de sublocação de imóvel residencial - R$ 19,90</li>
+            <li><Link className='' href="/contratos/sublocacao/imovelresidencial">Contrato de sublocação de imóvel residencial - R$ 19,90</Link></li>
           </ul>
 
           <h2 className="subtitle">COMPRA E VENDA</h2>
