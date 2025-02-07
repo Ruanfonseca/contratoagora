@@ -62,14 +62,14 @@ nav ul li{
     }
 
     .menu-icon {
-        display: block;
-        flex-direction: row;
-        justify-content: flex-end; 
-        width: 30px;
-        padding-top: 10px;
-        cursor: pointer;
-        margin-right: 20px;
-    }
+    display: block;
+    position: absolute;
+    top: 6px;
+    right: 20px;
+    width: 30px;
+    cursor: pointer;
+    z-index: 20; /* Garante que o ícone fique acima do menu */
+}
 
     .hide-mobile-menu {
         right: -200px;
