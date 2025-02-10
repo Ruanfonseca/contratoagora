@@ -183,7 +183,7 @@ const compraevendaschema = z.object({
     cpfTest2: z.string(),
     local: z.string(),
     dataAssinatura: z.string(),
-    registroCartorio: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
+    registroCartorioTest: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
 
 
@@ -700,7 +700,7 @@ export default function CompraEVenda() {
                 `Nome da segunda testemunha: ${verificarValor(dados.nomeTest2)}`,
                 `CPF da segunda testemunha: ${verificarValor(dados.cpfTest2)}`
             ] : []),
-            `O contrato será registrado em cartório? ${verificarValor(dados.registroCartorio) === 'S' ? 'Sim' : 'Não'}`,
+            `O contrato será registrado em cartório? ${verificarValor(dados.registroCartorioTest) === 'S' ? 'Sim' : 'Não'}`,
             `Local de assinatura: ${verificarValor(dados.local)}`,
             `Data de assinatura: ${verificarValor(dados.dataAssinatura)}`
         ]);
@@ -2368,7 +2368,7 @@ export default function CompraEVenda() {
                                     <div>
                                         <label>O contrato será registrado em cartório?</label>
                                         <div>
-                                            <select name='registroCartorio' onChange={handleChange}>
+                                            <select name='registroCartorioTest' onChange={handleChange}>
                                                 <option value="">Selecione</option>
                                                 <option value="Sim">Sim</option>
                                                 <option value="Não">Não</option>
