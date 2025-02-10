@@ -57,7 +57,7 @@ const compraevendaschema = z.object({
 
     /**DESCRIÇÃO DO BEM */
 
-    tipo: z.enum(['imovel', 'veiculo', 'terreno', 'estabelecimentoComercial']);
+    tipo: z.enum(['imovel', 'veiculo', 'terreno', 'estabelecimentoComercial']),
 
     //se for imovel
     endereco: z.string(),
@@ -209,7 +209,7 @@ export default function CompraEVenda() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 29.90;
+    const valor = 19.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
