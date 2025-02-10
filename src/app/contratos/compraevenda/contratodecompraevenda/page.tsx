@@ -61,7 +61,7 @@ export default function FormularioCompraVenda() {
 
         <div className="preencherContrato">
           <button className="btn">
-            <Link className='btn' href="locacaovagadegaragem/formulario">Preencher Contrato</Link>
+            <Link className='btn' href="compraevenda/contratodecompraevenda/formulario">Preencher Contrato</Link>
           </button>
         </div>
       </div>
