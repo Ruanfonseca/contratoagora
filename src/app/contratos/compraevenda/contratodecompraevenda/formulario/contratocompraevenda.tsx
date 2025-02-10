@@ -7,11 +7,8 @@ import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
-import geradorCompraVendaImoveisPdfPago from '../util/pdf';
 
-
-
-const compraevendaimoveis = z.object({
+const compraevendaschema = z.object({
     vendedor: z.enum(['pf', 'pj']).default('pf'),
 
     /**
@@ -58,22 +55,50 @@ const compraevendaimoveis = z.object({
     emailComprador: z.string(),
     /** */
 
-    /**DESCRIÇÃO DO IMÓVEL */
-    tipoDeImovel: z.string(),
+    /**DESCRIÇÃO DO BEM */
+
+    tipo: z.enum(['imovel', 'veiculo', 'terreno', 'estabelecimentoComercial']);
+
+    //se for imovel
     endereco: z.string(),
     areaTotal: z.string(),
-    numeroCartorio: z.string(),
-    matricula: z.string(),
-    descri: z.string(),
+    matriculaCartorio: z.string(),
+    registroCartorio: z.string(),
+    descricao: z.string(),
+
+
+    //se for veiculo
+    marca: z.string(),
+    placa: z.string(),
+    renavam: z.string(),
+    quilometragem: z.string(),
+    cor: z.string(),
+    caractAdicional: z.string(),
+
+    //se for Terreno
+    localizacao: z.string(),
+    matriculaCartorioTerreno: z.string(),
+    registroCartorioTerreno: z.string(),
+    info: z.string(),
+
+    //se for estabelecimento comercial
+    nomeFantasia: z.string(),
+    razaosocialComercial: z.string(),
+    atividadePrincipal: z.string(),
+    enderecoEstaComercial: z.string(),
+    bensIncluidos: z.string(),
     /** */
 
-    /**SITUAÇÃO DO IMOVEL */
-    imovelDivida: z.enum(['S', 'N']),
-    acoesJudiciais: z.enum(['S', 'N']),
-    descrevaAcao: z.string(),
-    imovelLicensa: z.enum(['S', 'N']),
-    debitoIptu: z.enum(['S', 'N']),
-    descrevaIptu: z.string(),
+    /**SITUAÇÃO LEGAL DO BEM */
+    onus: z.enum(['S', 'N']),
+    //se sim
+    qualPendencia: z.string(),
+
+    gravames: z.enum(['S', 'N']),
+    //se sim
+    quaisSeriam: z.string(),
+
+    certidoes: z.enum(['S', 'N']),
     /** */
 
     /**PRECO E CONDICOES DE PAGAMENTO */
@@ -101,16 +126,13 @@ const compraevendaimoveis = z.object({
     // Índice Geral de Preços de Mercado
     // Índice Nacional de Preços ao Consumidor Amplo
     // Taxa Referencial (não é um índice de correção monetária, mas pode ser utilizada em conjunto)
+    contaBancaria: z.string(),
     /** */
 
-
-    /**PRAZOS E TRANSFERÊNCIA */
+    /**PRAZOS E ENTREGA */
     dataPrevista: z.string(),
-    prazoVistoriaComprador: z.string(),
-    dataParaEntrega: z.string(),
-    condicoesEntrega: z.string(),
-    PrazoLavratura: z.string(),
-    responsaDespesas: z.string(),
+    dataEntrega: z.string(),
+    equipamentoExistente: z.string(),
     /** */
 
     /** GARANTIAS */
@@ -164,12 +186,14 @@ const compraevendaimoveis = z.object({
     registroCartorio: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
 
+
 });
 
-type FormData = z.infer<typeof compraevendaimoveis>;
 
-export default function CompraVendaImoveis() {
+type FormData = z.infer<typeof compraevendaschema>;
 
+
+export default function CompraEVenda() {
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
@@ -191,12 +215,15 @@ export default function CompraVendaImoveis() {
     const [isLoading, setIsLoading] = useState(false);
     /** */
 
-
     //VARIAVEIS DE CONTROLE DE FLUXO
     const [vendedorJuri, setVendedorJuri] = useState(false);
     const [compradorJuri, setCompradorJuri] = useState(false);
-    const [acoesJudiciais, setAcoesJudiciais] = useState(false);
-    const [debitoIptu, setDebitoIptu] = useState(false);
+    const [imovel, setImovel] = useState(false);
+    const [veiculo, setVeiculo] = useState(false);
+    const [terreno, setTerreno] = useState(false);
+    const [estabelecimentoComercial, setEstabelecimentoComercial] = useState(false);
+    const [onus, setOnus] = useState(false);
+    const [gravames, setGravames] = useState(false);
     const [Avista, setAvista] = useState(false);
     const [sinal, setSinal] = useState(false);
     const [Parcelado, setParcelado] = useState(false);
@@ -209,7 +236,6 @@ export default function CompraVendaImoveis() {
     const [seguroFi, setSeguroFi] = useState(false);
     const [Testemunhas, setTestemunhas] = useState(false);
     const pilha = useRef(new Pilha());
-
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -303,8 +329,8 @@ export default function CompraVendaImoveis() {
     }
 
     const handleNext = () => {
-        setFormData((prev) => ({ ...prev, ...currentStepData }));
 
+        setFormData((prev) => ({ ...prev, ...currentStepData }));
         let nextStep = step;
 
 
@@ -322,60 +348,99 @@ export default function CompraVendaImoveis() {
             nextStep = 25;
         }
 
-        if (currentStepData.acoesJudiciais === 'S') {
-            setAcoesJudiciais(true);
-            nextStep = 32;
-        } else if (currentStepData.acoesJudiciais === 'N') {
-            nextStep = 33;
+
+
+        //para verificar se o próximo é o ultimo de step de algum garantidor
+        if (nextStep === 29) {
+            nextStep = 43
+        } else if (nextStep === 35) {
+            nextStep = 43
+        } else if (nextStep === 38) {
+            nextStep = 43
+        } else if (nextStep === 42) {
+            nextStep = 43
         }
 
-        if (currentStepData.debitoIptu === 'S') {
-            setDebitoIptu(true);
-            nextStep = 35;
-        } else if (currentStepData.debitoIptu === 'N') {
-            nextStep = 36;
+        switch (currentStepData.tipo) {
+            case "imovel":
+                setImovel(true);
+                nextStep = 26;
+                break;
+            case "veiculo":
+                setVeiculo(true);
+                nextStep = 30;
+                break;
+            case "terreno":
+                setTerreno(true);
+                nextStep = 36;
+                break;
+            case "estabelecimentoComercial":
+                setEstabelecimentoComercial(true);
+                nextStep = 39;
+                break;
+            default:
+                break;
         }
+
+
+        if (currentStepData.onus === 'S') {
+            setOnus(true);
+            nextStep = 44;
+        } else if (currentStepData.onus === 'N') {
+            nextStep = 45;
+        }
+
+
+        if (currentStepData.gravames === 'S') {
+            setGravames(true);
+            nextStep = 46;
+        } else if (currentStepData.gravames === 'N') {
+            nextStep = 47;
+        }
+
+
 
         if (currentStepData.formaPagamento === 'Avista') {
-            setAvista(true)
-            nextStep = 41;
-        } else if (currentStepData.formaPagamento === 'Parcelado') {
             setParcelado(true);
-            nextStep = 38;
+            nextStep = 50;
+        } else if (currentStepData.formaPagamento === 'Parcelado') {
+            setAvista(true);
+            nextStep = 53;
         }
 
         if (currentStepData.sinal === 'S') {
             setSinal(true);
-            nextStep = 43;
+            nextStep = 55;
         } else if (currentStepData.sinal === 'N') {
-            nextStep = 45;
+            nextStep = 57
         }
 
         if (currentStepData.aplicaReajuste === 'S') {
             setAplicaReajuste(true);
-            nextStep = 47;
+            nextStep = 58;
         } else if (currentStepData.aplicaReajuste === 'N') {
-            nextStep = 48;
+            nextStep = 59
         }
+
 
         if (currentStepData.garantia === 'S') {
             setGarantia(true);
-            nextStep = 55;
+            nextStep = 64;
         } else if (currentStepData.garantia === 'N') {
-            nextStep = 69;
+            nextStep = 78;
         }
 
         //para verificar se o próximo é o ultimo de step de algum garantidor
-        if (nextStep === 64) {
-            nextStep = 69
-        } else if (nextStep === 65) {
-            nextStep = 69
-        } else if (nextStep === 66) {
-            nextStep = 69
-        } else if (nextStep === 67) {
-            nextStep = 69
-        } else if (nextStep === 68) {
-            nextStep = 69
+        if (nextStep === 73) {
+            nextStep = 78
+        } else if (nextStep === 74) {
+            nextStep = 78
+        } else if (nextStep === 75) {
+            nextStep = 78
+        } else if (nextStep === 76) {
+            nextStep = 78
+        } else if (nextStep === 77) {
+            nextStep = 78
         }
 
 
@@ -385,31 +450,35 @@ export default function CompraVendaImoveis() {
                 break;
             case "caudep":
                 setCaucaoDep(true);
-                nextStep = 65;
+                nextStep = 74;
                 break;
             case "caubem":
                 setCaucaoBemIM(true);
-                nextStep = 66;
+                nextStep = 75;
                 break;
             case "ti":
                 setTitulos(true);
-                nextStep = 67;
+                nextStep = 76;
                 break;
             case "segfianca":
                 setSeguroFi(true);
-                nextStep = 68;
+                nextStep = 77;
                 break;
             default:
                 break;
         }
 
 
+
+
         if (currentStepData.testemunhasNecessarias === 'S') {
             setTestemunhas(true);
-            nextStep = 74;
+            nextStep = 84;
         } else if (currentStepData.testemunhasNecessarias === 'N') {
-            nextStep = 78;
+            nextStep = 88;
         }
+
+
 
 
         if (nextStep === step) {
@@ -425,9 +494,11 @@ export default function CompraVendaImoveis() {
 
         // Limpar os dados do passo atual.
         setCurrentStepData({});
+
+
     }
 
-    const geradorCompraVendaImoveisPdf = (dados: any) => {
+    const geradorCompraVendaPDF = (dados: any) => {
         const doc = new jsPDF();
 
         // Configuração inicial de fonte e margens
@@ -474,11 +545,12 @@ export default function CompraVendaImoveis() {
 
         // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE COMPRA E VENDA DE IMÓVEL", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE COMPRA E VENDA", 105, posY, { align: "center" });
         posY += 15;
 
         // Seção 1: Identificação das Partes
         addSection("1. Identificação das Partes", [
+            " Art. 104 do Código Civil: Para que um contrato seja válido, é necessário que as partes sejam capazes, que o objeto do contrato seja lícito, possível e determinado, e que haja forma prescrita ou não proibida por lei.\n",
             "Vendedor:",
             `Nome completo ou Razão Social: ${verificarValor(dados.vendedor) === 'pf' ? verificarValor(dados.nomevendedor) : verificarValor(dados.razaoSocial)}`,
             `CPF ou CNPJ: ${verificarValor(dados.vendedor) === 'pf' ? verificarValor(dados.CPFvendedor) : verificarValor(dados.cnpjvendedor)}`,
@@ -492,115 +564,153 @@ export default function CompraVendaImoveis() {
             `Telefone e e-mail para contato: ${verificarValor(dados.comprador) === 'pf' ? verificarValor(dados.telefoneComprador) : verificarValor(dados.telefonecompradorCNPJ)}, ${verificarValor(dados.comprador) === 'pf' ? verificarValor(dados.emailComprador) : verificarValor(dados.emailcompradorCNPJ)}`
         ]);
 
-        // Seção 2: Descrição do Imóvel
-        addSection("2. Descrição do Imóvel", [
-            "Art. 1.245. Transfere-se entre vivos a propriedade mediante o registro do título translativo no Registro de Imóveis.",
-            "Art. 1.227. Os direitos reais sobre imóveis constituídos, transferidos ou extintos por atos inter vivos só se adquirem com o registro no Cartório de Registro de Imóveis.",
-            `Tipo de imóvel (casa, apartamento, terreno, etc.): ${verificarValor(dados.tipoDeImovel)}`,
-            `Endereço completo: ${verificarValor(dados.endereco)}`,
-            `Área total e construída (se aplicável): ${verificarValor(dados.areaTotal)}`,
-            `Número da matrícula e registro no Cartório de Registro de Imóveis competente; ${verificarValor(dados.matricula)}`,
-            `Descrição detalhada das características do imóvel,`,
-            `Número de quartos, banheiros, vagas de garagem, `,
-            `Informações sobre áreas comuns (se aplicável), `,
-            `Benfeitorias ou reformas realizadas,
-             ${verificarValor(dados.descri)}`
+        // Seção 2: Descrição do Bem
+        addSection("2. Descrição do Bem", [
+            "Art. 481 do Código Civil: O vendedor se obriga a transferir o domínio de um bem ao comprador, mediante o pagamento de um preço em dinheiro.\n",
+            "Art. 485 do Código Civil: O vendedor responde pela entrega do bem na forma e condições acordadas.",
+            `Tipo de bem a ser negociado: ${verificarValor(dados.tipo)}`,
+            "",
+            "Descrição detalhada do bem:",
+            ...(dados.tipo === 'imovel' ? [
+                "Imóvel:",
+                `Endereço completo: ${verificarValor(dados.endereco)}`,
+                `Área total e construída: ${verificarValor(dados.areaTotal)}`,
+                `Matrícula e registro no cartório competente: ${verificarValor(dados.matriculaCartorio)}, ${verificarValor(dados.registroCartorio)}`,
+                `Descrição dos cômodos e características adicionais: ${verificarValor(dados.descricao)}`
+            ] : dados.tipo === 'veiculo' ? [
+                "Veículo:",
+                `Marca, modelo e ano de fabricação: ${verificarValor(dados.marca)}`,
+                `Placa e Renavam: ${verificarValor(dados.placa)}, ${verificarValor(dados.renavam)}`,
+                `Quilometragem atual: ${verificarValor(dados.quilometragem)}`,
+                `Cor e características adicionais: ${verificarValor(dados.cor)}, ${verificarValor(dados.caractAdicional)}`
+            ] : dados.tipo === 'terreno' ? [
+                "Terreno:",
+                `Localização e dimensões: ${verificarValor(dados.localizacao)}`,
+                `Matrícula e registro no cartório competente: ${verificarValor(dados.matriculaCartorioTerreno)}, ${verificarValor(dados.registroCartorioTerreno)}`,
+                `Informações sobre zoneamento e uso permitido: ${verificarValor(dados.info)}`
+            ] : dados.tipo === 'estabelecimentoComercial' ? [
+                "Estabelecimento Comercial:",
+                `Nome fantasia e razão social: ${verificarValor(dados.nomeFantasia)}, ${verificarValor(dados.razaosocialComercial)}`,
+                `Atividade principal: ${verificarValor(dados.atividadePrincipal)}`,
+                `Endereço: ${verificarValor(dados.enderecoEstaComercial)}`,
+                `Bens incluídos na venda: ${verificarValor(dados.bensIncluidos)}`
+            ] : [])
         ]);
 
-        // Seção 3: Situação Legal do Imóvel
-        addSection("3. Situação Legal do Imóvel", [
-            "Art. 1.267. A propriedade adquire-se pela tradição, quando se trata de bens móveis, e pelo registro do título translativo no Registro de Imóveis, quando se trata de bens imóveis.",
-            `Art. 1.275. Extingue-se o direito de propriedade, entre outras formas:
-                I - pela alienação;
-                II - pela renúncia;
-                III - pelo abandono;
-                IV - pela perecimento da coisa;
-                V - por desapropriação.`,
-            `O imóvel está livre de ônus, dívidas ou pendências legais? ${verificarValor(dados.imovelDivida)}`,
-            `Existem ações judiciais ou disputas relacionadas ao imóvel? ${verificarValor(dados.acoesJudiciais)}`,
-            `O imóvel possui habite-se e demais licenças necessárias? ${verificarValor(dados.imovelLicensa)}`,
-            `Há débitos de IPTU, condomínio ou outras taxas? ${verificarValor(dados.debitoIptu)}`
+        // Seção 3: Situação Legal do Bem
+        addSection("3. Situação Legal do Bem", [
+            "Art. 422 do Código Civil: As partes devem agir com boa-fé e lealdade na execução do contrato.",
+            " Art. 492 do Código Civil: O vendedor responde pela evicção, garantindo ao comprador que não perderá o bem adquirido por decisão judicial que reconheça o direito de terceiro sobre ele.",
+            `O bem está livre de ônus, dívidas ou pendências legais? ${verificarValor(dados.onus) === 'S' ? 'Sim' : 'Não'}`,
+            ...(dados.onus === 'S' ? [
+                `Qual pendência: ${verificarValor(dados.qualPendencia)}`
+            ] : []),
+            `Existem garantias ou gravames registrados sobre o bem? ${verificarValor(dados.gravames) === 'S' ? 'Sim' : 'Não'}`,
+            ...(dados.gravames === 'S' ? [
+                `Quais seriam: ${verificarValor(dados.quaisSeriam)}`
+            ] : []),
+            `No caso de imóvel, há certidões negativas de débitos municipais e estaduais? ${verificarValor(dados.certidoes) === 'S' ? 'Sim' : 'Não'}`
         ]);
 
         // Seção 4: Preço e Condições de Pagamento
         addSection("4. Preço e Condições de Pagamento", [
-            `Art. 481. Pelo contrato de compra e venda, um dos contratantes se obriga a transferir o domínio de certa coisa, e o outro, a pagar-lhe certo preço em dinheiro.
-             Art. 489. Salvo cláusula em contrário, os riscos da coisa vendida correm por conta do comprador desde a tradição.
-             Art. 505. Se a venda se realizar a crédito, poderá o vendedor exigir garantia real ou fidejussória`,
+            "Art. 487 do Código Civil: A venda pode ser feita à vista, a prazo ou sob condição suspensiva ou resolutiva.\n",
+            "Art. 313 do Código Civil: O pagamento deve ser feito pelo próprio comprador, salvo acordo em contrário.",
             `Valor total da venda: ${verificarValor(dados.valorTotal)}`,
             `Forma de pagamento: ${verificarValor(dados.formaPagamento)}`,
             `Pagamento à vista ou parcelado? ${verificarValor(dados.formaPagamento)}`,
-            `Em caso de parcelamento, número de parcelas, valores e datas de vencimento: ${verificarValor(dados.numeroDeParcela)}, ${verificarValor(dados.valorParcela)}, ${verificarValor(dados.dataVenc)}`,
-            `Existência de sinal ou entrada? Se sim, qual valor e data de pagamento? ${verificarValor(dados.sinal) === 'S' ? `Sim, ${verificarValor(dados.valorSinal)}, ${verificarValor(dados.dataPag)}` : 'Não'}`,
-            `Índice de reajuste das parcelas (se aplicável): ${verificarValor(dados.aplicaReajuste) === 'S' ? verificarValor(dados.qualReajuste) : 'Não aplicável'}`
+            ...(dados.formaPagamento === 'Parcelado' ? [
+                `Número de parcelas: ${verificarValor(dados.numeroDeParcela)}`,
+                `Valor de cada parcela: ${verificarValor(dados.valorParcela)}`,
+                `Data de vencimento das parcelas: ${verificarValor(dados.dataVenc)}`
+            ] : []),
+            `Existência de sinal ou entrada? ${verificarValor(dados.sinal) === 'S' ? 'Sim' : 'Não'}`,
+            ...(dados.sinal === 'S' ? [
+                `Valor do sinal: ${verificarValor(dados.valorSinal)}`,
+                `Data de pagamento do sinal: ${verificarValor(dados.dataPag)}`
+            ] : []),
+            `Conta bancária para depósito: ${verificarValor(dados.contaBancaria)}`
         ]);
 
-        // Seção 5: Prazos e Transferência
-        addSection("5. Prazos e Transferência", [
-            `Art. 1.245, § 1º. Enquanto não se registrar o título translativo, o alienante continua a ser havido como dono do imóvel.
-             Art. 500. Se a área real do imóvel vendido for inferior à mencionada no contrato, poderá o comprador exigir o complemento da área, o abatimento proporcional do preço ou a resolução do contrato.`,
+        // Seção 5: Prazos e Entrega
+        addSection("5. Prazos e Entrega", [
+            "Art. 476 do Código Civil: Nenhuma das partes está obrigada a cumprir sua obrigação antes que a outra cumpra a sua.",
+            "Art. 477 do Código Civil: Se uma das partes não cumprir sua obrigação, a outra pode se recusar a cumprir a sua.",
             `Data prevista para a assinatura do contrato: ${verificarValor(dados.dataPrevista)}`,
-            `Data de entrega das chaves e posse do imóvel: ${verificarValor(dados.dataParaEntrega)}`,
-            `Prazo para lavratura da escritura pública de compra e venda: ${verificarValor(dados.PrazoLavratura)}`,
-            `Responsabilidade pelas despesas de transferência (custas cartorárias, ITBI, etc.): ${verificarValor(dados.ResponsaCartorio)}`,
-            `Vistoria e entrega: Estipulação de prazos para a realização da vistoria do imóvel pelo comprador, bem como a data de entrega efetiva do imóvel e as condições em que o mesmo deve ser entregue (desocupado, livre de móveis ou entulhos, etc.): ${verificarValor(dados.condicoesEntrega)}`
+            `Data de entrega do bem ao comprador: ${verificarValor(dados.dataEntrega)}`,
+            `No caso de imóvel ou estabelecimento comercial, o bem será entregue com os móveis e equipamentos existentes? ${verificarValor(dados.equipamentoExistente)}`
         ]);
 
         // Seção 6: Obrigações das Partes
         addSection("6. Obrigações das Partes", [
-            `Art. 422. Os contratantes são obrigados a guardar, assim na conclusão do contrato, como em sua execução, os princípios da probidade e boa-fé.`,
-            `Art. 475. A parte lesada pelo inadimplemento pode pedir a resolução do contrato ou o cumprimento da obrigação, além de perdas e danos.`,
+            "Art. 492 do Código Civil: O vendedor deve entregar o bem livre de ônus e pendências, salvo acordo contrário.\n",
             "Vendedor:",
-            "Garantir a legitimidade e propriedade do imóvel.",
-            "Assegurar que o imóvel está livre de quaisquer ônus ou dívidas, salvo as informadas.",
+            "Garantir a legitimidade e propriedade do bem.",
+            "Assegurar que o bem está livre de quaisquer ônus ou dívidas.",
             "Fornecer todos os documentos necessários para a transferência de propriedade.",
-            "Entregar o imóvel nas condições acordadas.",
             "",
+            "Art. 476 do Código Civil: O comprador deve pagar o preço conforme estabelecido no contrato.\n",
             "Comprador:",
             "Efetuar os pagamentos conforme acordado.",
-            "Providenciar a transferência de titularidade junto aos órgãos competentes.",
-            "Assumir as despesas e responsabilidades a partir da data de posse."
+            "Providenciar a transferência de titularidade junto aos órgãos competentes."
         ]);
 
         // Seção 7: Garantias
         addSection("7. Garantias", [
-            `Art. 441. O adquirente tem direito a exigir a substituição da coisa, o abatimento do preço ou a resolução do contrato se houver defeito oculto que a torne imprópria para o uso ou lhe diminua o valor.`,
-            `Art. 445. O prazo para reclamar pelos vícios ocultos é de um ano para bens móveis e de um ano para bens imóveis, contados da entrega efetiva.`,
-            `O vendedor oferece alguma garantia sobre o estado do imóvel? Se sim, especificar o prazo e condições: ${verificarValor(dados.garantia) === 'S' ? `Sim, ${verificarValor(dados.qualgarantidor)}` : 'Não'}`,
-            `Existem garantias legais aplicáveis ao tipo de imóvel negociado? ${verificarValor(dados.garantia) === 'S' ? 'Sim' : 'Não'}`
+            "Art. 441 do Código Civil: O comprador pode rejeitar o bem caso este apresente defeitos ocultos que o tornem impróprio ao uso ou diminuam seu valor.\n",
+            "Art. 443 do Código Civil: Caso o defeito do bem seja grave, o comprador pode pedir a substituição ou abatimento no preço.\n",
+            `O vendedor oferece alguma garantia sobre o bem? ${verificarValor(dados.garantia) === 'S' ? 'Sim' : 'Não'}`,
+            ...(dados.garantia === 'S' ? [
+                `Qual garantia: ${verificarValor(dados.qualgarantidor)}`,
+                ...(dados.qualgarantidor === 'fi' ? [
+                    "Fiador:",
+                    `Nome do fiador: ${verificarValor(dados.nomeFiador)}`,
+                    `CPF do fiador: ${verificarValor(dados.cpfFiador)}`,
+                    `Endereço do fiador: ${verificarValor(dados.enderecoFiador)}`
+                ] : dados.qualgarantidor === 'caudep' ? [
+                    `Valor do título de caução: ${verificarValor(dados.valorTitCaucao)}`
+                ] : dados.qualgarantidor === 'caubem' ? [
+                    `Descrição do bem dado em caução: ${verificarValor(dados.descBemCaucao)}`
+                ] : dados.qualgarantidor === 'ti' ? [
+                    `Descrição do título de crédito utilizado: ${verificarValor(dados.descCredUtili)}`
+                ] : dados.qualgarantidor === 'segfianca' ? [
+                    `Seguro-fiança: ${verificarValor(dados.segFianca)}`
+                ] : [])
+            ] : [])
         ]);
 
         // Seção 8: Rescisão e Penalidades
         addSection("8. Rescisão e Penalidades", [
-            ` Art. 474. A cláusula resolutiva expressa opera de pleno direito; a tácita depende de interpelação judicial.`,
-            `Art. 476. Nos contratos bilaterais, nenhum dos contratantes pode exigir o cumprimento da obrigação do outro, se não tiver cumprido a sua parte.`,
+            "Art. 389 do Código Civil: O inadimplemento das obrigações contratuais sujeita a parte inadimplente a perdas e danos.",
+            "Art. 475 do Código Civil: Se uma das partes não cumprir sua obrigação, a outra pode pedir a rescisão do contrato e exigir indenização.",
             `Condições para rescisão do contrato por qualquer das partes: ${verificarValor(dados.condicoesRescisao)}`,
             `Multas ou penalidades em caso de descumprimento de cláusulas contratuais: ${verificarValor(dados.multasPenalidades)}`,
             `Prazo para notificação prévia em caso de rescisão: ${verificarValor(dados.prazo)}`
         ]);
 
-
+        // Seção 9: Disposições Gerais
         addSection("9. Disposições Gerais", [
-            `Art. 53. Nos contratos de alienação de bens imóveis com pagamento em prestações, se o comprador deixar de pagar três ou mais prestações, poderá o vendedor considerar resolvido o contrato, restituindo as quantias pagas, retidas as despesas e perdas.`,
-            `Art. 784. A obrigação de pagar quantia certa é exigível por meio de execução forçada se houver um título executivo, como um contrato com assinatura das partes e de duas testemunhas.`,
+            "Art. 784 do Código Civil: O contrato de compra e venda pode ser registrado em cartório para maior segurança jurídica.",
+            " Art. 53 da Lei 8.245/1991: Nos casos de compra e venda de imóveis, o contrato pode prever cláusulas específicas para garantir o cumprimento das obrigações.",
             `Foro eleito para resolução de conflitos: ${verificarValor(dados.foroResolucaoConflitos)}`,
-            `Necessidade de testemunhas para assinatura do contrato: ${verificarValor(dados.testemunhasNecessarias) === 'S' ? `Sim, ${verificarValor(dados.nomeTest1)}, ${verificarValor(dados.cpfTest1)}, ${verificarValor(dados.nomeTest2)}, ${verificarValor(dados.cpfTest2)}` : 'Não'}`,
-            `O contrato será registrado em cartório? (sim/não): ${verificarValor(dados.registroCartorio)}`,
-            "",
-            "Assinaturas:",
-            `Vendedor: ______________________________________   CPF/CNPJ: ${dados.vendedor === 'pf' ? dados.CPFvendedor : dados.cnpjvendedor}`,
-            `Comprador: _____________________________________   CPF/CNPJ: ${dados.comprador === 'pf' ? dados.CPFComprador : dados.cnpj}`,
-            dados.testemunhasNecessarias === 'S' ? `Testemunha 1: _________________________________   CPF: ${dados.cpfTest1}` : '',
-            dados.testemunhasNecessarias === 'S' ? `Testemunha 2: _________________________________   CPF: ${dados.cpfTest2}` : ''
+            `Necessidade de testemunhas para assinatura do contrato: ${verificarValor(dados.testemunhasNecessarias) === 'S' ? 'Sim' : 'Não'}`,
+            ...(dados.testemunhasNecessarias === 'S' ? [
+                `Nome da primeira testemunha: ${verificarValor(dados.nomeTest1)}`,
+                `CPF da primeira testemunha: ${verificarValor(dados.cpfTest1)}`,
+                `Nome da segunda testemunha: ${verificarValor(dados.nomeTest2)}`,
+                `CPF da segunda testemunha: ${verificarValor(dados.cpfTest2)}`
+            ] : []),
+            `O contrato será registrado em cartório? ${verificarValor(dados.registroCartorio) === 'S' ? 'Sim' : 'Não'}`,
+            `Local de assinatura: ${verificarValor(dados.local)}`,
+            `Data de assinatura: ${verificarValor(dados.dataAssinatura)}`
         ]);
-
 
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
 
     useEffect(() => {
-        geradorCompraVendaImoveisPdf({ ...formData })
+        geradorCompraVendaPDF({ ...formData });
     }, [formData]);
 
     return (
@@ -614,7 +724,7 @@ export default function CompraVendaImoveis() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 80) * 100}%` }}
+                                style={{ width: `${(step / 90) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
@@ -1030,203 +1140,200 @@ export default function CompraVendaImoveis() {
 
                             {step === 25 && (
                                 <>
-                                    <h2>Descrição do Imóvel</h2>
+                                    <h2>Descrição do Bem</h2>
                                     <div>
-                                        <label>Tipo de imóvel (casa, apartamento, terreno, etc.)</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="tipoDeImovel"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 26 && (
-                                <>
-                                    <h2>Descrição do Imóvel</h2>
-                                    <div>
-                                        <label>Endereço completo</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="endereco"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 27 && (
-                                <>
-                                    <h2>Descrição do Imóvel</h2>
-                                    <div>
-                                        <label>Área total e construída (se aplicável)</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="areaTotal"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-
-                            {step === 28 && (
-                                <>
-                                    <h2>Descrição do Imóvel</h2>
-                                    <div>
-                                        <label>Número da matrícula e registro no Cartório de Registro de Imóveis competente</label>
-                                        <input
-                                            type='text'
-                                            placeholder='número'
-                                            name="numeroCartorio"
-                                            onChange={handleChange}
-                                        />
-                                        <input
-                                            type='text'
-                                            placeholder='registro'
-                                            name="matricula"
-                                            onChange={handleChange}
-                                        />
-
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 29 && (
-                                <>
-                                    <h2>Descrição do Imóvel</h2>
-                                    <div>
-                                        <label>Descrição detalhada das características do imóvel</label>
-                                        <textarea
-                                            id="descri"
-                                            name="descri"
-                                            onChange={handleChange}
-                                            rows={10}
-                                            cols={50}
-                                            placeholder="Número de quartos, banheiros, vagas de garagem, etc.: 
-                                            Informações sobre áreas comuns (se aplicável), 
-                                            Benfeitorias ou reformas realizadas"
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 30 && (
-                                <>
-                                    <h2>Descrição do Imóvel</h2>
-                                    <div>
-                                        <label>O imóvel está livre de ônus, dívidas ou pendências legais?</label>
-                                        <select name='imovelDivida' onChange={handleChange}>
+                                        <label>Tipo de bem a ser negociado (ex.: imóvel, veículo, terreno, estabelecimento comercial)</label>
+                                        <select name='tipo' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
+                                            <option value="imovel">Imóvel</option>
+                                            <option value="veiculo">Veículo</option>
+                                            <option value="terreno">Terreno</option>
+                                            <option value="estabelecimentoComercial">Estabelecimento Comercial</option>
                                         </select>
-                                        <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-                            {step === 31 && (
+                            {imovel && (
                                 <>
-                                    <h2>Descrição do Imóvel</h2>
-                                    <div>
-                                        <label>Existem ações judiciais ou disputas relacionadas ao imóvel? </label>
-                                        <select name='acoesJudiciais' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
+                                    {step === 26 && (
+                                        <>
+                                            <h2>Dados do Imóvel</h2>
+                                            <div>
+                                                <label>Endereço completo</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="endereco"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 27 && (
+                                        <>
+                                            <h2>Dados do Imóvel</h2>
+                                            <div>
+                                                <label>Área total e construída</label>
+                                                <textarea
+                                                    id="areaTotal"
+                                                    name="areaTotal"
+                                                    onChange={handleChange}
+                                                    rows={10}
+                                                    cols={50}
+                                                    placeholder=""
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 28 && (
+                                        <>
+                                            <h2>Dados do Imóvel</h2>
+                                            <div>
+                                                <label>Matrícula e registro no cartório competente</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder='Matrícula'
+                                                    name="matriculaCartorio"
+                                                    onChange={handleChange}
+                                                />
+                                                <input
+                                                    type='text'
+                                                    placeholder='Registro'
+                                                    name="registroCartorio"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 29 && (
+                                        <>
+                                            <h2>Dados do Imóvel</h2>
+                                            <div>
+                                                <label>Descrição dos cômodos e características adicionais</label>
+                                                <textarea
+                                                    id="descricao"
+                                                    name="descricao"
+                                                    onChange={handleChange}
+                                                    rows={10}
+                                                    cols={50}
+                                                    placeholder="descricao"
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
                                 </>
                             )}
 
-                            {acoesJudiciais && (
+                            {veiculo && (
                                 <>
+                                    {step === 30 && (
+                                        <>
+                                            <h2>Dados do Veículo</h2>
+                                            <div>
+                                                <label>Marca</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="marca"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 31 && (
+                                        <>
+                                            <h2>Dados do Veículo</h2>
+                                            <div>
+                                                <label>Placa</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="placa"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
                                     {step === 32 && (
                                         <>
-                                            <h2>Descrição do Imóvel</h2>
+                                            <h2>Dados do Veículo</h2>
                                             <div>
-                                                <label>Descreva em detalhes</label>
-                                                <textarea
-                                                    id="descrevaAcao"
-                                                    name="descrevaAcao"
+                                                <label>Renavam</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="renavam"
                                                     onChange={handleChange}
-                                                    rows={10}
-                                                    cols={50}
-                                                    placeholder="Descrição"
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
                                     )}
-                                </>
-                            )}
 
-                            {step === 33 && (
-                                <>
-                                    <h2>Descrição do Imóvel</h2>
-                                    <div>
-                                        <label>O imóvel possui habite-se e demais licenças necessárias? </label>
-                                        <select name='imovelLicensa' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
+                                    {step === 33 && (
+                                        <>
+                                            <h2>Dados do Veículo</h2>
+                                            <div>
+                                                <label>Quilometragem atual</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="quilometragem"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
 
-                            {step === 34 && (
-                                <>
-                                    <h2>Descrição do Imóvel</h2>
-                                    <div>
-                                        <label>Há débitos de IPTU, condomínio ou outras taxas?</label>
-                                        <select name='debitoIptu' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
+                                    {step === 34 && (
+                                        <>
+                                            <h2>Dados do Veículo</h2>
+                                            <div>
+                                                <label>Cor</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="cor"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
 
-                            {debitoIptu && (
-                                <>
                                     {step === 35 && (
                                         <>
-                                            <h2>Descrição do Imóvel</h2>
+                                            <h2>Dados do Veículo</h2>
                                             <div>
-                                                <label>Descreva os débitos em detalhes </label>
-
-                                                <textarea
-                                                    id="descrevaIptu"
-                                                    name="descrevaIptu"
+                                                <label>Características adicionais</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="caractAdicional"
                                                     onChange={handleChange}
-                                                    rows={10}
-                                                    cols={50}
-                                                    placeholder="Descrição"
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
@@ -1236,7 +1343,239 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 36 && (
+                            {terreno && (
+                                <>
+                                    {step === 36 && (
+                                        <>
+                                            <h2>Dados do Terreno</h2>
+                                            <div>
+                                                <label>Localização e dimensões</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="localizacao"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 37 && (
+                                        <>
+                                            <h2>Dados do Terreno</h2>
+                                            <div>
+                                                <label>Matrícula e registro no cartório competente</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="matriculaCartorioTerreno"
+                                                    onChange={handleChange}
+                                                />
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="registroCartorioTerreno"
+                                                    onChange={handleChange}
+                                                />
+
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 38 && (
+                                        <>
+                                            <h2>Dados do Terreno</h2>
+                                            <div>
+                                                <label>Informações sobre zoneamento e uso permitido</label>
+                                                <textarea
+                                                    id="info"
+                                                    name="info"
+                                                    onChange={handleChange}
+                                                    rows={10}
+                                                    cols={50}
+                                                    placeholder=""
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                </>
+                            )}
+
+                            {estabelecimentoComercial && (
+                                <>
+                                    {step === 39 && (
+                                        <>
+                                            <h2>Estabelecimento Comercial</h2>
+                                            <div>
+                                                <label>Nome fantasia e razão social</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="nomeFantasia"
+                                                    onChange={handleChange}
+                                                />
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="razaosocialComercial"
+                                                    onChange={handleChange}
+                                                />
+
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 40 && (
+                                        <>
+                                            <h2>Estabelecimento Comercial</h2>
+                                            <div>
+                                                <label>Atividade principal</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="atividadePrincipal"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 41 && (
+                                        <>
+                                            <h2>Estabelecimento Comercial</h2>
+                                            <div>
+                                                <label>Endereço</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="enderecoEstaComercial"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 42 && (
+                                        <>
+                                            <h2>Estabelecimento Comercial</h2>
+                                            <div>
+                                                <label>Bens incluídos na venda (ex.: equipamentos, estoque)</label>
+                                                <textarea
+                                                    id="bensIncluidos"
+                                                    name="bensIncluidos"
+                                                    onChange={handleChange}
+                                                    rows={10}
+                                                    cols={50}
+                                                    placeholder=""
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {step === 43 && (
+                                <>
+                                    <h2>Situação legal do bem</h2>
+                                    <div>
+                                        <label>O bem está livre de ônus, dívidas ou pendências legais? </label>
+                                        <select name='onus' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {onus && (
+                                <>
+                                    {step === 44 && (
+                                        <>
+                                            <h2>Situação legal do bem</h2>
+                                            <div>
+                                                <label>Descreva a pendência</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="qualPendencia"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+
+                            {step === 45 && (
+                                <>
+                                    <h2>Situação legal do bem</h2>
+                                    <div>
+                                        <label>Existem garantias ou gravames registrados sobre o bem? </label>
+                                        <select name='gravames' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+                            {gravames && (
+                                <>
+                                    {step === 46 && (
+                                        <>
+                                            <h2>Situação legal do bem</h2>
+                                            <div>
+                                                <label>Descreva </label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="quaisSeriam"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {step === 47 && (
+                                <>
+                                    <h2>Situação legal do bem</h2>
+                                    <div>
+                                        <label>No caso de imóvel, há certidões negativas de débitos municipais e estaduais? </label>
+                                        <select name='certidoes' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 48 && (
                                 <>
                                     <h2>Preço e Condições de Pagamento</h2>
                                     <div>
@@ -1254,7 +1593,7 @@ export default function CompraVendaImoveis() {
                             )}
 
 
-                            {step === 37 && (
+                            {step === 49 && (
                                 <>
                                     <h2>Preço e Condições de Pagamento</h2>
                                     <div>
@@ -1272,7 +1611,7 @@ export default function CompraVendaImoveis() {
 
                             {Parcelado && (
                                 <>
-                                    {step === 38 && (
+                                    {step === 50 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1288,7 +1627,7 @@ export default function CompraVendaImoveis() {
                                             </div>
                                         </>
                                     )}
-                                    {step === 39 && (
+                                    {step === 51 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1305,7 +1644,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 40 && (
+                                    {step === 52 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1326,7 +1665,7 @@ export default function CompraVendaImoveis() {
 
                             {Avista && (
                                 <>
-                                    {step === 41 && (
+                                    {step === 53 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1347,7 +1686,7 @@ export default function CompraVendaImoveis() {
                             )}
 
 
-                            {step === 42 && (
+                            {step === 54 && (
                                 <>
                                     <h2>Preço e Condições de Pagamento</h2>
                                     <div>
@@ -1365,7 +1704,7 @@ export default function CompraVendaImoveis() {
 
                             {sinal && (
                                 <>
-                                    {step === 43 && (
+                                    {step === 55 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1382,7 +1721,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 44 && (
+                                    {step === 56 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1401,7 +1740,7 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 45 && (
+                            {step === 57 && (
                                 <>
                                     <h2>Preço e Condições de Pagamento</h2>
                                     <div>
@@ -1419,7 +1758,7 @@ export default function CompraVendaImoveis() {
 
                             {aplicaReajuste && (
                                 <>
-                                    {step === 46 && (
+                                    {step === 58 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1439,9 +1778,26 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 47 && (
+                            {step === 59 && (
                                 <>
-                                    <h2>Prazo e Transferência</h2>
+                                    <h2>Preço e Condições de Pagamento</h2>
+                                    <div>
+                                        <label>Conta bancária para depósito (se aplicável)</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="contaBancaria"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 60 && (
+                                <>
+                                    <h2>Prazo e Entrega</h2>
                                     <div>
                                         <label>Data prevista para a assinatura do contrato</label>
                                         <input
@@ -1456,15 +1812,15 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 48 && (
+                            {step === 61 && (
                                 <>
-                                    <h2>Prazo e Transferência</h2>
+                                    <h2>Prazo e Entrega</h2>
                                     <div>
-                                        <label>Data de entrega das chaves e posse do imóvel</label>
+                                        <label>Data de entrega do bem ao comprador</label>
                                         <input
                                             type='date'
                                             placeholder=''
-                                            name="dataParaEntrega"
+                                            name="dataEntrega"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1473,15 +1829,15 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 49 && (
+                            {step === 62 && (
                                 <>
-                                    <h2>Prazo e Transferência</h2>
+                                    <h2>Prazo e Entrega</h2>
                                     <div>
-                                        <label>Prazo para lavratura da escritura pública de compra e venda</label>
+                                        <label>No caso de imóvel ou estabelecimento comercial, o bem será entregue com os móveis e equipamentos existentes?</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="PrazoLavratura"
+                                            name="equipamentoExistente"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1490,58 +1846,7 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 50 && (
-                                <>
-                                    <h2>Prazo e Transferência</h2>
-                                    <div>
-                                        <label>Responsabilidade pelas despesas de transferência (custas cartorárias, ITBI, etc.)</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="responsaDespesas"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 51 && (
-                                <>
-                                    <h2>Prazo e Transferência</h2>
-                                    <div>
-                                        <label>Estipulação de prazos para a realização da vistoria do imóvel pelo comprador</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="prazoVistoriaComprador"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 52 && (
-                                <>
-                                    <h2>Prazo e Transferência</h2>
-                                    <div>
-                                        <label>Condições em que o mesmo deve ser entregue (desocupado, livre de móveis ou entulhos, etc.)</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="condicoesEntrega"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 53 && (
+                            {step === 63 && (
                                 <>
                                     <h2>Garantias</h2>
                                     <div>
@@ -1559,7 +1864,7 @@ export default function CompraVendaImoveis() {
 
                             {garantia && (
                                 <>
-                                    {step === 54 && (
+                                    {step === 64 && (
                                         <>
                                             <h2>Garantias</h2>
                                             <div>
@@ -1582,7 +1887,7 @@ export default function CompraVendaImoveis() {
 
                             {fiador && (
                                 <>
-                                    {step === 55 && (
+                                    {step === 65 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1600,7 +1905,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 56 && (
+                                    {step === 66 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1619,7 +1924,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 57 && (
+                                    {step === 67 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1639,7 +1944,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 58 && (
+                                    {step === 68 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1658,7 +1963,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 59 && (
+                                    {step === 69 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1677,7 +1982,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 60 && (
+                                    {step === 70 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1697,7 +2002,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 61 && (
+                                    {step === 71 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1716,7 +2021,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 62 && (
+                                    {step === 72 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1735,7 +2040,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 63 && (
+                                    {step === 73 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1759,7 +2064,7 @@ export default function CompraVendaImoveis() {
 
                             {caucaoDep && (
                                 <>
-                                    {step === 64 && (
+                                    {step === 74 && (
                                         <>
                                             <h2>Dados do Titulo do Caução</h2>
                                             <div>
@@ -1785,7 +2090,7 @@ export default function CompraVendaImoveis() {
 
                             {caucaoBemIM && (
                                 <>
-                                    {step === 65 && (
+                                    {step === 75 && (
                                         <>
                                             <h2>Dados do Caução de imóvel</h2>
                                             <div>
@@ -1808,7 +2113,7 @@ export default function CompraVendaImoveis() {
 
                             {titulos && (
                                 <>
-                                    {step === 66 && (
+                                    {step === 76 && (
                                         <>
                                             <h2>Dados do Título de Credito</h2>
                                             <div>
@@ -1831,7 +2136,7 @@ export default function CompraVendaImoveis() {
 
                             {seguroFi && (
                                 <>
-                                    {step === 67 && (
+                                    {step === 77 && (
                                         <>
                                             <h2>Dados do Seguro Fiança</h2>
                                             <div>
@@ -1853,11 +2158,11 @@ export default function CompraVendaImoveis() {
                             )}
 
 
-                            {step === 68 && (
+                            {step === 78 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
-                                        <label>Condições para rescisão antecipada por ambas as partes</label>
+                                        <label>Condições para rescisão do contrato por qualquer das partes</label>
                                         <div>
                                             <input
                                                 type='text'
@@ -1872,11 +2177,11 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 69 && (
+                            {step === 79 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
-                                        <label>Multas ou penalidades aplicáveis em caso de rescisão antecipada</label>
+                                        <label>Multas ou penalidades em caso de descumprimento de cláusulas contratuais</label>
                                         <div>
                                             <input
                                                 type='text'
@@ -1891,11 +2196,11 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 70 && (
+                            {step === 80 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
-                                        <label>Prazo para notificação prévia de rescisão</label>
+                                        <label>Prazo para notificação prévia em caso de rescisão</label>
                                         <div>
                                             <input
                                                 type='text'
@@ -1910,8 +2215,7 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-
-                            {step === 71 && (
+                            {step === 81 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -1943,7 +2247,7 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 72 && (
+                            {step === 82 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1960,7 +2264,7 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 73 && (
+                            {step === 83 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1979,7 +2283,7 @@ export default function CompraVendaImoveis() {
 
                             {Testemunhas && (
                                 <>
-                                    {step === 74 && (
+                                    {step === 84 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1998,7 +2302,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 75 && (
+                                    {step === 85 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2017,7 +2321,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 76 && (
+                                    {step === 86 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2037,7 +2341,7 @@ export default function CompraVendaImoveis() {
                                         </>
                                     )}
 
-                                    {step === 77 && (
+                                    {step === 87 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2058,7 +2362,7 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 78 && (
+                            {step === 88 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2076,7 +2380,7 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 79 && (
+                            {step === 89 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2094,7 +2398,7 @@ export default function CompraVendaImoveis() {
                                     </div>
                                 </>
                             )}
-                            {step === 80 && (
+                            {step === 90 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2113,7 +2417,7 @@ export default function CompraVendaImoveis() {
                                 </>
                             )}
 
-                            {step === 81 && (
+                            {step === 91 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -2131,9 +2435,11 @@ export default function CompraVendaImoveis() {
                                     </button>
                                 </>
                             )}
+
                         </div>
                     </div>
                 </div>
+
                 <div className="right-panel">
                     <div className="pdf-preview">
                         {pdfDataUrl && (
@@ -2155,7 +2461,6 @@ export default function CompraVendaImoveis() {
                     </div>
                 </div>
             </div>
-
 
             {modalPagamento && (
                 <>
@@ -2183,7 +2488,7 @@ export default function CompraVendaImoveis() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorCompraVendaImoveisPdfPago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { }}>
                         Baixar PDF
                     </button>
                 ) : (

@@ -1,8 +1,8 @@
 'use client'
-import Footer from "@/app/pages/components/footer/Footer";
 import Navbar from "@/app/pages/components/Navbar-outside/Navbar";
+import Footer from "@/app/pages/components/footer/Footer";
 import Link from "next/link";
-import './index.css';
+import './css/index.css';
 
 const ContratoCV = () => {
   return (
