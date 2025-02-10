@@ -7,6 +7,7 @@ import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
+import geradorCompraVendaPDFPago from '../util/pdf';
 
 const compraevendaschema = z.object({
     vendedor: z.enum(['pf', 'pj']).default('pf'),
@@ -705,6 +706,40 @@ export default function CompraEVenda() {
             `Data de assinatura: ${verificarValor(dados.dataAssinatura)}`
         ]);
 
+        addSection("10. Assinaturas", [
+            "Declaro estar de acordo com todas as cláusulas deste contrato e assino o presente documento para que produza seus efeitos legais."
+        ]);
+
+        // Espaço para assinatura do vendedor
+        checkPageBreak(30);
+        doc.text("__________________________________________", marginX, posY);
+        posY += 10;
+        doc.text("Assinatura do Vendedor", marginX, posY);
+        posY += 15;
+
+        // Espaço para assinatura do comprador
+        checkPageBreak(30);
+        doc.text("__________________________________________", marginX, posY);
+        posY += 10;
+        doc.text("Assinatura do Comprador", marginX, posY);
+        posY += 15;
+
+        // Verifica se há testemunhas e adiciona os espaços para assinatura
+        if (dados.testemunhasNecessarias === 'S') {
+            checkPageBreak(30);
+            doc.text("__________________________________________", marginX, posY);
+            posY += 10;
+            doc.text(`Assinatura da Testemunha 1: ${verificarValor(dados.nomeTest1)}`, marginX, posY);
+            posY += 15;
+
+            checkPageBreak(30);
+            doc.text("__________________________________________", marginX, posY);
+            posY += 10;
+            doc.text(`Assinatura da Testemunha 2: ${verificarValor(dados.nomeTest2)}`, marginX, posY);
+            posY += 15;
+        }
+
+
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
@@ -716,7 +751,7 @@ export default function CompraEVenda() {
     return (
         <>
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">Contrato de Compra e Venda de Imóvel</h1>
+                <h1 className="title">Contrato de Compra e Venda</h1>
             </div>
             <div className="container">
                 <div className="left-panel">
@@ -2488,7 +2523,7 @@ export default function CompraEVenda() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorCompraVendaPDFPago(formData) }}>
                         Baixar PDF
                     </button>
                 ) : (
