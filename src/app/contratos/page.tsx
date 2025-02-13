@@ -45,7 +45,7 @@ export default function contratos() {
             <li><Link className='' href="/contratos/compraevenda/contratodecompraevenda">Contrato de compra e venda - R$ 19,90</Link></li>
             <li>Contrato de compra e venda de estabelecimento comercial (trespasse) - R$ 34,90</li>
             <li><Link href="/contratos/compraevenda/compraevendaimoveis/formulario">Contrato de compra e venda de imóvel - R$ 29,90</Link></li>
-            <li>Contrato de compra e venda de imóvel de gaveta - R$ 29,90</li>
+            <li><Link href="/contratos/compraevenda/compravendaimovelgaveta/formulario">Contrato de compra e venda de imóvel de gaveta - R$ 29,90</Link></li>
             <li>Contrato de compra e venda de imóvel rural - R$ 29,90</li>
             <li>Contrato de compra e venda de terreno - R$ 29,90</li>
             <li><Link href="/contratos/compraevenda/compravendaveiculo/formulario">Contrato de compra e venda de veículo - R$ 24,90</Link></li>
