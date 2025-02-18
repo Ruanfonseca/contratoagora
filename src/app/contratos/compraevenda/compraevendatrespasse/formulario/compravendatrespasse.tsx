@@ -1,3 +1,4 @@
+'use client'
 import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
