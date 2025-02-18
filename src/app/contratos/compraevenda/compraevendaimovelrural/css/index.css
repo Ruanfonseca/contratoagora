@@ -1,0 +1,36 @@
+
+.hospedagem-cv{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 150px;
+    margin-left: 50px;
+    margin-right: 50px;
+    margin-bottom: 50px;
+}
+
+.title{
+    display: block;
+    font-size: 24px;
+    margin-bottom: 30px;
+}
+
+.subtitle{
+    display: flex;
+    justify-content: center;
+    font-size: 24px;
+    margin: 20px;
+    
+}
+
+.preencherContrato{
+    display: inline;
+    margin-top:30px;
+}
+
+@media screen and(max-width: 768px) {
+    .preencherContrato{
+        padding-top: 30px;
+        margin-bottom: 30px;
+    }
+}

@@ -46,10 +46,10 @@ export default function contratos() {
             <li>Contrato de compra e venda de estabelecimento comercial (trespasse) - R$ 34,90</li>
             <li><Link href="/contratos/compraevenda/compraevendaimoveis/formulario">Contrato de compra e venda de imóvel - R$ 29,90</Link></li>
             <li><Link href="/contratos/compraevenda/compravendaimovelgaveta/formulario">Contrato de compra e venda de imóvel de gaveta - R$ 29,90</Link></li>
-            <li>Contrato de compra e venda de imóvel rural - R$ 29,90</li>
-            <li>Contrato de compra e venda de terreno - R$ 29,90</li>
+            <li><Link href="/contratos/compraevenda/compraevendaimovelrural/formulario">Contrato de compra e venda de imóvel rural - R$ 29,90</Link></li>
+            <li><Link href="/contratos/compraevenda/compravendaterreno/formulario">Contrato de compra e venda de terreno - R$ 29,90</Link></li>
             <li><Link href="/contratos/compraevenda/compravendaveiculo/formulario">Contrato de compra e venda de veículo - R$ 24,90</Link></li>
-            <li>Contrato de compra e venda de veículo alienado (financiado) - R$ 24,90</li>
+            <li><Link href="/contratos/compraevenda/compravendaveiculoalienado/formulario">Contrato de compra e venda de veículo alienado (financiado) - R$ 24,90</Link></li>
           </ul>
 
           <h2 className="subtitle">CESSÃO DE POSSE</h2>

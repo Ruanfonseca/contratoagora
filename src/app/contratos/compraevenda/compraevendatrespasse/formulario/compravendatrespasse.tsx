@@ -1,4 +1,3 @@
-'use client'
 import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
@@ -6,10 +5,10 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
-import '../css/form.css';
-import geradorCompraEVendaVeiculoPago from '../util/pdf';
+import geradorCompraVendaTrespassePago from '../util/pdf';
 
-const compravendaveiculosschema = z.object({
+
+const compravendatrespasseschema = z.object({
     vendedor: z.enum(['pf', 'pj']).default('pf'),
 
     /**
@@ -56,48 +55,53 @@ const compravendaveiculosschema = z.object({
     emailComprador: z.string(),
     /** */
 
-    /**IDENTIFICAÇÃO DO VEÍCULO */
-    tipoveiculo: z.string(),
-    marca: z.string(),
-    modelo: z.string(),
-    anoFabricacao: z.string(),
-    anoModelo: z.string(),
-    cor: z.string(),
-    placa: z.string(),
-    chassi: z.string(),
-    renavam: z.string(),
-    quilometragemAtual: z.string(),
-    combustivel: z.string(),
-    numeroPorta: z.string(),
-    possuiAdicional: z.enum(['S', 'N']),
-    //se sim 
-    descrevaAcessorio: z.string(),
+    /**DESCRIÇÃO DO ESTABELECIMENTO COMERCIAL */
+    nomeFantasia: z.string(),
+    razaoSocialComercial: z.string(),
+    endereco: z.string(),
+    atividadePrincipal: z.string(),
+    registroJuntaComercial: z.string(),
+    licenca: z.string(),
+    alvara: z.string(),
     /** */
 
-    /**SITUAÇÃO LEGAL DO VEÍCULO */
+    /**COMPONENTES DO ESTABELECIMENTO INCLUIDOS NA VENDA */
+    //Bens materiais
+    moveis: z.string(),
+    utensilios: z.string(),
+    equipamentos: z.string(),
+    estoque: z.string(),
+    veiculos: z.string(),
 
-    debitoPendente: z.enum(['S', 'N']),
-    //se sim
-    descrevaPendencia: z.string(),
-
-    veiculoAlienado: z.enum(['alienado', 'financiado']),
-    //se sim
-    informarInst: z.string(),
-    statusdofinan: z.string(),
-
-    objetoSinistro: z.enum(['S', 'N']),
-    certidaoDetran: z.enum(['S', 'N']),
+    //Bens imateriais
+    marcas: z.string(),
+    patentes: z.string(),
+    nomeComercial: z.string(),
+    carteiras: z.string(),
+    contratosVigentes: z.string(),
     /** */
 
+    /**Situação legal */
+    onus: z.enum(['S', 'N']),
+    //se sim
+    detalhesDivida: z.string(),
 
+    acoesJudiciais: z.enum(['S', 'N']),
+    //se sim
+    detalhesAcao: z.string(),
 
-    /**PRECO E CONDICOES DE PAGAMENTO */
-    valorTotal: z.string(),
+    tributos: z.enum(['S', 'N']),
+    direitosTrabalhistas: z.enum(['S', 'N']),
+    /** */
+
+    /**DO PREÇO E FORMA DE PAGAMENTO */
+    valorTotalVenda: z.string(),
+    multaAtraso: z.string(),
     formaPagamento: z.enum(['Avista', 'Parcelado']),
 
     //se for parcelado
     numeroDeParcela: z.string(),
-    valorParcela: z.string(),
+    valorParcelaVenda: z.string(),
     dataVenc: z.string(),
 
     //senão
@@ -107,13 +111,14 @@ const compravendaveiculosschema = z.object({
     //se sim
     valorSinal: z.string(),
     dataPag: z.string(),
+
+    contaBancaria: z.string(),
     /** */
 
-    /**PRAZOS E TRANSFERÊNCIA */
-    dataParaEntrega: z.string(),
-    tanque: z.enum(['S', 'N']),
-    dataTitularidade: z.string(),
-    responsabilidade: z.string(),
+    /**Prazos e Transferências */
+    dataPrevista: z.string(),
+    dataTransfer: z.string(),
+    procedimentos: z.string(),
     /** */
 
     /** GARANTIAS */
@@ -147,17 +152,25 @@ const compravendaveiculosschema = z.object({
     procedimentoDevolucao: z.string(),
     /** */
 
-    /**RESCISÃO DO CONTRATO */
+
+    /**Responsabilidades */
+    dividasAnteriores: z.enum(['S', 'N']),
+    compradorAssume: z.enum(['S', 'N']),
+    responsaSolidaria: z.enum(['S', 'N']),
+    /** */
+
+    /**Clausula Não concorrentes */
+    vendedorCompromete: z.enum(['S', 'N']),
+    //se sim 
+    area: z.string(),
+    periodo: z.string(),
+    /** */
+
+    /**Rescisão e Penalidades */
     condicoesRescisao: z.string(),
     multasPenalidades: z.string(),
     prazo: z.string(),
     metodoResolucao: z.enum(['Med', 'Arb', 'Liti']),
-    /** */
-
-
-    /**DECLARAÇÃO DAS PARTES */
-    vendedorDeclaracao: z.enum(['concordo', 'discordo']),
-    compradorDeclaracao: z.enum(['concordo', 'discordo']),
     /** */
 
     /**DISPOSIÇÕES GERAIS */
@@ -170,21 +183,20 @@ const compravendaveiculosschema = z.object({
     cpfTest2: z.string(),
     local: z.string(),
     dataAssinatura: z.string(),
-    registroCartorio: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
+    registroCartorioTest: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
 
 });
 
-type FormData = z.infer<typeof compravendaveiculosschema>;
+type FormData = z.infer<typeof compravendatrespasseschema>;
 
-export default function CompraVendaVeiculo() {
 
+export default function CompraVendaTrespasse() {
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
     const [step, setStep] = useState(1);
     /** */
-
 
     //PAGAMENTO
     const [paymentId, setPaymentId] = useState('');
@@ -194,19 +206,20 @@ export default function CompraVendaVeiculo() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 24.90;
+    const valor = 29.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
     /** */
 
-
     //VARIAVEIS DE CONTROLE DE FLUXO
     const [vendedorJuri, setVendedorJuri] = useState(false);
     const [compradorJuri, setCompradorJuri] = useState(false);
-    const [possuiAdicional, setPossuiAdicional] = useState(false);
-    const [debitoPendente, setDebitoPendente] = useState(false);
-    const [veiculoAlienado, setVeiculoAlienado] = useState(false);
+    const [onus, setOnus] = useState(false);
+    const [acoesJudiciais, setAcoesJudiciais] = useState(false);
+    const [vendedorCompromete, setVendedorCompromete] = useState(false);
+    const [passivoAmbiental, setPassivoAmbiental] = useState(false);
+    const [outros, setOutros] = useState(false);
     const [Avista, setAvista] = useState(false);
     const [sinal, setSinal] = useState(false);
     const [Parcelado, setParcelado] = useState(false);
@@ -317,6 +330,7 @@ export default function CompraVendaVeiculo() {
 
         let nextStep = step;
 
+
         if (currentStepData.vendedor === 'pj') {
             setVendedorJuri(true);
             nextStep = 7
@@ -331,67 +345,58 @@ export default function CompraVendaVeiculo() {
             nextStep = 25;
         }
 
-        if (currentStepData.possuiAdicional === 'S') {
-            setPossuiAdicional(true);
-            nextStep = 38;
-        } else if (currentStepData.possuiAdicional === 'N') {
-            nextStep = 39;
-        }
-
-        if (currentStepData.debitoPendente === 'S') {
-            setDebitoPendente(true);
-            nextStep = 40;
-        } else if (currentStepData.debitoPendente === 'N') {
+        if (currentStepData.onus === 'S') {
+            setOnus(true);
+            nextStep = 40
+        } else if (currentStepData.onus === 'N') {
             nextStep = 41;
         }
 
-        if (currentStepData.veiculoAlienado === 'alienado') {
-            setVeiculoAlienado(true);
-            nextStep = 42;
-        } else if (currentStepData.veiculoAlienado === 'financiado') {
-            nextStep = 44;
+        if (currentStepData.acoesJudiciais === 'S') {
+            setAcoesJudiciais(true);
+            nextStep = 42
+        } else if (currentStepData.acoesJudiciais === 'N') {
+            nextStep = 43;
         }
-
 
         if (currentStepData.formaPagamento === 'Avista') {
             setAvista(true);
-            nextStep = 51;
+            nextStep = 49
         } else if (currentStepData.formaPagamento === 'Parcelado') {
             setParcelado(true)
-            nextStep = 48;
+            nextStep = 46;
         }
 
-        if (nextStep === 50) {
-            nextStep = 52
+        if (nextStep === 48) {
+            nextStep = 50
         }
 
         if (currentStepData.sinal === 'S') {
             setSinal(true);
-            nextStep = 53;
+            nextStep = 51
         } else if (currentStepData.sinal === 'N') {
-            nextStep = 55;
+            nextStep = 53;
         }
-
 
         if (currentStepData.garantia === 'S') {
             setGarantia(true);
-            nextStep = 60;
+            nextStep = 58;
         } else if (currentStepData.garantia === 'N') {
-            nextStep = 75;
+            nextStep = 73;
         }
 
 
         //para verificar se o próximo é o ultimo de step de algum garantidor
-        if (nextStep === 70) {
-            nextStep = 75
+        if (nextStep === 68) {
+            nextStep = 73
+        } else if (nextStep === 69) {
+            nextStep = 73
+        } else if (nextStep === 70) {
+            nextStep = 73
         } else if (nextStep === 71) {
-            nextStep = 75
+            nextStep = 73
         } else if (nextStep === 72) {
-            nextStep = 75
-        } else if (nextStep === 73) {
-            nextStep = 75
-        } else if (nextStep === 74) {
-            nextStep = 75
+            nextStep = 73
         }
 
 
@@ -401,32 +406,38 @@ export default function CompraVendaVeiculo() {
                 break;
             case "caudep":
                 setCaucaoDep(true);
-                nextStep = 71;
+                nextStep = 69;
                 break;
             case "caubem":
                 setCaucaoBemIM(true);
-                nextStep = 72;
+                nextStep = 70;
                 break;
             case "ti":
                 setTitulos(true);
-                nextStep = 73;
+                nextStep = 71;
                 break;
             case "segfianca":
                 setSeguroFi(true);
-                nextStep = 74;
+                nextStep = 72;
                 break;
             default:
                 break;
         }
 
-
+        if (currentStepData.vendedorCompromete === 'S') {
+            setVendedorCompromete(true);
+            nextStep = 77
+        } else if (currentStepData.vendedorCompromete === 'N') {
+            nextStep = 79;
+        }
 
         if (currentStepData.testemunhasNecessarias === 'S') {
             setTestemunhas(true);
-            nextStep = 83;
+            nextStep = 85
         } else if (currentStepData.testemunhasNecessarias === 'N') {
-            nextStep = 87;
+            nextStep = 89;
         }
+
 
         if (nextStep === step) {
             nextStep += 1;
@@ -444,7 +455,7 @@ export default function CompraVendaVeiculo() {
     }
 
 
-    const geradorCompraEVendaVeiculo = (dados: any) => {
+    const geradorCompraVendaTrespassePdf = (dados: any) => {
         const doc = new jsPDF();
 
         // Configuração inicial de fonte e margens
@@ -491,7 +502,7 @@ export default function CompraVendaVeiculo() {
 
         // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE COMPRA E VENDA DE VEÍCULO", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE COMPRA E VENDA DE ESTABELECIMENTO COMERCIAL (TRESPASSE)", 105, posY, { align: "center" });
         posY += 15;
 
         // Seção 1: Identificação das Partes
@@ -510,119 +521,131 @@ export default function CompraVendaVeiculo() {
             `Telefone e e-mail para contato: ${verificarValor(dados.comprador) === 'pf' ? verificarValor(dados.telefoneComprador) : verificarValor(dados.telefonecompradorCNPJ)}, ${verificarValor(dados.comprador) === 'pf' ? verificarValor(dados.emailComprador) : verificarValor(dados.emailcompradorCNPJ)}`
         ]);
 
-        // Seção 2: Identificação do Veículo
-        addSection("2. Identificação do Veículo", [
-            "Art. 481 do Código Civil: Pelo contrato de compra e venda, um vendedor se obriga a transferir o domínio de uma coisa a um comprador, mediante pagamento de preço em dinheiro.",
-            `Tipo de veículo (carro, moto, caminhão, etc.): ${verificarValor(dados.tipoveiculo)}`,
-            `Marca, modelo e ano de fabricação: ${verificarValor(dados.marca)}, ${verificarValor(dados.modelo)}, ${verificarValor(dados.anoFabricacao)}`,
-            `Ano do modelo: ${verificarValor(dados.anoModelo)}`,
-            `Cor: ${verificarValor(dados.cor)}`,
-            `Placa: ${verificarValor(dados.placa)}`,
-            `Chassi: ${verificarValor(dados.chassi)}`,
-            `Renavam: ${verificarValor(dados.renavam)}`,
-            `Quilometragem atual: ${verificarValor(dados.quilometragemAtual)}`,
-            `Combustível (gasolina, diesel, flex, etc.): ${verificarValor(dados.combustivel)}`,
-            `Número de portas (se aplicável): ${verificarValor(dados.numeroPorta)}`,
-            `Veículo possui acessórios ou itens adicionais (ex.: som, películas, rodas especiais)? ${verificarValor(dados.possuiAdicional)}`,
-            `Descrição dos acessórios: ${verificarValor(dados.descrevaAcessorio)}`
+        // Seção 2: Descrição do Estabelecimento Comercial
+        addSection("2. Descrição do Estabelecimento Comercial", [
+            "Art. 1.142 do Código Civil: Considera-se estabelecimento o complexo de bens organizados para o exercício da empresa, por empresário ou sociedade empresária.",
+            `Nome fantasia e Razão Social: ${verificarValor(dados.nomeFantasia)}, ${verificarValor(dados.razaoSocialComercial)}`,
+            `Endereço completo: ${verificarValor(dados.endereco)}`,
+            `Atividade principal exercida: ${verificarValor(dados.atividadePrincipal)}`,
+            `Registro na Junta Comercial: ${verificarValor(dados.registroJuntaComercial)}`,
+            `Licenças e alvarás necessários para operação: ${verificarValor(dados.licenca)}, ${verificarValor(dados.alvara)}`
         ]);
 
-        // Seção 3: Situação Legal do Veículo
-        addSection("3. Situação Legal do Veículo", [
-            "Art. 422 do Código Civil: Os contratantes são obrigados a guardar, assim na conclusão do contrato como em sua execução, os princípios de probidade e boa-fé.",
-            `O veículo possui débitos pendentes? ${verificarValor(dados.debitoPendente)}`,
-            `Descrição das pendências: ${verificarValor(dados.descrevaPendencia)}`,
-            `O veículo está alienado ou financiado? ${verificarValor(dados.veiculoAlienado)}`,
-            `Instituição financeira: ${verificarValor(dados.informarInst)}`,
-            `Status do financiamento: ${verificarValor(dados.statusdofinan)}`,
-            `O veículo já foi objeto de sinistro, leilão ou recuperação estrutural? ${verificarValor(dados.objetoSinistro)}`,
-            `Certidão de regularidade junto ao Detran foi emitida? ${verificarValor(dados.certidaoDetran)}`
+        // Seção 3: Componentes do Estabelecimento Incluídos na Venda
+        addSection("3. Componentes do Estabelecimento Incluídos na Venda", [
+            "Art. 1.144 do Código Civil: Salvo disposição em contrário, a alienação do estabelecimento importa a transferência de todos os seus elementos essenciais para a exploração da empresa.",
+            "Bens materiais:",
+            `Móveis, utensílios e equipamentos: ${verificarValor(dados.moveis)}, ${verificarValor(dados.utensilios)}, ${verificarValor(dados.equipamentos)}`,
+            `Estoque de mercadorias: ${verificarValor(dados.estoque)}`,
+            `Veículos: ${verificarValor(dados.veiculos)}`,
+            "",
+            "Bens imateriais:",
+            `Marcas e patentes: ${verificarValor(dados.marcas)}, ${verificarValor(dados.patentes)}`,
+            `Nome comercial: ${verificarValor(dados.nomeComercial)}`,
+            `Carteira de clientes: ${verificarValor(dados.carteiras)}`,
+            `Contratos vigentes (ex.: fornecedores, locação): ${verificarValor(dados.contratosVigentes)}`
         ]);
 
-        // Seção 4: Preço e Condições de Pagamento
-        addSection("4. Preço e Condições de Pagamento", [
-            "Art. 489 do Código Civil: Salvo disposição em contrário, os riscos da coisa vendida correm por conta do comprador, desde o momento em que se efetivar a tradição.\n",
+        // Seção 4: Situação Legal e Financeira do Estabelecimento
+        addSection("4. Situação Legal e Financeira do Estabelecimento", [
+            "Art. 1.146 do Código Civil: O adquirente do estabelecimento responde pelo pagamento dos débitos anteriores à transferência, desde que regularmente contabilizados.",
+            `O estabelecimento possui dívidas ou ônus? ${verificarValor(dados.onus) === 'S' ? 'Sim' : 'Não'}`,
+            dados.onus === 'S' ? `Detalhes das dívidas ou ônus: ${verificarValor(dados.detalhesDivida)}` : '',
+            `Existem ações judiciais em andamento relacionadas ao estabelecimento? ${verificarValor(dados.acoesJudiciais) === 'S' ? 'Sim' : 'Não'}`,
+            dados.acoesJudiciais === 'S' ? `Detalhes das ações judiciais: ${verificarValor(dados.detalhesAcao)}` : '',
+            `Os tributos estão regularizados? ${verificarValor(dados.tributos) === 'S' ? 'Sim' : 'Não'}`,
+            `Os funcionários possuem direitos trabalhistas pendentes? ${verificarValor(dados.direitosTrabalhistas) === 'S' ? 'Sim' : 'Não'}`
+        ]);
 
-            `Valor total da venda: ${verificarValor(dados.valorTotal)}`,
+        // Seção 5: Preço e Condições de Pagamento
+        addSection("5. Preço e Condições de Pagamento", [
+            "Art. 481 – Pelo contrato de compra e venda, um dos contratantes se obriga a transferir o domínio de certa coisa, e o outro, a pagar - lhe certo preço em dinheiro.",
+            "Art. 489 – Salvo cláusula em contrário, os riscos da coisa vendida passam ao comprador desde a tradição.",
+            "Art. 507 – A penalidade deve ser reduzida equitativamente pelo juiz se a obrigação principal tiver sido cumprida em parte, ou se o montante da penalidade for manifestamente excessivo.",
+            `Valor total da venda: R$ ${verificarValor(dados.valorTotalVenda)}`,
             `Forma de pagamento: ${verificarValor(dados.formaPagamento)}`,
-            `Pagamento à vista ou parcelado? ${verificarValor(dados.formaPagamento)}`,
-            `Número de parcelas: ${verificarValor(dados.numeroDeParcela)}`,
-            `Valor de cada parcela: ${verificarValor(dados.valorParcela)}`,
-            `Data de vencimento das parcelas: ${verificarValor(dados.dataVenc)}`,
-            `Existência de sinal ou entrada? ${verificarValor(dados.sinal)}`,
-            `Valor do sinal: ${verificarValor(dados.valorSinal)}`,
-            `Data de pagamento do sinal: ${verificarValor(dados.dataPag)}`
+            dados.formaPagamento === 'Parcelado' ? `Número de parcelas: ${verificarValor(dados.numeroDeParcela)}` : '',
+            dados.formaPagamento === 'Parcelado' ? `Valor de cada parcela: R$ ${verificarValor(dados.valorParcelaVenda)}` : '',
+            dados.formaPagamento === 'Parcelado' ? `Data de vencimento das parcelas: ${verificarValor(dados.dataVenc)}` : '',
+            dados.formaPagamento === 'Avista' ? `Modalidade de pagamento: ${verificarValor(dados.modalidade)}` : '',
+            `Foi pago sinal? ${verificarValor(dados.sinal) === 'S' ? 'Sim' : 'Não'}`,
+            dados.sinal === 'S' ? `Valor do sinal: R$ ${verificarValor(dados.valorSinal)}` : '',
+            dados.sinal === 'S' ? `Data de pagamento do sinal: ${verificarValor(dados.dataPag)}` : '',
+            `Conta bancária para depósito (se aplicável): ${verificarValor(dados.contaBancaria)}`
         ]);
 
-        // Seção 5: Prazos e Entrega
-        addSection("5. Prazos e Entrega", [
-            "Art. 475 do Código Civil: A parte lesada pelo inadimplemento pode pedir a resolução do contrato, se não preferir exigir-lhe o cumprimento, cabendo-lhe, em qualquer caso, indenização por perdas e danos.",
-            `Data de entrega do veículo ao comprador: ${verificarValor(dados.dataParaEntrega)}`,
-            `O veículo será entregue com o tanque cheio? ${verificarValor(dados.tanque)}`,
-            `Data para transferência de titularidade no Detran: ${verificarValor(dados.dataTitularidade)}`,
-            `Responsabilidade pelas despesas de transferência (custas, taxas do Detran): ${verificarValor(dados.responsabilidade)}`
+        // Seção 6: Prazos e Transferência
+        addSection("6. Prazos e Transferência", [
+            "Art. 132, §3º – Os prazos de meses e anos expiram no dia de igual número do mês ou do ano do vencimento.",
+            "Art. 1.145 – Aquele que adquirir estabelecimento comercial responde pelo pagamento dos débitos anteriores à transferência, se essa não tiver sido notificada aos credores.",
+            "Art. 1.146 – O adquirente do estabelecimento responde pelo cumprimento das obrigações do alienante, salvo se houver acordo em contrário registrado.",
+            `Data prevista para a assinatura do contrato: ${verificarValor(dados.dataPrevista)}`,
+            `Data de transferência efetiva do estabelecimento ao comprador: ${verificarValor(dados.dataTransfer)}`,
+            `Procedimentos para transferência de propriedade junto aos órgãos competentes: ${verificarValor(dados.procedimentos)}`
         ]);
 
-        // Seção 6: Obrigações das Partes
-        addSection("6. Obrigações das Partes", [
-            "Art. 421 do Código Civil: A liberdade de contratar será exercida em razão e nos limites da função social do contrato.",
+        // Seção 7: Obrigações das Partes
+        addSection("7. Obrigações das Partes", [
+            "Art. 422 – Os contratantes são obrigados a guardar, assim na conclusão do contrato, como em sua execução, os princípios de probidade e boa - fé.",
+            "Art. 475 – A parte lesada pelo inadimplemento pode pedir a resolução do contrato, se não preferir exigir-lhe o cumprimento, cabendo, em qualquer dos casos, indenização por perdas e danos.",
+            "Art. 1.147 – Não havendo autorização expressa, o alienante do estabelecimento não pode fazer concorrência ao adquirente.",
             "Vendedor:",
-            "Garantir que o veículo está livre de quaisquer ônus ou pendências legais, salvo as informadas no contrato.",
-            "Fornecer todos os documentos necessários para a transferência do veículo (CRV/CRLV, comprovante de pagamento de débitos, etc.).",
-            "Garantir que o veículo encontra-se em condições normais de uso, salvo avarias previamente informadas.",
+            "Garantir a legitimidade e propriedade do estabelecimento.",
+            "Assegurar que o estabelecimento está livre de quaisquer ônus ou dívidas, salvo as informadas.",
+            "Fornecer todos os documentos necessários para a transferência de propriedade.",
+            "Notificar os credores sobre a transferência, conforme exigido pelo Art. 1.145 do Código Civil Brasileiro.",
             "",
             "Comprador:",
             "Efetuar os pagamentos conforme acordado.",
-            "Realizar a transferência de titularidade no Detran no prazo estipulado.",
-            "Assumir a responsabilidade pelas taxas e impostos após a data de entrega."
+            "Providenciar a transferência de titularidade junto aos órgãos competentes.",
+            "Assumir as operações do estabelecimento a partir da data acordada."
         ]);
 
-        // Seção 7: Garantias
-        addSection("7. Garantias", [
-            "Art. 445 do Código Civil: O adquirente deve denunciar o vício oculto ao vendedor em até trinta dias, se o bem for móvel, e um ano, se for imóvel, contados da entrega efetiva.",
-            `O vendedor oferece garantia sobre o veículo? ${verificarValor(dados.garantia)}`,
-            `Tipo de garantia: ${verificarValor(dados.qualgarantidor)}`,
-            `Descrição da garantia: ${verificarValor(dados.procedimentoDevolucao)}`
+        // Seção 8: Responsabilidade por Dívidas Anteriores
+        addSection("8. Responsabilidade por Dívidas Anteriores", [
+            "Art. 1.145 – O adquirente responde pelos débitos do estabelecimento se não houver notificação aos credores.",
+            "Art. 1.146 – Salvo acordo em contrário, registrado, o adquirente responde pelo cumprimento das obrigações do alienante.",
+            "Art. 391 – Pelo inadimplemento das obrigações respondem todos os bens do devedor.",
+            `As partes acordam sobre a responsabilidade por dívidas anteriores à transferência? ${verificarValor(dados.dividasAnteriores) === 'S' ? 'Sim' : 'Não'}`,
+            dados.dividasAnteriores === 'S' ? `O comprador assumirá as dívidas existentes? ${verificarValor(dados.compradorAssume) === 'S' ? 'Sim' : 'Não'}` : '',
+            dados.dividasAnteriores === 'S' ? `Haverá responsabilidade solidária entre vendedor e comprador? ${verificarValor(dados.responsaSolidaria) === 'S' ? 'Sim' : 'Não'}` : ''
         ]);
 
-        // Seção 8: Rescisão e Penalidades
-        addSection("8. Rescisão e Penalidades", [
-            "Art. 408 do Código Civil: Incorre na cláusula penal quem deixa de cumprir a obrigação ou se constitui em mora.",
+        // Seção 9: Cláusula de Não Concorrência
+        addSection("9. Cláusula de Não Concorrência", [
+            "Art. 1.147 – Não havendo autorização expressa, o alienante do estabelecimento não pode fazer concorrência ao adquirente nos cinco anos subsequentes à transferência.",
+            "Art. 114 – Os negócios jurídicos devem ser interpretados conforme a boa-fé e os usos do lugar de sua celebração.",
+            `O vendedor se compromete a não exercer atividade concorrente em determinada área geográfica e por um período específico? ${verificarValor(dados.vendedorCompromete) === 'S' ? 'Sim' : 'Não'}`,
+            dados.vendedorCompromete === 'S' ? `Área de restrição: ${verificarValor(dados.area)}` : '',
+            dados.vendedorCompromete === 'S' ? `Período de restrição: ${verificarValor(dados.periodo)}` : ''
+        ]);
+
+        // Seção 10: Rescisão e Penalidades
+        addSection("10. Rescisão e Penalidades", [
+            "Art. 474 – A cláusula resolutiva expressa opera de pleno direito; a tácita depende de interpelação judicial.",
+            "Art. 476 – Nos contratos bilaterais, nenhum dos contratantes pode exigir o cumprimento da obrigação do outro antes de cumprir a sua.",
+            "Art. 418 – Se a cláusula penal for estipulada para o caso de inadimplemento total da obrigação, o credor pode exigir a pena, ou o cumprimento da obrigação, nos termos do disposto no capítulo das obrigações.",
             `Condições para rescisão do contrato por qualquer das partes: ${verificarValor(dados.condicoesRescisao)}`,
             `Multas ou penalidades em caso de descumprimento de cláusulas contratuais: ${verificarValor(dados.multasPenalidades)}`,
             `Prazo para notificação prévia em caso de rescisão: ${verificarValor(dados.prazo)}`
         ]);
 
-        // Seção 9: Declarações das Partes
-        addSection("9. Declarações das Partes", [
-            "Art. 112 do Código Civil: Nas declarações de vontade se atenderá mais à intenção nelas consubstanciada do que ao sentido literal da linguagem.",
-            `O vendedor declara ser o legítimo proprietário do veículo e que este não possui pendências não informadas no contrato: ${verificarValor(dados.vendedorDeclaracao)}`,
-            `O comprador declara ter ciência do estado de conservação e funcionamento do veículo, assumindo a compra em caráter "como está", salvo garantias especificadas: ${verificarValor(dados.compradorDeclaracao)}`
-        ]);
-
-        // Seção 10: Cláusula Especial para Veículo Alienado (Financiado)
-        addSection("10. Cláusula Especial para Veículo Alienado (Financiado)", [
-            "Art. 1361 do Código Civil: Considera-se fiduciária a propriedade resolúvel de coisa móvel infungível que o devedor, com a posse direta, transfere ao credor, como garantia de dívida.",
-            "Notificação da Alienação: O vendedor deve informar explicitamente ao comprador sobre a existência da alienação fiduciária ou reserva de propriedade sobre o veículo.",
-            "Transferência de Propriedade Condicional: A propriedade do veículo é transferida ao comprador, mas condicionada ao cumprimento das obrigações financeiras acordadas com a instituição financeira.",
-            "Direitos e Obrigações: O comprador deve cumprir todas as obrigações relacionadas ao financiamento, incluindo pagamento das parcelas, manutenção do veículo e obtenção de seguro adequado.",
-            "Responsabilidade pela Quitação do Financiamento: O comprador é o responsável por quitar o financiamento junto à instituição financeira, e até que isso ocorra, a credora tem o direito de reaver o veículo.",
-            "Transferência de Propriedade Definitiva: A transferência definitiva ocorrerá somente após a quitação integral do financiamento e a emissão do Termo de Quitação de Financiamento (TQF)."
-        ]);
-
         // Seção 11: Disposições Gerais
         addSection("11. Disposições Gerais", [
-            "Art. 233 do Código Civil: A obrigação será cumprida no local onde foi estipulada, se nele estiver o credor, e, se em outro, quando aí o devedor tiver domicílio.",
+            "Art. 53 – Nos contratos de venda com reserva de domínio, considera - se rescindido de pleno direito o contrato se o comprador não pagar as prestações devidas.",
+            "Art. 585 – Os contratos assinados por duas testemunhas são títulos executivos extrajudiciais.",
+            "Art. 215 – O instrumento particular, feito e assinado por todos os que nele intervêm, prova as obrigações convencionadas.",
             `Foro eleito para resolução de conflitos: ${verificarValor(dados.foroResolucaoConflitos)}`,
-            `Necessidade de testemunhas para assinatura do contrato: ${verificarValor(dados.testemunhasNecessarias)}`,
-            `Nome da primeira testemunha: ${verificarValor(dados.nomeTest1)}`,
-            `CPF da primeira testemunha: ${verificarValor(dados.cpfTest1)}`,
-            `Nome da segunda testemunha: ${verificarValor(dados.nomeTest2)}`,
-            `CPF da segunda testemunha: ${verificarValor(dados.cpfTest2)}`,
+            `Necessidade de testemunhas para assinatura do contrato: ${verificarValor(dados.testemunhasNecessarias) === 'S' ? 'Sim' : 'Não'}`,
+            dados.testemunhasNecessarias === 'S' ? `Nome da primeira testemunha: ${verificarValor(dados.nomeTest1)}` : '',
+            dados.testemunhasNecessarias === 'S' ? `CPF da primeira testemunha: ${verificarValor(dados.cpfTest1)}` : '',
+            dados.testemunhasNecessarias === 'S' ? `Nome da segunda testemunha: ${verificarValor(dados.nomeTest2)}` : '',
+            dados.testemunhasNecessarias === 'S' ? `CPF da segunda testemunha: ${verificarValor(dados.cpfTest2)}` : '',
             `Local de assinatura do contrato: ${verificarValor(dados.local)}`,
             `Data de assinatura do contrato: ${verificarValor(dados.dataAssinatura)}`,
-            `O contrato será registrado em cartório como instrumento particular? ${verificarValor(dados.registroCartorio)}`
+            `O contrato será registrado em cartório? ${verificarValor(dados.registroCartorioTest) === 'S' ? 'Sim' : 'Não'}`
         ]);
+
         // Espaço para assinatura do vendedor
         checkPageBreak(30);
         doc.text("__________________________________________", marginX, posY);
@@ -659,12 +682,13 @@ export default function CompraVendaVeiculo() {
     };
 
     useEffect(() => {
-        geradorCompraEVendaVeiculo({ ...formData });
+        geradorCompraVendaTrespassePdf({ ...formData });
     }, [formData]);
+
     return (
         <>
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">Contrato de Compra e Venda de Veículo</h1>
+                <h1 className="title">Contrato de Compra e Venda de Estabelecimento Comercial (Trespasse)</h1>
             </div>
             <div className="container">
                 <div className="left-panel">
@@ -672,7 +696,7 @@ export default function CompraVendaVeiculo() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 89) * 100}%` }}
+                                style={{ width: `${(step / 91) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
@@ -1088,13 +1112,13 @@ export default function CompraVendaVeiculo() {
 
                             {step === 25 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Descrição do Estabelecimento Comercial</h2>
                                     <div>
-                                        <label>Tipo de veículo (carro, moto, caminhão, etc.)</label>
+                                        <label>Nome fantasia</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="tipoveiculo"
+                                            name="nomeFantasia"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1105,13 +1129,13 @@ export default function CompraVendaVeiculo() {
 
                             {step === 26 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Descrição do Estabelecimento Comercial</h2>
                                     <div>
-                                        <label>Marca do veículo</label>
+                                        <label>Razão Social</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="marca"
+                                            name="razaoSocialComercial"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1122,13 +1146,13 @@ export default function CompraVendaVeiculo() {
 
                             {step === 27 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Descrição do Estabelecimento Comercial</h2>
                                     <div>
-                                        <label>Modelo do veículo</label>
+                                        <label>Endereço completo</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="modelo"
+                                            name="endereco"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1139,13 +1163,13 @@ export default function CompraVendaVeiculo() {
 
                             {step === 28 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Descrição do Estabelecimento Comercial</h2>
                                     <div>
-                                        <label>Ano de fabricação do veículo</label>
+                                        <label>Atividade principal exercida</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="anoFabricacao"
+                                            name="atividadePrincipal"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1156,13 +1180,13 @@ export default function CompraVendaVeiculo() {
 
                             {step === 29 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Descrição do Estabelecimento Comercial</h2>
                                     <div>
-                                        <label>Ano do modelo do veículo</label>
+                                        <label>Registro na Junta Comercial</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="anoModelo"
+                                            name="registroJuntaComercial"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1173,13 +1197,19 @@ export default function CompraVendaVeiculo() {
 
                             {step === 30 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Descrição do Estabelecimento Comercial</h2>
                                     <div>
-                                        <label>Cor do veículo</label>
+                                        <label>Licenças e alvarás necessários para operação</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="cor"
+                                            placeholder='Licença'
+                                            name="licenca"
+                                            onChange={handleChange}
+                                        />
+                                        <input
+                                            type='text'
+                                            placeholder='Alvará'
+                                            name="alvara"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1190,13 +1220,14 @@ export default function CompraVendaVeiculo() {
 
                             {step === 31 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Componentes do Estabelecimento Incluídos na Venda</h2>
+                                    <i>Bens materiais</i>
                                     <div>
-                                        <label>Placa do veículo</label>
+                                        <label>Móveis</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="placa"
+                                            name="moveis"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1207,13 +1238,20 @@ export default function CompraVendaVeiculo() {
 
                             {step === 32 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Componentes do Estabelecimento Incluídos na Venda</h2>
+                                    <i>Bens materiais</i>
                                     <div>
-                                        <label>Chassi do veículo</label>
+                                        <label>Utensílios e Equipamentos</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="chassi"
+                                            placeholder='utensilios'
+                                            name="utensilios"
+                                            onChange={handleChange}
+                                        />
+                                        <input
+                                            type='text'
+                                            placeholder='equipamentos'
+                                            name="equipamentos"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1224,13 +1262,14 @@ export default function CompraVendaVeiculo() {
 
                             {step === 33 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Componentes do Estabelecimento Incluídos na Venda</h2>
+                                    <i>Bens materiais</i>
                                     <div>
-                                        <label>Renavam </label>
+                                        <label>Estoque de mercadorias</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="renavam"
+                                            name="estoque"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1241,13 +1280,14 @@ export default function CompraVendaVeiculo() {
 
                             {step === 34 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Componentes do Estabelecimento Incluídos na Venda</h2>
+                                    <i>Bens materiais</i>
                                     <div>
-                                        <label>Quilometragem atual </label>
+                                        <label>Veículos</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="quilometragemAtual"
+                                            name="veiculos"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1258,13 +1298,20 @@ export default function CompraVendaVeiculo() {
 
                             {step === 35 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Componentes do Estabelecimento Incluídos na Venda</h2>
+                                    <i>Bens imateriais</i>
                                     <div>
-                                        <label>Combustível (gasolina, diesel, flex, etc.) </label>
+                                        <label>Marcas e patentes</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="combustivel"
+                                            placeholder='Marcas'
+                                            name="marcas"
+                                            onChange={handleChange}
+                                        />
+                                        <input
+                                            type='text'
+                                            placeholder='Patentes'
+                                            name="patentes"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1275,13 +1322,14 @@ export default function CompraVendaVeiculo() {
 
                             {step === 36 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Componentes do Estabelecimento Incluídos na Venda</h2>
+                                    <i>Bens imateriais</i>
                                     <div>
-                                        <label>Número de portas (se aplicável) </label>
+                                        <label>Nome comercial</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="numeroPorta"
+                                            name="nomeComercial"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1292,75 +1340,70 @@ export default function CompraVendaVeiculo() {
 
                             {step === 37 && (
                                 <>
-                                    <h2>Identificação do Veículo</h2>
+                                    <h2>Componentes do Estabelecimento Incluídos na Venda</h2>
+                                    <i>Bens imateriais</i>
                                     <div>
-                                        <label>Veículo possui acessórios ou itens adicionais (ex.: som, películas, rodas especiais)? </label>
-                                        <select name='possuiAdicional' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
+                                        <label>Carteira de clientes</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="carteiras"
+                                            onChange={handleChange}
+                                        />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-                            {possuiAdicional && (
+                            {step === 38 && (
                                 <>
-                                    {step === 38 && (
-                                        <>
-                                            <h2>Identificação do Veículo</h2>
-                                            <div>
-                                                <label>Descreva em detalhes esses acessórios e itens adicionais</label>
-                                                <textarea
-                                                    id="descrevaAcessorio"
-                                                    name="descrevaAcessorio"
-                                                    onChange={handleChange}
-                                                    rows={10}
-                                                    cols={50}
-                                                    placeholder=""
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
+                                    <h2>Componentes do Estabelecimento Incluídos na Venda</h2>
+                                    <i>Bens imateriais</i>
+                                    <div>
+                                        <label>Contratos vigentes (ex.: fornecedores, locação)</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="contratosVigentes"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
                                 </>
                             )}
 
                             {step === 39 && (
                                 <>
-                                    <h2>Situação Legal do Veículo</h2>
+                                    <h2>Situação Legal e Financeira do Estabelecimento</h2>
                                     <div>
-                                        <label>O veículo possui débitos pendentes? </label>
-                                        <select name='debitoPendente' onChange={handleChange}>
+                                        <label>O estabelecimento possui dívidas ou ônus?</label>
+                                        <select name='onus' onChange={handleChange}>
                                             <option value="">Selecione</option>
                                             <option value="S">Sim</option>
                                             <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-                            {debitoPendente && (
+                            {onus && (
                                 <>
                                     {step === 40 && (
                                         <>
-                                            <h2>Identificação do Veículo</h2>
+                                            <h2>Situação Legal e Financeira do Estabelecimento</h2>
                                             <div>
-                                                <label>Descreva em detalhes essas pendências</label>
+                                                <label>Descreva essa dívida</label>
                                                 <textarea
-                                                    id="descrevaPendencia"
-                                                    name="descrevaPendencia"
+                                                    id="detalhesDivida"
+                                                    name="detalhesDivida"
                                                     onChange={handleChange}
                                                     rows={10}
                                                     cols={50}
-                                                    placeholder="ex.:IPVA,Multas,Taxa de licenciamento"
+                                                    placeholder=""
                                                 />
-                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1370,51 +1413,34 @@ export default function CompraVendaVeiculo() {
 
                             {step === 41 && (
                                 <>
-                                    <h2>Situação Legal do Veículo</h2>
+                                    <h2>Situação Legal e Financeira do Estabelecimento</h2>
                                     <div>
-                                        <label>O veículo está alienado ou financiado? </label>
-                                        <select name='veiculoAlienado' onChange={handleChange}>
+                                        <label>Existem ações judiciais em andamento relacionadas ao estabelecimento? </label>
+                                        <select name='acoesJudiciais' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="alienado">Alienado</option>
-                                            <option value="financiado">Financiado</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-                            {veiculoAlienado && (
+                            {acoesJudiciais && (
                                 <>
                                     {step === 42 && (
                                         <>
-                                            <h2>Situação Legal do Veículo</h2>
+                                            <h2>Situação Legal e Financeira do Estabelecimento</h2>
                                             <div>
-                                                <label>informar a instituição financeira</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="informarInst"
+                                                <label>Descreva essa ações judiciais</label>
+                                                <textarea
+                                                    id="detalhesAcao"
+                                                    name="detalhesAcao"
                                                     onChange={handleChange}
+                                                    rows={10}
+                                                    cols={50}
+                                                    placeholder=""
                                                 />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {step === 43 && (
-                                        <>
-                                            <h2>Situação Legal do Veículo</h2>
-                                            <div>
-                                                <label>Status do contrato de financiamento</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="statusdofinan"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
@@ -1422,18 +1448,31 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-
-                            {step === 44 && (
+                            {step === 43 && (
                                 <>
-                                    <h2>Situação Legal do Veículo</h2>
+                                    <h2>Situação Legal e Financeira do Estabelecimento</h2>
                                     <div>
-                                        <label>O veículo já foi objeto de sinistro, leilão ou recuperação estrutural? </label>
-                                        <select name='objetoSinistro' onChange={handleChange}>
+                                        <label>Os tributos estão regularizados? </label>
+                                        <select name='tributos' onChange={handleChange}>
                                             <option value="">Selecione</option>
                                             <option value="S">Sim</option>
                                             <option value="N">Não</option>
                                         </select>
-                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 44 && (
+                                <>
+                                    <h2>Situação Legal e Financeira do Estabelecimento</h2>
+                                    <div>
+                                        <label>Os funcionários possuem direitos trabalhistas pendentes? </label>
+                                        <select name='direitosTrabalhistas' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
@@ -1441,30 +1480,13 @@ export default function CompraVendaVeiculo() {
 
                             {step === 45 && (
                                 <>
-                                    <h2>Situação Legal do Veículo</h2>
+                                    <h2> Preço e Condições de Pagamento</h2>
                                     <div>
-                                        <label>Certidão de regularidade junto ao Detran foi emitida?</label>
-                                        <i>Apresentação do laudo cautelar (se aplicável)</i>
-                                        <select name='certidaoDetran' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 46 && (
-                                <>
-                                    <h2>Preço e Condições de Pagamento</h2>
-                                    <div>
-                                        <label>Valor total da venda </label>
+                                        <label>Valor total da venda</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="valorTotal"
+                                            name="valorTotalVenda"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1473,15 +1495,31 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
+                            {step === 46 && (
+                                <>
+                                    <h2> Preço e Condições de Pagamento</h2>
+                                    <div>
+                                        <label>Multa por atraso de pagamento</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="multaAtraso"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
 
                             {step === 47 && (
                                 <>
-                                    <h2>Preço e Condições de Pagamento</h2>
+                                    <h2> Preço e Condições de Pagamento</h2>
                                     <div>
-                                        <label>Pagamento à vista ou parcelado? </label>
+                                        <label>Forma de Pagamento</label>
                                         <select name='formaPagamento' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="Avista">A vista</option>
+                                            <option value="Avista">À vista</option>
                                             <option value="Parcelado">Parcelado</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
@@ -1492,9 +1530,9 @@ export default function CompraVendaVeiculo() {
 
                             {Parcelado && (
                                 <>
-                                    {step === 48 && (
+                                    {step === 46 && (
                                         <>
-                                            <h2>Preço e Condições de Pagamento</h2>
+                                            <h2> Preço e Condições de Pagamento</h2>
                                             <div>
                                                 <label>Número de parcelas</label>
                                                 <input
@@ -1508,15 +1546,16 @@ export default function CompraVendaVeiculo() {
                                             </div>
                                         </>
                                     )}
-                                    {step === 49 && (
+
+                                    {step === 47 && (
                                         <>
-                                            <h2>Preço e Condições de Pagamento</h2>
+                                            <h2> Preço e Condições de Pagamento</h2>
                                             <div>
-                                                <label>Valor das parcelas</label>
+                                                <label>Valor de parcelas</label>
                                                 <input
                                                     type='text'
                                                     placeholder=''
-                                                    name="valorParcela"
+                                                    name="valorParcelaVenda"
                                                     onChange={handleChange}
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
@@ -1525,13 +1564,13 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 50 && (
+                                    {step === 48 && (
                                         <>
-                                            <h2>Preço e Condições de Pagamento</h2>
+                                            <h2> Preço e Condições de Pagamento</h2>
                                             <div>
-                                                <label>Data de Vencimento</label>
+                                                <label>Data de pagamento das parcelas</label>
                                                 <input
-                                                    type='date'
+                                                    type='text'
                                                     placeholder=''
                                                     name="dataVenc"
                                                     onChange={handleChange}
@@ -1546,7 +1585,7 @@ export default function CompraVendaVeiculo() {
 
                             {Avista && (
                                 <>
-                                    {step === 51 && (
+                                    {step === 49 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1566,8 +1605,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-
-                            {step === 52 && (
+                            {step === 50 && (
                                 <>
                                     <h2>Preço e Condições de Pagamento</h2>
                                     <div>
@@ -1585,7 +1623,7 @@ export default function CompraVendaVeiculo() {
 
                             {sinal && (
                                 <>
-                                    {step === 53 && (
+                                    {step === 51 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1602,7 +1640,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 54 && (
+                                    {step === 52 && (
                                         <>
                                             <h2>Preço e Condições de Pagamento</h2>
                                             <div>
@@ -1621,15 +1659,49 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 55 && (
+                            {step === 53 && (
                                 <>
-                                    <h2>Prazos e Entrega</h2>
+                                    <h2>Preço e Condições de Pagamento</h2>
                                     <div>
-                                        <label>Data de entrega do veículo ao comprador</label>
+                                        <label>Conta bancária para recebimento dos valores</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="contaBancaria"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 54 && (
+                                <>
+                                    <h2>Prazo e Transferências</h2>
+                                    <div>
+                                        <label>Data prevista para a assinatura do contrato</label>
                                         <input
                                             type='date'
                                             placeholder=''
-                                            name="dataParaEntrega"
+                                            name="dataPrevista"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 55 && (
+                                <>
+                                    <h2>Prazo e Transferências</h2>
+                                    <div>
+                                        <label>Data de transferência efetiva do estabelecimento ao comprador</label>
+                                        <input
+                                            type='date'
+                                            placeholder=''
+                                            name="dataTransfer"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1640,29 +1712,13 @@ export default function CompraVendaVeiculo() {
 
                             {step === 56 && (
                                 <>
-                                    <h2>Prazos e Entrega</h2>
+                                    <h2>Prazo e Transferências</h2>
                                     <div>
-                                        <label>O veículo será entregue com o tanque cheio?  </label>
-                                        <select name='tanque' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 57 && (
-                                <>
-                                    <h2>Prazos e Entrega</h2>
-                                    <div>
-                                        <label>Data prevista para transferência de titularidade junto ao Detran</label>
+                                        <label>Procedimentos para transferência de propriedade junto aos órgãos competentes</label>
                                         <input
                                             type='date'
                                             placeholder=''
-                                            name="dataTitularidade"
+                                            name="procedimentos"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1671,24 +1727,8 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 58 && (
-                                <>
-                                    <h2>Prazos e Entrega</h2>
-                                    <div>
-                                        <label>Responsabilidade pelas despesas de transferência (custas, taxas do Detran)</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="responsabilidade"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
 
-                            {step === 59 && (
+                            {step === 57 && (
                                 <>
                                     <h2>Garantias</h2>
                                     <div>
@@ -1706,7 +1746,7 @@ export default function CompraVendaVeiculo() {
 
                             {garantia && (
                                 <>
-                                    {step === 60 && (
+                                    {step === 58 && (
                                         <>
                                             <h2>Garantias</h2>
                                             <div>
@@ -1724,7 +1764,7 @@ export default function CompraVendaVeiculo() {
                                             </div>
                                         </>
                                     )}
-                                    {step === 61 && (
+                                    {step === 59 && (
                                         <>
                                             <h2>Garantias</h2>
                                             <div>
@@ -1747,7 +1787,7 @@ export default function CompraVendaVeiculo() {
 
                             {fiador && (
                                 <>
-                                    {step === 62 && (
+                                    {step === 60 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1765,7 +1805,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 63 && (
+                                    {step === 61 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1774,7 +1814,7 @@ export default function CompraVendaVeiculo() {
                                                     <input
                                                         type='text'
                                                         placeholder=''
-                                                        name="nomeFiador1"
+                                                        name="nomeFiador"
                                                         onChange={handleChange}
                                                     />
                                                     <button onClick={handleBack}>Voltar</button>
@@ -1784,13 +1824,13 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 64 && (
+                                    {step === 62 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
                                                 <label>Estado Cívil</label>
                                                 <div>
-                                                    <select name='sexoFiador' onChange={handleChange}>
+                                                    <select name='estadoCivilFiador' onChange={handleChange}>
                                                         <option value="">Selecione</option>
                                                         <option value="casado">Casado(a)</option>
                                                         <option value="solteiro">Solteiro(a)</option>
@@ -1804,7 +1844,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 65 && (
+                                    {step === 63 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1823,7 +1863,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 66 && (
+                                    {step === 64 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1842,7 +1882,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 67 && (
+                                    {step === 65 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1862,7 +1902,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 68 && (
+                                    {step === 66 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1881,7 +1921,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 69 && (
+                                    {step === 67 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1900,7 +1940,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 70 && (
+                                    {step === 68 && (
                                         <>
                                             <h2>Dados do Fiador</h2>
                                             <div>
@@ -1924,7 +1964,7 @@ export default function CompraVendaVeiculo() {
 
                             {caucaoDep && (
                                 <>
-                                    {step === 71 && (
+                                    {step === 69 && (
                                         <>
                                             <h2>Dados do Titulo do Caução</h2>
                                             <div>
@@ -1950,7 +1990,7 @@ export default function CompraVendaVeiculo() {
 
                             {caucaoBemIM && (
                                 <>
-                                    {step === 72 && (
+                                    {step === 70 && (
                                         <>
                                             <h2>Dados do Caução de imóvel</h2>
                                             <div>
@@ -1973,7 +2013,7 @@ export default function CompraVendaVeiculo() {
 
                             {titulos && (
                                 <>
-                                    {step === 73 && (
+                                    {step === 71 && (
                                         <>
                                             <h2>Dados do Título de Credito</h2>
                                             <div>
@@ -1996,7 +2036,7 @@ export default function CompraVendaVeiculo() {
 
                             {seguroFi && (
                                 <>
-                                    {step === 74 && (
+                                    {step === 72 && (
                                         <>
                                             <h2>Dados do Seguro Fiança</h2>
                                             <div>
@@ -2018,8 +2058,109 @@ export default function CompraVendaVeiculo() {
                             )}
 
 
+                            {step === 73 && (
+                                <>
+                                    <h2>Responsabilidade por Dívidas Anteriores </h2>
+                                    <div>
+                                        <label>As partes acordam sobre a responsabilidade por dívidas anteriores à transferência? </label>
+                                        <select name='dividasAnteriores' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 74 && (
+                                <>
+                                    <h2>Responsabilidade por Dívidas Anteriores </h2>
+                                    <div>
+                                        <label>O comprador assumirá as dívidas existentes?</label>
+                                        <select name='compradorAssume' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
 
                             {step === 75 && (
+                                <>
+                                    <h2>Responsabilidade por Dívidas Anteriores </h2>
+                                    <div>
+                                        <label>Haverá responsabilidade solidária entre vendedor e comprador? </label>
+                                        <select name='responsaSolidaria' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 76 && (
+                                <>
+                                    <h2>Cláusula de Não Concorrência </h2>
+                                    <div>
+                                        <label>O vendedor se compromete a não exercer atividade concorrente em determinada área geográfica e por um período específico? </label>
+                                        <select name='vendedorCompromete' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {vendedorCompromete && (
+                                <>
+                                    {step === 77 && (
+                                        <>
+                                            <h2>Situação Legal e Financeira do Estabelecimento</h2>
+                                            <div>
+                                                <label>Especificar área</label>
+                                                <textarea
+                                                    id="area"
+                                                    name="area"
+                                                    onChange={handleChange}
+                                                    rows={10}
+                                                    cols={50}
+                                                    placeholder=""
+                                                />
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 78 && (
+                                        <>
+                                            <h2>Situação Legal e Financeira do Estabelecimento</h2>
+                                            <div>
+                                                <label>Especificar período</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="periodo"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+
+                            {step === 79 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -2038,7 +2179,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 76 && (
+                            {step === 80 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -2057,7 +2198,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 77 && (
+                            {step === 81 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -2076,7 +2217,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 78 && (
+                            {step === 82 && (
                                 <>
                                     <h2>Rescisão do Contrato</h2>
                                     <div>
@@ -2108,44 +2249,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 79 && (
-                                <>
-                                    <h2>Declarações das Partes</h2>
-                                    <div>
-                                        <label>O vendedor declara ser o legítimo proprietário do veículo e que este não possui pendências não informadas no contrato</label>
-                                        <div>
-                                            <select name='vendedorDeclaracao' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="concordo">Sim, o vendedor concorda.</option>
-                                                <option value="discordo">Não, o vendedor discorda</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 80 && (
-                                <>
-                                    <h2>Declarações das Partes</h2>
-                                    <div>
-                                        <label>O comprador declara ter ciência do estado de conservação e funcionamento do veículo, assumindo a compra em caráter `como está`, salvo garantias especificadas</label>
-                                        <div>
-                                            <select name='compradorDeclaracao' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="concordo">Sim, o comprador concorda.</option>
-                                                <option value="discordo">Não, o comprador discorda</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-
-                            {step === 81 && (
+                            {step === 83 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2162,7 +2266,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 82 && (
+                            {step === 84 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2181,7 +2285,7 @@ export default function CompraVendaVeiculo() {
 
                             {Testemunhas && (
                                 <>
-                                    {step === 83 && (
+                                    {step === 85 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2200,7 +2304,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 84 && (
+                                    {step === 86 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2219,7 +2323,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 85 && (
+                                    {step === 87 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2239,7 +2343,7 @@ export default function CompraVendaVeiculo() {
                                         </>
                                     )}
 
-                                    {step === 86 && (
+                                    {step === 88 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -2260,7 +2364,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 87 && (
+                            {step === 89 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2278,7 +2382,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 88 && (
+                            {step === 90 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2296,7 +2400,7 @@ export default function CompraVendaVeiculo() {
                                     </div>
                                 </>
                             )}
-                            {step === 89 && (
+                            {step === 91 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -2315,7 +2419,7 @@ export default function CompraVendaVeiculo() {
                                 </>
                             )}
 
-                            {step === 90 && (
+                            {step === 92 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -2333,10 +2437,10 @@ export default function CompraVendaVeiculo() {
                                     </button>
                                 </>
                             )}
-
                         </div>
                     </div>
                 </div>
+
                 <div className="right-panel">
                     <div className="pdf-preview">
                         {pdfDataUrl && (
@@ -2353,6 +2457,7 @@ export default function CompraVendaVeiculo() {
                     </div>
                 </div>
             </div>
+
             {modalPagamento && (
                 <>
                     <div className="modalPag">
@@ -2379,7 +2484,7 @@ export default function CompraVendaVeiculo() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorCompraEVendaVeiculoPago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorCompraVendaTrespassePago(formData) }}>
                         Baixar PDF
                     </button>
                 ) : (
