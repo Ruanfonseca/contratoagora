@@ -4,33 +4,39 @@ import jsPDF from "jspdf";
 export default function gerarContratoLocacaoBemMovelPago(dados: any) {
     const doc = new jsPDF();
 
-    // Configuração inicial de fonte e margens
     const marginX = 10;
-    const pageWidth = 190; // Largura máxima da área de texto
     let posY = 20;
+    const maxPageHeight = 280;
+    const maxTextWidth = 190;
 
-    // Função auxiliar para adicionar cláusulas e ajustar a posição Y
-    const addClause = (title: string, content: string[]) => {
-        if (posY + 10 >= 280) {
+    const checkPageBreak = (additionalHeight: any) => {
+        if (posY + additionalHeight >= maxPageHeight) {
             doc.addPage();
             posY = 20;
         }
+    };
+
+    const addClause = (title: any, content: any) => {
+        const titleHeight = 15;
+        const lineHeight = 10;
+
+        checkPageBreak(titleHeight);
         doc.setFontSize(12);
         doc.text(title, 105, posY, { align: "center" });
-        posY += 10;
+        posY += titleHeight;
+
         doc.setFontSize(10);
-        content.forEach((line) => {
-            const wrappedText = doc.splitTextToSize(line, pageWidth);
-            wrappedText.forEach((textLine: string) => {
-                if (posY + 10 >= 280) {
-                    doc.addPage();
-                    posY = 20;
-                }
-                doc.text(textLine, marginX, posY);
-                posY += 10; // Espaçamento entre as linhas
+        content.forEach((line: any) => {
+            const splitLines = doc.splitTextToSize(line, maxTextWidth);
+            splitLines.forEach((splitLine: any) => {
+                checkPageBreak(lineHeight);
+                doc.text(splitLine, marginX, posY);
+                posY += lineHeight;
             });
         });
     };
+
+
     // Página 1 - Título
     doc.setFontSize(14);
     doc.text("CONTRATO DE LOCAÇÃO DE BENS MÓVEIS", 105, posY, { align: "center" });
@@ -151,35 +157,33 @@ export default function gerarContratoLocacaoBemMovelPago(dados: any) {
         "Art. 219: O instrumento particular, feito e assinado ou somente assinado por quem esteja obrigado, \nfaz prova contra o seu signatário.",
     ]);
 
-    // Assinaturas
-    if (posY + 40 >= 280) {
-        doc.addPage();
-        posY = 20;
-    }
-    posY += 20; // Espaço antes da área de assinatura
+    // Espaço para assinatura do vendedor
+    checkPageBreak(30);
+    doc.text("__________________________________________", marginX, posY);
+    posY += 10;
+    doc.text("Assinatura do Locador", marginX, posY);
+    posY += 15;
 
-    // Espaço para assinatura do Locador
-    doc.setFontSize(10);
-    doc.text("__________________________", 60, posY);
-    doc.text("Assinatura do LOCADOR", 60, posY + 5);
+    // Espaço para assinatura do comprador
+    checkPageBreak(10);
+    doc.text("__________________________________________", marginX, posY);
+    posY += 10;
+    doc.text("Assinatura do Locatário", marginX, posY);
+    posY += 15;
 
-    // Espaço para assinatura do Locatário
-    doc.text("__________________________", 140, posY);
-    doc.text("Assinatura do LOCATÁRIO", 140, posY + 5);
+    // Verifica se há testemunhas e adiciona os espaços para assinatura
+    if (dados.testemunhasNecessarias === 'S') {
+        checkPageBreak(30);
+        doc.text("__________________________________________", marginX, posY);
+        posY += 10;
+        doc.text(`Assinatura da Testemunha 1: ${verificarValor(dados.nomeTest1)}`, marginX, posY);
+        posY += 15;
 
-    posY += 30; // Espaço para testemunhas, se existirem
-
-    // Espaços para testemunhas, caso necessário
-    if (verificarValor(dados.testemunhasNecessarias) === "Sim") {
-        // Testemunha 1
-        doc.text("__________________________", 60, posY);
-        doc.text(`Testemunha 1: ${verificarValor(dados.nomeTest1)}`, 60, posY + 5);
-        doc.text(`CPF: ${verificarValor(dados.cpfTest1)}`, 60, posY + 10);
-
-        // Testemunha 2
-        doc.text("__________________________", 140, posY);
-        doc.text(`Testemunha 2: ${verificarValor(dados.nomeTest2)}`, 140, posY + 5);
-        doc.text(`CPF: ${verificarValor(dados.cpfTest2)}`, 140, posY + 10);
+        checkPageBreak(30);
+        doc.text("__________________________________________", marginX, posY);
+        posY += 10;
+        doc.text(`Assinatura da Testemunha 2: ${verificarValor(dados.nomeTest2)}`, marginX, posY);
+        posY += 15;
     }
 
     // Salvar o PDF

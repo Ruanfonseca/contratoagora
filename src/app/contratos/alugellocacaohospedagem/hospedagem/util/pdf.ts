@@ -1,4 +1,4 @@
-import { verificarValor, verificarValorEspecial } from "@/lib/utils";
+import { verificarValor } from "@/lib/utils";
 import jsPDF from "jspdf";
 
 
@@ -137,38 +137,37 @@ export default function gerarContratoHospedagem(dados: any) {
         `Testemunhas: ${verificarValor(dados.duastestemunhas) === "S" ? `1. ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}; 2. ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}` : "Não há testemunhas."}`,
     ]);
 
-    doc.text("Locador:", marginX, posY);
+    // Espaço para assinatura do vendedor
+    checkPageBreak(30);
+    doc.text("__________________________________________", marginX, posY);
     posY += 10;
-    doc.text("_______________________________", marginX, posY);
-    posY += 5;
-    doc.text(`${verificarValorEspecial(dados.locador) === "pf" ? verificarValorEspecial(dados.nomeLocador) : verificarValorEspecial(dados.razaoSocial)}`, marginX, posY);
+    doc.text("Assinatura do Locador", marginX, posY);
     posY += 15;
 
-    doc.text("Locatário:", marginX, posY);
+    // Espaço para assinatura do comprador
+    checkPageBreak(10);
+    doc.text("__________________________________________", marginX, posY);
     posY += 10;
-    doc.text("_______________________________", marginX, posY);
-    posY += 5;
-    doc.text(`${verificarValorEspecial(dados.locatario) === "pf" ? verificarValorEspecial(dados.nomelocatario) : verificarValorEspecial(dados.razaoSociallocatario)}`, marginX, posY);
+    doc.text("Assinatura do Locatário", marginX, posY);
     posY += 15;
 
-    if (dados.testemunhas === "S") {
-        addSection("TESTEMUNHAS", [
-            "As testemunhas abaixo assinam para validar este contrato."
-        ]);
-
-        doc.text("Testemunha 1:", marginX, posY);
+    // Verifica se há testemunhas e adiciona os espaços para assinatura
+    if (dados.testemunhasNecessarias === 'S') {
+        checkPageBreak(30);
+        doc.text("__________________________________________", marginX, posY);
         posY += 10;
-        doc.text("_______________________________", marginX, posY);
-        posY += 5;
-        doc.text(`${verificarValorEspecial(dados.nomeTest1)} - CPF: ${verificarValorEspecial(dados.cpfTest1)}`, marginX, posY);
+        doc.text(`Assinatura da Testemunha 1: ${verificarValor(dados.nomeTest1)}`, marginX, posY);
         posY += 15;
 
-        doc.text("Testemunha 2:", marginX, posY);
+        checkPageBreak(30);
+        doc.text("__________________________________________", marginX, posY);
         posY += 10;
-        doc.text("_______________________________", marginX, posY);
-        posY += 5;
-        doc.text(`${verificarValorEspecial(dados.nomeTest2)} - CPF: ${verificarValorEspecial(dados.cpfTest2)}`, marginX, posY);
+        doc.text(`Assinatura da Testemunha 2: ${verificarValor(dados.nomeTest2)}`, marginX, posY);
+        posY += 15;
     }
+
+
+
 
 
     // Salvar o PDF
