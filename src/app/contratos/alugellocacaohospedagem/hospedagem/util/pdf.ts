@@ -1,143 +1,176 @@
-import { formatarData } from "@/lib/utils";
+import { verificarValor, verificarValorEspecial } from "@/lib/utils";
 import jsPDF from "jspdf";
 
 
-export default function gerarContratoHospedagem(data: any) {
+export default function gerarContratoHospedagem(dados: any) {
     const doc = new jsPDF();
 
-    const obterValorOuVazio = (valor: any) =>
-        valor === undefined || valor === null || valor === "" ? "   " : valor;
+    const marginX = 10;
+    let posY = 20;
+    const maxPageHeight = 280;
+    const maxTextWidth = 190;
 
-    // Título
-    doc.setFont("Helvetica", "bold");
+    const checkPageBreak = (additionalHeight: any) => {
+        if (posY + additionalHeight >= maxPageHeight) {
+            doc.addPage();
+            posY = 20;
+        }
+    };
+
+    const addSection = (title: any, content: any) => {
+        const titleHeight = 15;
+        const lineHeight = 10;
+
+        checkPageBreak(titleHeight);
+        doc.setFontSize(12);
+        doc.text(title, 105, posY, { align: "center" });
+        posY += titleHeight;
+
+        doc.setFontSize(10);
+        content.forEach((line: any) => {
+            const splitLines = doc.splitTextToSize(line, maxTextWidth);
+            splitLines.forEach((splitLine: any) => {
+                checkPageBreak(lineHeight);
+                doc.text(splitLine, marginX, posY);
+                posY += lineHeight;
+            });
+        });
+    };
+
     doc.setFontSize(14);
-    doc.text("CONTRATO DE LOCAÇÃO DE IMÓVEL PARA HOSPEDAGEM", 105, 20, { align: "center" });
+    doc.text("CONTRATO DE HOSPEDAGEM", 105, posY, { align: "center" });
+    posY += 15;
 
-    // Introdução
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(12);
-    doc.text(
-        "Pelo presente instrumento particular, as partes abaixo qualificadas ajustam o presente Contrato de Locação de Imóvel, " +
-        "que será regido pelas cláusulas e condições descritas a seguir, em conformidade com a legislação brasileira.",
-        10,
-        30,
-        { maxWidth: 190 }
-    );
+    addSection("CLÁUSULA 1 - IDENTIFICAÇÃO DAS PARTES", [
+        "Conforme o artigo 2º da Lei 8.245/1990, o locador é aquele que cede o uso do imóvel mediante remuneração e o locatário é aquele que recebe o imóvel para uso, sendo necessário constar seus dados de identificação no contrato.",
+        `Locador: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.nomeLocador) : verificarValor(dados.razaoSocialLocador)}`,
+        `CPF/CNPJ: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.cpfLocador) : verificarValor(dados.cnpjLocador)}`,
+        `Endereço: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.enderecoLocador) : verificarValor(dados.enderecoLocadora)}`,
+        `Telefone: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.telefoneLocador) : verificarValor(dados.telefoneLocadora)}`,
+        `E-mail: ${verificarValor(dados.locador) === "pf" ? verificarValor(dados.emailLocador) : verificarValor(dados.emailLocadora)}`,
+        verificarValor(dados.locador) === "pj" ? `Representante Legal: ${verificarValor(dados.nomeumlocador)}, CPF: ${verificarValor(dados.cpfDaPessoaHabilitada)}` : "",
+        "",
+        `Locatário: ${verificarValor(dados.hospede) === "pf" ? verificarValor(dados.nomeHospede) : verificarValor(dados.razaoSocialHospede)}`,
+        `CPF/CNPJ: ${verificarValor(dados.hospede) === "pf" ? verificarValor(dados.cpfHospede) : verificarValor(dados.cnpjHospede)}`,
+        `Endereço: ${verificarValor(dados.hospede) === "pf" ? verificarValor(dados.enderecoHospede) : verificarValor(dados.enderecoHospedeiro)}`,
+        `Telefone: ${verificarValor(dados.hospede) === "pf" ? verificarValor(dados.telefoneHospede) : verificarValor(dados.telefoneHospedeiro)}`,
+        `E-mail: ${verificarValor(dados.hospede) === "pf" ? verificarValor(dados.emailHospede) : verificarValor(dados.emailHospedeiro)}`,
+        verificarValor(dados.hospede) === "pj" ? `Representante Legal: ${verificarValor(dados.nomeumHospede)}, CPF: ${verificarValor(dados.cpfDaPessoaHabilitadaHospede)}` : "",
+    ]);
 
-    // Identificação das Partes
-    doc.text("IDENTIFICAÇÃO DAS PARTES", 10, 50);
-    if (data.locador === 'pf') {
-        doc.text(`Locador: ${obterValorOuVazio(data.nomeLocador)}, ${obterValorOuVazio(data.estadoCivilLocador)},
-                 ${obterValorOuVazio(data.nacionalidadeLocador)}, ${obterValorOuVazio(data.profissaoLocador)}, portador do(a) ${obterValorOuVazio(data.docidentLocador)} 
-                 nº ${obterValorOuVazio(data.numeroDocLocador)}, CPF nº ${obterValorOuVazio(data.cpfLocador)}, residente em ${obterValorOuVazio(data.enderecoLocador)}.`, 10, 60, { maxWidth: 190 });
-    } else {
-        doc.text(`Locador: ${obterValorOuVazio(data.razaoSocialLocador)}, CNPJ nº ${obterValorOuVazio(data.cnpjLocador)}, com sede em ${obterValorOuVazio(data.enderecoLocadora)}.`, 10, 60, { maxWidth: 190 });
-    }
+    addSection("CLÁUSULA 2 - DESCRIÇÃO DA HOSPEDAGEM", [
+        "Art. 421: Reafirma que os contratos devem ser interpretados conforme a boa-fé e os usos do lugar de sua celebração, o que implica na necessidade de descrição clara e precisa do objeto (no caso, o imóvel/hospedagem)",
+        "Art. 104(indiretamente): Ao exigir que o objeto do contrato seja lícito e determinado, reforça a importância de descrever com exatidão as características do imóvel.",
+        `Tipo de Imóvel: ${verificarValor(dados.tipoDeImovel)}`,
+        `Endereço do Imóvel: ${verificarValor(dados.enderecoImovel)}`,
+        `Descrição do Imóvel: ${verificarValor(dados.descImovel)}`,
+        `Quantidade de Pessoas Autorizadas: ${verificarValor(dados.qtdPessoasAutorizadas)}`,
+        `Valor da Multa por Pessoa Excedente: ${verificarValor(dados.valorMultaPesExcendente)}`,
+        `Regras Específicas para Hóspedes: ${verificarValor(dados.regrasExpeHospedes) === "S" ? verificarValor(dados.descRegrasHospedes) : "Não há regras específicas."}`,
+        `Imóvel Mobiliado: ${verificarValor(dados.imovelMobiliado) === "S" ? "Sim" : "Não"}`,
+    ]);
 
-    if (data.hospede === 'pf') {
-        doc.text(`Hóspede: ${obterValorOuVazio(data.nomeHospede)}, ${obterValorOuVazio(data.estadoCivilHospede)}, ${obterValorOuVazio(data.nacionalidadeHospede)},
-                     ${obterValorOuVazio(data.profissaoHospede)}, portador do(a) ${obterValorOuVazio(data.docidentHospede)} nº ${obterValorOuVazio(data.numeroDocHospede)}, 
-                     CPF nº ${obterValorOuVazio(data.cpfHospede)}, residente em ${obterValorOuVazio(data.enderecoHospede)}.`, 10, 80, { maxWidth: 190 });
-    } else {
-        doc.text(`Hóspede: ${obterValorOuVazio(data.razaoSocialHospede)}, CNPJ nº ${obterValorOuVazio(data.cnpjHospede)}, com sede em ${obterValorOuVazio(data.enderecoHospedeiro)}.`, 10, 80, { maxWidth: 190 });
-    }
+    addSection("CLÁUSULA 3 - DATA DE CHECK-IN", [
+        "Art. 421: Novamente, o princípio da autonomia da vontade e da boa-fé nas relações contratuais assegura que os prazos e condições estabelecidos sejam cumpridos de forma leal",
+        "Art. 476: Em contratos bilaterais, nenhuma das partes pode exigir o cumprimento da obrigação da outra sem cumprir a sua própria, destacando a importância de estabelecer datas e prazos claros para o início da hospedagem.",
+        `Data de Início da Hospedagem: ${verificarValor(dados.dataDeInicioHospedagem)}`,
+        `Duração da Hospedagem: ${verificarValor(dados.qtdDiasouMeses)} ${verificarValor(dados.duracaoDiasouMeses)}`,
+    ]);
 
-    // Objeto do Contrato
-    doc.text("OBJETO DO CONTRATO", 10, 100);
-    doc.text(
-        `O presente contrato tem como objeto a locação do imóvel 
-                ${obterValorOuVazio(data.tipoDeImovel) === 'cs' ? 'Casa' : obterValorOuVazio(data.tipoDeImovel) === 'flat' ? 'Flat' : 'Outro'}, 
-                localizado em ${obterValorOuVazio(data.enderecoImovel)}, conforme descrito: ${obterValorOuVazio(data.descImovel)}.`,
-        10,
-        110,
-        { maxWidth: 190 }
-    );
+    addSection("CLÁUSULA 4 - PREÇO E FORMA DE PAGAMENTO", [
+        "Art. 421 e Art. 422: Fundamentam a liberdade contratual e o dever de transparência, imprescindíveis na definição de valores e formas de pagamento",
+        "Art. 475: Trata das consequências do inadimplemento, permitindo que, em caso de descumprimento das obrigações de pagamento, a parte prejudicada possa buscar a resolução do contrato ou indenização",
+        `Valor da Hospedagem: ${verificarValor(dados.valordahospedagem)}`,
+        `Forma de Cobrança: ${verificarValor(dados.cobrancaHospedagem)}`,
+        `Forma de Pagamento: ${verificarValor(dados.formaDePagamento)}`,
+        `Pagamento Antecipado: ${verificarValor(dados.antecipaPagReserva) === "S" ? `Sim, no valor de ${verificarValor(dados.valorAntecipa)}` : "Não"}`,
+        `Multa por Desistência: ${verificarValor(dados.cobrancaMulta) === "S" ? verificarValor(dados.multaDesistencia) : "Não há multa por desistência."}`,
+    ]);
 
-    // Vedação à Sublocação e Empréstimo
-    doc.text("VEDAÇÃO À SUBLOCAÇÃO E EMPRÉSTIMO", 10, 130);
-    doc.text(
-        `Fica expressamente vedada a sublocação ou empréstimo do imóvel, salvo com autorização expressa e por escrito do Locador.`,
-        10,
-        140,
-        { maxWidth: 190 }
-    );
+    addSection("CLÁUSULA 5 - POLÍTICAS DE CANCELAMENTO", [
+        "Art. 474: Prevê a eficácia da cláusula resolutiva expressa, ou seja, as condições estipuladas para a rescisão do contrato operam de pleno direito quando configuradas",
+        "Art. 475: Permite a resolução contratual em caso de inadimplemento, bem como a cobrança de perdas e danos, embasando a previsão de multas em caso de cancelamento",
+        `Multa por Cancelamento: ${verificarValor(dados.multaPorDescDeContrato) === "S" ? verificarValor(dados.valorMultaDesc) : "Não há multa por cancelamento."}`,
+        `Multa por Rompimento do Contrato: ${verificarValor(dados.multaPorRompimento) === "S" ? verificarValor(dados.valorMultaRompimento) : "Não há multa por rompimento."}`,
+    ]);
 
-    // Valor e Condições de Pagamento
-    doc.text("VALOR E CONDIÇÕES DE PAGAMENTO", 10, 160);
-    doc.text(
-        `O valor da hospedagem será de R$ ${obterValorOuVazio(data.valordahospedagem)} 
-                por ${obterValorOuVazio(data.cobrancaHospedagem) === 'd' ? 'dia' : obterValorOuVazio(data.cobrancaHospedagem) === 'mes' ? 'mês' : 'outra frequência'}.`,
-        10,
-        170,
-        { maxWidth: 190 }
-    );
-    if (data.antecipaPagReserva === 'S') {
-        doc.text(`Foi paga uma antecipação de R$ ${obterValorOuVazio(data.valorAntecipa)} como reserva.`, 10, 180, { maxWidth: 190 });
-    }
+    addSection("CLÁUSULA 6 - REGRAS DA PROPRIEDADE", [
+        "Art. 421: Estabelece que os contratos devem ser interpretados conforme a boa-fé, o que abrange as regras de uso e conservação do imóvel",
+        "Art. 927: Versa sobre a obrigação de reparar o dano, sendo aplicável à eventual violação das regras de uso e responsabilidade pela conservação do imóvel.",
+        `Serviços de Limpeza: ${verificarValor(dados.servicosLimpeza) === "S" ? "Incluídos" : "Não incluídos"}`,
+        `Garagem: ${verificarValor(dados.garagem) === "S" ? "Disponível" : "Não disponível"}`,
+        `Multa por Não Desocupação: ${verificarValor(dados.multaPorNaoDesocupa)}`,
+    ]);
 
-    // Regras de Ocupação
-    doc.text("REGRAS DE OCUPAÇÃO", 10, 200);
-    doc.text(
-        `O imóvel será ocupado por até ${obterValorOuVazio(data.qtdPessoasAutorizadas)} pessoa(s). 
-                O descumprimento dessa regra acarretará multa de R$ ${obterValorOuVazio(data.valorMultaPesExcendente)}.`,
-        10,
-        210,
-        { maxWidth: 190 }
-    );
-    if (data.regrasExpeHospedes === 'S') {
-        doc.text(`Regras adicionais para hóspedes: ${obterValorOuVazio(data.descRegrasHospedes)}.`, 10, 220, { maxWidth: 190 });
-    }
+    addSection("CLÁUSULA 7 - RESPONSABILIDADES DAS PARTES", [
+        "Art. 422: Reforça a necessidade de lealdade e colaboração mútua na execução do contrato, determinando que cada parte cumpra com suas obrigações",
+        "Art. 927: Define a responsabilidade civil de reparar danos causados por ação ou omissão, estabelecendo a base para eventual indenização.",
+        `Pagador das Benfeitorias: ${verificarValor(dados.pagadorBemFeitorias)}`,
+        `Contas Básicas: ${verificarValor(dados.contasBasicas) === "S" ? "Incluídas" : "Não incluídas"}`,
+        `Transferência de Contas: ${verificarValor(dados.tranfDeContaHosp) === "S" ? "Sim" : "Não"}`,
+    ]);
 
-    // Garantia e Benfeitorias
-    doc.text("GARANTIA E BENFEITORIAS", 10, 240);
-    doc.text(
-        `Será exigida garantia do tipo ${obterValorOuVazio(data.garantidorHosp)}. Caso o Locador autorize benfeitorias, as mesmas 
-                deverão ser custeadas por ${obterValorOuVazio(data.pagadorBemFeitorias)}.`,
-        10,
-        250,
-        { maxWidth: 190 }
-    );
+    addSection("CLÁUSULA 8 - SEGUROS E RESPONSABILIDADE CIVIL", [
+        "Art. 186: Dispõe que aquele que, por ação ou omissão, causar dano a outrem, fica obrigado a repará-lo, justificando a inclusão de cláusulas que prevejam seguros e garantias",
+        "Art. 927: Complementa ao estabelecer a obrigação de indenizar os prejuízos decorrentes de danos, reforçando a importância de mecanismos de segurança(como seguro - fiança ou caução).",
+        `Garantia de Hospedagem: ${verificarValor(dados.garantiaHosp) === "S" ? "Sim" : "Não"}`,
+        verificarValor(dados.garantiaHosp) === "S" ? `Tipo de Garantia: ${verificarValor(dados.garantidorHosp)}` : "",
+        verificarValor(dados.garantidorHosp) === "fi" ? `Fiador: ${verificarValor(dados.nomeFiador1)}, CPF: ${verificarValor(dados.cpfFiador)}` : "",
+        verificarValor(dados.garantidorHosp) === "caudep" ? `Valor do Título de Caução: ${verificarValor(dados.valorTitCaucao)}` : "",
+        verificarValor(dados.garantidorHosp) === "caubem" ? `Descrição do Bem de Caução: ${verificarValor(dados.descBemCaucao)}` : "",
+        verificarValor(dados.garantidorHosp) === "ti" ? `Descrição do Título de Crédito: ${verificarValor(dados.descCredUtili)}` : "",
+        verificarValor(dados.garantidorHosp) === "segfianca" ? `Seguro Fiança: ${verificarValor(dados.segFianca)}` : "",
+    ]);
 
-    // Rescisão, Descumprimento e Multas
-    doc.addPage();
-    doc.text("RESCISÃO, DESCUMPRIMENTO E MULTAS", 10, 20);
-    doc.text(
-        `Em caso de rescisão antecipada sem justa causa, será aplicada multa de R$ ${obterValorOuVazio(data.valorMultaRompimento)}. 
-                Caso o Hóspede descumpra quaisquer cláusulas deste contrato, será aplicada multa de R$ ${obterValorOuVazio(data.valorMultaDesc)}.`,
-        10,
-        30,
-        { maxWidth: 190 }
-    );
+    addSection("CLÁUSULA 9 - RESCISÃO DO CONTRATO", [
+        "Art. 474: Confirma a eficácia da cláusula resolutiva expressa, permitindo a extinção do contrato mediante o descumprimento das condições pactuadas",
+        "Art. 475: Trata dos efeitos do inadimplemento e da possibilidade de resolução contratual, bem como da compensação por perdas e danos.",
+        `Resgate Anual: ${verificarValor(dados.resgateAnual) === "S" ? "Sim" : "Não"}`,
+        verificarValor(dados.resgateAnual) === "S" ? `Indicador de Reajuste: ${verificarValor(dados.indicador)}` : "",
+    ]);
 
-    // Foro
-    doc.text("FORO", 10, 60);
-    doc.text(
-        `As partes elegem o foro da cidade de ${obterValorOuVazio(data.cidadeAssinatura)} 
-                para dirimir quaisquer questões oriundas deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.`,
-        10,
-        70,
-        { maxWidth: 190 }
-    );
+    addSection("CLÁUSULA 10 - ASSINATURAS E DATA", [
+        "Art. 104: Ressalta que a validade do negócio jurídico depende, entre outros requisitos, da forma prescrita ou não defesa em lei, o que inclui a assinatura das partes e testemunhas",
+        "Art. 107: Embora de forma subsidiária, reforça a importância dos elementos formais para a eficácia dos contratos, garantindo segurança jurídica à avença",
+        `Cidade de Assinatura: ${verificarValor(dados.cidadeAssinatura)}`,
+        `Data de Assinatura: ${verificarValor(dados.dataAssinatura)}`,
+        `Testemunhas: ${verificarValor(dados.duastestemunhas) === "S" ? `1. ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}; 2. ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}` : "Não há testemunhas."}`,
+    ]);
 
-    // Data de Assinatura
-    doc.text("DATA DE ASSINATURA", 10, 90);
-    doc.text(`Este contrato foi firmado na cidade de ${obterValorOuVazio(data.cidadeAssinatura)}, em ${formatarData(data.dataAssinatura)}.`, 10, 100, { maxWidth: 190 });
+    doc.text("Locador:", marginX, posY);
+    posY += 10;
+    doc.text("_______________________________", marginX, posY);
+    posY += 5;
+    doc.text(`${verificarValorEspecial(dados.locador) === "pf" ? verificarValorEspecial(dados.nomeLocador) : verificarValorEspecial(dados.razaoSocial)}`, marginX, posY);
+    posY += 15;
 
-    // Assinaturas
-    doc.text("ASSINATURAS", 10, 120);
-    doc.text("_________________________", 10, 130);
-    doc.text("Locador", 10, 135);
-    doc.text("_________________________", 100, 130);
-    doc.text("Hóspede", 100, 135);
+    doc.text("Locatário:", marginX, posY);
+    posY += 10;
+    doc.text("_______________________________", marginX, posY);
+    posY += 5;
+    doc.text(`${verificarValorEspecial(dados.locatario) === "pf" ? verificarValorEspecial(dados.nomelocatario) : verificarValorEspecial(dados.razaoSociallocatario)}`, marginX, posY);
+    posY += 15;
 
-    if (data.duastestemunhas === 'S') {
-        doc.text("_________________________", 10, 150);
-        doc.text(`Testemunha 1: ${data.nomeTest1}, CPF: ${data.cpfTest1}`, 10, 155);
-        doc.text("_________________________", 100, 150);
-        doc.text(`Testemunha 2: ${data.nomeTest2}, CPF: ${data.cpfTest2}`, 100, 155);
+    if (dados.testemunhas === "S") {
+        addSection("TESTEMUNHAS", [
+            "As testemunhas abaixo assinam para validar este contrato."
+        ]);
+
+        doc.text("Testemunha 1:", marginX, posY);
+        posY += 10;
+        doc.text("_______________________________", marginX, posY);
+        posY += 5;
+        doc.text(`${verificarValorEspecial(dados.nomeTest1)} - CPF: ${verificarValorEspecial(dados.cpfTest1)}`, marginX, posY);
+        posY += 15;
+
+        doc.text("Testemunha 2:", marginX, posY);
+        posY += 10;
+        doc.text("_______________________________", marginX, posY);
+        posY += 5;
+        doc.text(`${verificarValorEspecial(dados.nomeTest2)} - CPF: ${verificarValorEspecial(dados.cpfTest2)}`, marginX, posY);
     }
 
 
     // Salvar o PDF
-    doc.save(`contrato_hospedagem_${data.nomeHospede || data.razaoSocialHospede}.pdf`);
+    doc.save(`contrato_hospedagem_${dados.nomeHospede || dados.razaoSocialHospede}.pdf`);
 }
