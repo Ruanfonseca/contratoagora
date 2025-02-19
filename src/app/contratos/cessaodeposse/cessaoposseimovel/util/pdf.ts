@@ -141,5 +141,6 @@ export default function geradorPossePago(dados: any) {
         "Conforme o artigo 75 do Código Civil, pessoas jurídicas são representadas ativa e passivamente, em juízo e fora dele, por quem os atos constitutivos designarem."
     ]);
 
+    doc.save(`contrato_cessaoimovel_${verificarValor(dados.Cedente) === 'pf' ? verificarValor(dados.nomeCedente) : verificarValor(dados.razaoSocial)}.pdf`);
 
 };

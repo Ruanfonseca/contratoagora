@@ -503,6 +503,7 @@ export default function CessaodePossedeImovel() {
     useEffect(() => {
         geradorPossePDF({ ...formData });
     }, [formData]);
+
     return (
         <>
             <div className="caixa-titulo-subtitulo">

@@ -6,6 +6,7 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
+import '../css/form.css';
 import geradorCompraVendaTrespassePago from '../util/pdf';
 
 
@@ -207,7 +208,7 @@ export default function CompraVendaTrespasse() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 29.90;
+    const valor = 34.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
