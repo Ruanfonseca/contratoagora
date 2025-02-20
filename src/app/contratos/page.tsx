@@ -60,7 +60,7 @@ export default function contratos() {
 
           <h2 className="subtitle">PRESTAÇÃO DE SERVIÇOS</h2>
           <ul>
-            <li>Contrato de corretagem imobiliária - R$ 24,90</li>
+            <li><Link className='' href="/contratos/prestacaodeservicos/corretagemImobiliaria">Contrato de corretagem imobiliária - R$ 24,90</Link></li>
             <li>Contrato de empreitada | Obra - R$ 29,90</li>
             <li>Contrato de prestação de serviços - R$ 29,90</li>
             <li>Contrato de prestação de serviços de beleza | Salão-Parceiro - R$ 24,90</li>
