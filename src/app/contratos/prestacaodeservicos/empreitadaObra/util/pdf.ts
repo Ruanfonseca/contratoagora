@@ -1,7 +1,7 @@
 import { verificarValor } from "@/lib/utils";
 import jsPDF from "jspdf";
 
-export default function geradorEmpreitadaObraPDF(dados: any) {
+export default function geradorEmpreitadaObraPago(dados: any) {
     const doc = new jsPDF();
 
     // Configuração inicial de fonte e margens

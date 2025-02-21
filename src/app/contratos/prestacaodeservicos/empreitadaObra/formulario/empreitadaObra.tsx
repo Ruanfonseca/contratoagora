@@ -1,3 +1,4 @@
+'use client'
 import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
@@ -5,6 +6,8 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
+import '../css/form.css';
+import geradorEmpreitadaObraPago from '../util/pdf';
 
 const empreitadaobraschema = z.object({
     /**CONTRATANTE */
@@ -189,6 +192,25 @@ export default function EmpreitadaObra() {
     const handleNext = () => {
         setFormData((prev) => ({ ...prev, ...currentStepData }));
         let nextStep = step;
+
+
+
+
+        if (currentStepData.formaPagamento === 'Parcelado') {
+            setParcelado(true);
+            nextStep = 22;
+        } else if (currentStepData.formaPagamento === 'Avista') {
+            nextStep = 25;
+        }
+
+
+        if (currentStepData.testemunhasNecessarias === 'S') {
+            setTestemunhas(true);
+            nextStep = 28;
+        } else if (currentStepData.testemunhasNecessarias === 'N') {
+            nextStep = 32;
+        }
+
 
 
 
@@ -737,7 +759,7 @@ export default function EmpreitadaObra() {
                             {step === 21 && (
                                 <>
                                     <div>
-                                        <h2>OBJETO </h2>
+                                        <h2>RETRIBUIÇÃO </h2>
                                         <label>Os materiais necessários para a execução da obra serão fornecidos por</label>
                                         <select name='materialCompra' onChange={handleChange}>
                                             <option value="">Selecione</option>
@@ -1061,7 +1083,7 @@ export default function EmpreitadaObra() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorEmpreitadaObraPago(formData) }}>
                         Baixar PDF
                     </button>
                 ) : (
