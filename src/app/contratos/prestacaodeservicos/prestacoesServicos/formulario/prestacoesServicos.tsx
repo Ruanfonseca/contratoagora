@@ -1,4 +1,3 @@
-'use client'
 import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
@@ -6,10 +5,11 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
-import '../css/form.css';
-import geradorEmpreitadaObraPago from '../util/pdf';
+import geradorPrestacoesServicosPago from '../util/pdf';
 
-const empreitadaobraschema = z.object({
+
+
+const prestacoesservicosschema = z.object({
     /**CONTRATANTE */
     contratante_nome: z.string(),
     contratante_estado_civil: z.string(),
@@ -32,24 +32,60 @@ const empreitadaobraschema = z.object({
     contratado_email: z.string(),
     /** */
 
-
     /**OBJETO */
-    descricao_obra: z.string(),
-    data_inicio: z.string(),
-    materialCompra: z.enum(['CONTRATANTE', 'CONTRATADO']),
+    descricaoServico: z.string(),
+    escopoServico: z.string(),
+    criterioServico: z.string(),
     /** */
 
-    /**RETRIBUIÇÃO */
-    valor_total: z.string(),
+    /**PRAZO VIGÊNCIA */
+    duracaoDoContrato: z.enum(['INDETERMINADO', 'DETERMINADO']),
+    //se for determinado
+    dataInicio: z.string(),
+    condicoesRenovacao: z.string(),
+    prazosRevisao: z.string(),
+    /** */
+
+    /**PRECO E CONDICOES DE PAGAMENTO */
+    valorTotal: z.string(),
     formaPagamento: z.enum(['Avista', 'Parcelado']),
+
     //se for parcelado
-    num_parcelas: z.string(),
-    dia_vencimento: z.string(),
-    valor_parcela: z.string(),
+    numeroDeParcela: z.string(),
+    valorParcela: z.string(),
+    dataVenc: z.string(),
+
+    //senão
+    modalidade: z.enum(['Pix', 'CartaoDebito', 'CartaoCredito', 'Boleto']),
+
+    sinal: z.enum(['S', 'N']),
+    //se sim
+    valorSinal: z.string(),
+    dataPag: z.string(),
+
+    aplicaReajuste: z.enum(['S', 'N']),
+
+    //se sim
+    qualReajuste: z.enum(['INCC', 'IGPM', 'IPCA', 'TR']),
+    // Índice Nacional de Custo da Construção
+    // Índice Geral de Preços de Mercado
+    // Índice Nacional de Preços ao Consumidor Amplo
+    // Taxa Referencial (não é um índice de correção monetária, mas pode ser utilizada em conjunto)
+    contaBancaria: z.string(),
     /** */
 
-    /**DESCUMPRIMENTO E MULTA */
-    valor_multa: z.string(),
+
+
+    /**OUTRAS CLAUSULAS */
+    clausulaEspecifica: z.enum(['S', 'N']),
+    extras: z.record(z.string(), z.any()),
+    /** */
+
+    /**RESCISÃO DO CONTRATO */
+    condicoesRescisao: z.string(),
+    multasPenalidades: z.string(),
+    prazo: z.string(),
+    metodoResolucao: z.enum(['Med', 'Arb', 'Liti']),
     /** */
 
     /**DISPOSIÇÕES GERAIS */
@@ -64,13 +100,19 @@ const empreitadaobraschema = z.object({
     dataAssinatura: z.string(),
     registroCartorioTest: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
-
 });
 
-type FormData = z.infer<typeof empreitadaobraschema>;
+type ClausulasExtras = {
+    Titulo: string,
+    Conteudo: string
+}
 
 
-export default function EmpreitadaObra() {
+type FormData = z.infer<typeof prestacoesservicosschema>;
+
+
+export default function PrestacoesServicos() {
+
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
@@ -95,6 +137,12 @@ export default function EmpreitadaObra() {
     //VARIAVEIS DE CONTROLE DE FLUXO
     const [Testemunhas, setTestemunhas] = useState(false);
     const [Parcelado, setParcelado] = useState(false);
+    const [DETERMINADO, setDETERMINADO] = useState(false);
+    const [Avista, setAvista] = useState(false);
+    const [sinal, setSinal] = useState(false);
+    const [aplicaReajuste, setAplicaReajuste] = useState(false);
+    const [clausulaEspecifica, setClausulaEspecifica] = useState("");
+    const [extras, setExtras] = useState<ClausulasExtras[]>([]);
     const pilha = useRef(new Pilha());
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -188,31 +236,9 @@ export default function EmpreitadaObra() {
         setStep(pilha.current.desempilhar());
     }
 
-
     const handleNext = () => {
         setFormData((prev) => ({ ...prev, ...currentStepData }));
         let nextStep = step;
-
-
-
-
-        if (currentStepData.formaPagamento === 'Parcelado') {
-            setParcelado(true);
-            nextStep = 22;
-        } else if (currentStepData.formaPagamento === 'Avista') {
-            nextStep = 25;
-        }
-
-
-        if (currentStepData.testemunhasNecessarias === 'S') {
-            setTestemunhas(true);
-            nextStep = 28;
-        } else if (currentStepData.testemunhasNecessarias === 'N') {
-            nextStep = 32;
-        }
-
-
-
 
         if (nextStep === step) {
             nextStep += 1;
@@ -229,7 +255,16 @@ export default function EmpreitadaObra() {
         setCurrentStepData({});
     }
 
-    const geradorEmpreitadaObra = (dados: any) => {
+    const adicionarClausula = () => {
+        setExtras((prev) => [...prev, { Titulo: "", Conteudo: "" }]);
+    };
+
+    // Remove uma cláusula pelo índice
+    const removerClausula = (index: number) => {
+        setExtras((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const geradorPrestacoesServicos = (dados: any) => {
         const doc = new jsPDF();
 
         // Configuração inicial de fonte e margens
@@ -276,7 +311,7 @@ export default function EmpreitadaObra() {
 
         // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE EMPREITADA PARA EXECUÇÃO DE OBRA", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE PRESTAÇÃO DE SERVIÇO", 105, posY, { align: "center" });
         posY += 15;
 
         // Seção CONTRATANTE
@@ -288,6 +323,7 @@ export default function EmpreitadaObra() {
             `Carteira de Identidade: ${verificarValor(dados.contratante_rg)}`,
             `CPF/CNPJ: ${verificarValor(dados.contratante_cpf_cnpj)}`,
             `Residência: ${verificarValor(dados.contratante_endereco)}`,
+            `Email: ${verificarValor(dados.contratante_email)}`,
             "Art. 104 do Código Civil: A validade do negócio jurídico requer agente capaz, objeto lícito e forma prescrita em lei."
         ]);
 
@@ -300,78 +336,107 @@ export default function EmpreitadaObra() {
             `Carteira de Identidade: ${verificarValor(dados.contratado_rg)}`,
             `CPF/CNPJ: ${verificarValor(dados.contratado_cpf_cnpj)}`,
             `Residência: ${verificarValor(dados.contratado_endereco)}`,
+            `Email: ${verificarValor(dados.contratado_email)}`,
             "Art. 113 do Código Civil: Os negócios jurídicos devem ser interpretados conforme a boa-fé e os usos do lugar de sua celebração."
         ]);
 
-        // Seção DO OBJETO
-        addSection("1. DO OBJETO", [
-            `A CONTRATANTE contrata os serviços profissionais da CONTRATADA, que se compromete a executar a seguinte obra: ${verificarValor(dados.descricao_obra)}.`,
-            `Os materiais necessários para a execução da obra serão fornecidos por: ${verificarValor(dados.materialCompra)}.`,
-            `A obra terá início em ${verificarValor(dados.data_inicio)}.`,
-            "Art. 421 do Código Civil: A liberdade de contratar será exercida em razão e nos limites da função social do contrato."
+        // Seção OBJETO
+        addSection("OBJETO", [
+            `Descrição do Serviço: ${verificarValor(dados.descricaoServico)}`,
+            `Escopo do Serviço: ${verificarValor(dados.escopoServico)}`,
+            `Critério de Avaliação do Serviço: ${verificarValor(dados.criterioServico)}`,
+            "Art. 482 da CLT: Definição de justa causa e critérios de avaliação de desempenho."
         ]);
 
-        // Seção DA ENTREGA DA OBRA
-        addSection("2. DA ENTREGA DA OBRA", [
-            "A CONTRATANTE realizará a validação da obra no momento da entrega para avaliar sua conformidade. Poderá recusar o recebimento caso:",
-            "- A obra não esteja de acordo com as especificações;",
-            "- A execução não tenha seguido as normas técnicas;",
-            "- Apresente defeitos impeditivos de uso.",
-            "Caso a CONTRATANTE aceite a obra com ressalvas, poderá ser acordado um abatimento no valor.",
-            "Art. 441 do Código Civil: O adquirente pode rejeitar a coisa se apresentar vícios que a tornem imprópria para o uso."
+        // Seção PRAZO E VIGÊNCIA
+        addSection("PRAZO E VIGÊNCIA", [
+            `Duração do Contrato: ${verificarValor(dados.duracaoDoContrato)}`,
+            `Data de Início: ${verificarValor(dados.dataInicio)}`,
+            `Condições de Renovação: ${verificarValor(dados.condicoesRenovacao)}`,
+            `Prazos de Revisão: ${verificarValor(dados.prazosRevisao)}`,
+            "Art. 598 do Código Civil: O contrato de prestação de serviço não pode ser convencionado por mais de quatro anos."
         ]);
 
-        // Seção DA RETRIBUIÇÃO
-        addSection("3. DA RETRIBUIÇÃO", [
-            `A CONTRATANTE pagará à CONTRATADA a quantia de R$ ${verificarValor(dados.valor_total)}, da seguinte forma:`,
-            `- ${verificarValor(dados.formaPagamento) === 'Avista' ? 'Pagamento à vista' : `Pagamento parcelado em ${verificarValor(dados.num_parcelas)} parcelas de R$ ${verificarValor(dados.valor_parcela)}, vencendo todo dia ${verificarValor(dados.dia_vencimento)} do mês`}.`,
-            "Art. 315 do Código Civil: As dívidas em dinheiro devem ser pagas no vencimento estabelecido."
+        // Seção PREÇO E CONDIÇÕES DE PAGAMENTO
+        const pagamentoContent = [
+            `Valor Total: ${verificarValor(dados.valorTotal)}`,
+            `Forma de Pagamento: ${verificarValor(dados.formaPagamento)}`
+        ];
+
+        if (dados.formaPagamento === "Parcelado") {
+            pagamentoContent.push(
+                `Número de Parcelas: ${verificarValor(dados.numeroDeParcela)}`,
+                `Valor da Parcela: ${verificarValor(dados.valorParcela)}`,
+                `Data de Vencimento: ${verificarValor(dados.dataVenc)}`
+            );
+        } else {
+            pagamentoContent.push(`Modalidade de Pagamento: ${verificarValor(dados.modalidade)}`);
+        }
+
+        if (dados.sinal === "S") {
+            pagamentoContent.push(
+                `Valor do Sinal: ${verificarValor(dados.valorSinal)}`,
+                `Data de Pagamento do Sinal: ${verificarValor(dados.dataPag)}`
+            );
+        }
+
+        if (dados.aplicaReajuste === "S") {
+            pagamentoContent.push(
+                `Reajuste Aplicado: ${verificarValor(dados.qualReajuste)}`
+            );
+        }
+
+        pagamentoContent.push(`Conta Bancária: ${verificarValor(dados.contaBancaria)}`,
+            "Art. 315 do Código Civil: As dívidas em dinheiro devem ser pagas em moeda corrente e pelo valor nominal.");
+
+        addSection("PREÇO E CONDIÇÕES DE PAGAMENTO", pagamentoContent);
+
+        // Seção OUTRAS CLAUSULAS
+        const outrasClausulasContent = [
+            `Cláusula Específica: ${verificarValor(dados.clausulaEspecifica)}`,
+            "Art. 421 do Código Civil: A liberdade contratual será exercida nos limites da função social do contrato."
+        ];
+
+        if (dados.clausulaEspecifica === "S") {
+            Object.entries(dados.extras).forEach(([key, value]) => {
+                outrasClausulasContent.push(`${key}: ${verificarValor(value as string)}`);
+            });
+        }
+
+        addSection("OUTRAS CLAUSULAS", outrasClausulasContent);
+
+        // Seção RESCISÃO DO CONTRATO
+        addSection("RESCISÃO DO CONTRATO", [
+            `Condições de Rescisão: ${verificarValor(dados.condicoesRescisao)}`,
+            `Multas e Penalidades: ${verificarValor(dados.multasPenalidades)}`,
+            `Prazo: ${verificarValor(dados.prazo)}`,
+            `Método de Resolução de Disputas: ${verificarValor(dados.metodoResolucao)}`,
+            "Art. 478 do Código Civil: Nos contratos de execução continuada, se a prestação de uma das partes se tornar excessivamente onerosa, poderá ser resolvido ou revisto."
         ]);
 
-        // Seção DAS OBRIGAÇÕES
-        addSection("4. DAS OBRIGAÇÕES", [
-            "A CONTRATADA se compromete a:",
-            "- Executar a obra conforme normas técnicas;",
-            "- Garantir a segurança no ambiente de trabalho;",
-            "- Utilizar materiais adequados, caso seja sua responsabilidade fornecê-los;",
-            "- Responder por eventuais danos a terceiros.",
-            "A CONTRATANTE se compromete a:",
-            "- Fornecer os documentos e liberações necessárias;",
-            "- Realizar os pagamentos conforme o estipulado.",
-            "Art. 422 do Código Civil: Os contratantes são obrigados a guardar, assim na conclusão do contrato como em sua execução, os princípios da probidade e boa-fé."
-        ]);
+        // Seção DISPOSIÇÕES GERAIS
+        const disposicoesGeraisContent = [
+            `Foro de Resolução de Conflitos: ${verificarValor(dados.foroResolucaoConflitos)}`,
+            `Necessidade de Testemunhas: ${verificarValor(dados.testemunhasNecessarias)}`
+        ];
 
-        // Seção DOS RISCOS DA OBRA
-        addSection("5. DOS RISCOS DA OBRA", [
-            "Os riscos da obra, salvo dolo ou culpa da CONTRATADA, correrão por conta da CONTRATANTE. As partes responderão solidariamente por danos causados a propriedades vizinhas.",
-            "Art. 927 do Código Civil: Haverá obrigação de reparar o dano, independentemente de culpa, nos casos especificados em lei."
-        ]);
+        if (dados.testemunhasNecessarias === "S") {
+            disposicoesGeraisContent.push(
+                `Nome da Testemunha 1: ${verificarValor(dados.nomeTest1)}`,
+                `CPF da Testemunha 1: ${verificarValor(dados.cpfTest1)}`,
+                `Nome da Testemunha 2: ${verificarValor(dados.nomeTest2)}`,
+                `CPF da Testemunha 2: ${verificarValor(dados.cpfTest2)}`
+            );
+        }
 
-        // Seção DA RESCISÃO
-        addSection("6. DA RESCISÃO", [
-            "Este contrato poderá ser rescindido nos seguintes casos:",
-            "- Por inadimplência de qualquer das partes;",
-            "- Por impossibilidade de continuidade da obra por força maior;",
-            "- Pela falência ou insolvência de qualquer uma das partes;",
-            "- Caso a CONTRATANTE não realize os pagamentos devidos.",
-            "Art. 478 do Código Civil: Nos contratos de execução continuada, se a prestação de uma das partes se tornar excessivamente onerosa, pode-se pedir a resolução do contrato."
-        ]);
+        disposicoesGeraisContent.push(
+            `Local de Assinatura: ${verificarValor(dados.local)}`,
+            `Data de Assinatura: ${verificarValor(dados.dataAssinatura)}`,
+            `Registro em Cartório: ${verificarValor(dados.registroCartorioTest)}`,
+            "Art. 129 da Lei de Registros Públicos: Alguns contratos podem exigir registro para maior segurança jurídica."
+        );
 
-        // Seção DO DESCUMPRIMENTO E MULTA
-        addSection("7. DO DESCUMPRIMENTO E MULTA", [
-            `O descumprimento de quaisquer cláusulas sujeitará a parte infratora ao pagamento de uma multa de R$ ${verificarValor(dados.valor_multa)}, além de eventuais perdas e danos.`,
-            "Art. 389 do Código Civil: O devedor responde por perdas e danos, juros e atualização monetária em caso de inadimplemento."
-        ]);
-
-        // Seção 10: Disposições Gerais
-        addSection("10. DISPOSIÇÕES GERAIS", [
-            "Art. 5º, inciso XXXV da Constituição Federal: A lei não excluirá da apreciação do Poder Judiciário lesão ou ameaça a direito.",
-            `Foro eleito para resolução de conflitos: ${verificarValor(dados.foroResolucaoConflitos)}`,
-            `Testemunhas necessárias: ${verificarValor(dados.testemunhasNecessarias) === 'S' ? `Testemunha 1: ${verificarValor(dados.nomeTest1)}, CPF: ${verificarValor(dados.cpfTest1)}. Testemunha 2: ${verificarValor(dados.nomeTest2)}, CPF: ${verificarValor(dados.cpfTest2)}` : 'Não são necessárias testemunhas.'}`,
-            `Local de assinatura: ${verificarValor(dados.local)}`,
-            `Data de assinatura: ${verificarValor(dados.dataAssinatura)}`,
-            `Registro em cartório: ${verificarValor(dados.registroCartorioTest) === 'S' ? 'Sim' : 'Não'}`
-        ]);
+        addSection("DISPOSIÇÕES GERAIS", disposicoesGeraisContent);
 
 
         // Espaço para assinatura do vendedor
@@ -408,16 +473,15 @@ export default function EmpreitadaObra() {
         setPdfDataUrl(pdfDataUri);
     };
 
-
     useEffect(() => {
-        geradorEmpreitadaObra({ ...formData });
+        geradorPrestacoesServicos({ ...formData });
     }, [formData]);
 
 
     return (
         <>
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">CONTRATO DE EMPREITADA PARA EXECUÇÃO DE OBRA</h1>
+                <h1 className="title">CONTRATO DE PRESTAÇÃO DE SERVIÇOS </h1>
             </div>
             <div className="container">
                 <div className="left-panel">
@@ -425,7 +489,7 @@ export default function EmpreitadaObra() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 34) * 100}%` }}
+                                style={{ width: `${(step / 49) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
@@ -630,7 +694,7 @@ export default function EmpreitadaObra() {
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratante_rg"
+                                            name="contratado_rg"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -688,19 +752,17 @@ export default function EmpreitadaObra() {
                                 </>
                             )}
 
-
                             {step === 17 && (
                                 <>
-                                    <div>
-                                        <h2>OBJETO </h2>
-                                        <label> A CONTRATANTE contrata os serviços profissionais da CONTRATADA, que se compromete a executar a seguinte obra</label>
+                                    <h2>OBJETO </h2>                                    <div>
+                                        <label>Descrição detalhada do serviço: (Especificar de maneira clara e objetiva o que será realizado pelo contratado).</label>
                                         <textarea
-                                            id="descricao_obra"
-                                            name="descricao_obra"
+                                            id="descricaoServico"
+                                            name="descricaoServico"
                                             onChange={handleChange}
                                             rows={10}
                                             cols={50}
-                                            placeholder="descreva a obra"
+                                            placeholder="descreva"
                                         />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -710,29 +772,34 @@ export default function EmpreitadaObra() {
 
                             {step === 18 && (
                                 <>
-                                    <div>
-                                        <h2>OBJETO </h2>
-                                        <label>Os materiais necessários para a execução da obra serão fornecidos por</label>
-                                        <select name='materialCompra' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="CONTRATANTE">CONTRATANTE</option>
-                                            <option value="CONTRATADO">CONTRATADO</option>
-                                        </select>
+                                    <h2>OBJETO </h2>                                    <div>
+                                        <label>Escopo dos serviços: Definição clara do que está incluso e o que não está incluso na prestação dos serviços</label>
+                                        <textarea
+                                            id="escopoServico"
+                                            name="escopoServico"
+                                            onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="descreva"
+                                        />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
+
                             {step === 19 && (
                                 <>
                                     <h2>OBJETO </h2>                                    <div>
-                                        <label>A obra terá início em</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="data_inicio"
+                                        <label>Critérios de qualidade e padrões exigidos: Garantia de que os serviços serão prestados conforme padrões preestabelecidos. </label>
+                                        <textarea
+                                            id="criterioServico"
+                                            name="criterioServico"
                                             onChange={handleChange}
+                                            rows={10}
+                                            cols={50}
+                                            placeholder="descreva"
                                         />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -742,29 +809,13 @@ export default function EmpreitadaObra() {
 
                             {step === 20 && (
                                 <>
-                                    <h2>RETRIBUIÇÃO </h2>                                    <div>
-                                        <label>A CONTRATANTE pagará à CONTRATADA a quantia de</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="valor_total"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 21 && (
-                                <>
                                     <div>
-                                        <h2>RETRIBUIÇÃO </h2>
-                                        <label>Os materiais necessários para a execução da obra serão fornecidos por</label>
-                                        <select name='materialCompra' onChange={handleChange}>
+                                        <h2>PRAZO VIGÊNCIA </h2>
+                                        <label>Duração do contrato: (Especificar se será por prazo determinado ou indeterminado)</label>
+                                        <select name='duracaoDoContrato' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="Avista">À vista</option>
-                                            <option value="Parcelado">Parcelado</option>
+                                            <option value="INDETERMINADO">Indeterminado</option>
+                                            <option value="DETERMINADO">Determinado</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -772,16 +823,34 @@ export default function EmpreitadaObra() {
                                 </>
                             )}
 
-                            {Parcelado && (
+                            {DETERMINADO && (
                                 <>
+                                    {step === 21 && (
+                                        <>
+                                            <div>
+                                                <h2>PRAZO VIGÊNCIA </h2>
+                                                <label>Data de Inicio</label>
+                                                <input
+                                                    type='date'
+                                                    placeholder=''
+                                                    name="dataInicio"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
                                     {step === 22 && (
                                         <>
-                                            <h2>RETRIBUIÇÃO </h2>                                    <div>
-                                                <label>Número de Parcelas</label>
+                                            <div>
+                                                <h2>PRAZO VIGÊNCIA </h2>
+                                                <label>Condições de renovação ou rescisão: (Se aplicável)</label>
                                                 <input
                                                     type='text'
                                                     placeholder=''
-                                                    name="num_parcelas"
+                                                    name="condicoesRenovacao"
                                                     onChange={handleChange}
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
@@ -792,12 +861,13 @@ export default function EmpreitadaObra() {
 
                                     {step === 23 && (
                                         <>
-                                            <h2>RETRIBUIÇÃO </h2>                                    <div>
-                                                <label>Data de vencimento das parcelas</label>
+                                            <div>
+                                                <h2>PRAZO VIGÊNCIA </h2>
+                                                <label>Prazos para revisão e ajustes no contrato: Definição de periódicos para revisão do contrato e ajustes conforme necessidade das partes</label>
                                                 <input
                                                     type='text'
                                                     placeholder=''
-                                                    name="dia_vencimento"
+                                                    name="prazosRevisao"
                                                     onChange={handleChange}
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
@@ -806,33 +876,20 @@ export default function EmpreitadaObra() {
                                         </>
                                     )}
 
-                                    {step === 24 && (
-                                        <>
-                                            <h2>RETRIBUIÇÃO </h2>                                    <div>
-                                                <label>Valor das Parcelas</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="valor_parcela"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
+
                                 </>
                             )}
 
 
-                            {step === 25 && (
+                            {step === 24 && (
                                 <>
-                                    <h2>DESCUMPRIMENTO E MULTA </h2>                                    <div>
-                                        <label> O descumprimento de quaisquer cláusulas sujeitará a parte infratora ao pagamento de uma multa de</label>
+                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                    <div>
+                                        <label>Valor total do Serviço </label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="valor_multa"
+                                            name="valorTotal"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -842,8 +899,368 @@ export default function EmpreitadaObra() {
                             )}
 
 
+                            {step === 25 && (
+                                <>
+                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                    <div>
+                                        <label>Pagamento à vista ou parcelado? </label>
+                                        <select name='formaPagamento' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="Avista">A vista</option>
+                                            <option value="Parcelado">Parcelado</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
 
-                            {step === 26 && (
+                            {Parcelado && (
+                                <>
+                                    {step === 26 && (
+                                        <>
+                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <div>
+                                                <label>Número de parcelas</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="numeroDeParcela"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {step === 27 && (
+                                        <>
+                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <div>
+                                                <label>Valor das parcelas</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="valorParcela"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 28 && (
+                                        <>
+                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <div>
+                                                <label>Data de Vencimento</label>
+                                                <input
+                                                    type='date'
+                                                    placeholder=''
+                                                    name="dataVenc"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {Avista && (
+                                <>
+                                    {step === 29 && (
+                                        <>
+                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <div>
+                                                <label>Forma de Pagamento</label>
+                                                <select name='modalidade' onChange={handleChange}>
+                                                    <option value="">Selecione</option>
+                                                    <option value="Pix">Pix</option>
+                                                    <option value="CartaoDebito">Cartão de Débito</option>
+                                                    <option value="CartaoCredito">Cartão de Crédito</option>
+                                                    <option value="Boleto">Boleto</option>
+                                                </select>
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+
+                            {step === 30 && (
+                                <>
+                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                    <div>
+                                        <label>Existência de sinal ou entrada? </label>
+                                        <select name='sinal' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {sinal && (
+                                <>
+                                    {step === 31 && (
+                                        <>
+                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <div>
+                                                <label>Valor do sinal ou entrada </label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="valorSinal"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {step === 32 && (
+                                        <>
+                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <div>
+                                                <label>Data de Pagamento</label>
+                                                <input
+                                                    type='date'
+                                                    placeholder=''
+                                                    name="dataPag"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {step === 33 && (
+                                <>
+                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                    <div>
+                                        <label>Ocorrerá rejuste nas parcelas?</label>
+                                        <select name='aplicaReajuste' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {aplicaReajuste && (
+                                <>
+                                    {step === 34 && (
+                                        <>
+                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <div>
+                                                <label>Qual índice será aplicado ?</label>
+                                                <select name='qualReajuste' onChange={handleChange}>
+                                                    <option value="">Selecione</option>
+                                                    <option value="INCC">Índice Nacional de Custo da Construção</option>
+                                                    <option value="IGPM">Índice Geral de Preços de Mercado</option>
+                                                    <option value="IPCA">Índice Nacional de Preços ao Consumidor Amplo</option>
+                                                    <option value="TR">Taxa Referencial (não é um índice de correção monetária, mas pode ser utilizada em conjunto)</option>
+                                                </select>
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {step === 35 && (
+                                <>
+                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                    <div>
+                                        <label>Conta bancária para depósito (se aplicável)</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="contaBancaria"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 36 && (
+                                <>
+                                    <h2>OUTRAS CLÁUSULAS</h2>
+                                    <div>
+                                        <label>Deseja Adicionar Cláusula específica?</label>
+                                        <i>
+                                            Caso necessário, poderão ser incluídas cláusulas específicas relacionadas a:
+
+                                            Lei Geral de Proteção de Dados (LGPD): Tratamento de dados pessoais conforme a legislação vigente.
+
+                                            Sigilo e Confidencialidade: As partes se comprometem a manter sigilo sobre todas as informações trocadas.
+
+                                            Garantia dos Serviços: Definição de prazos e condições para garantia do serviço prestado.
+
+                                            Propriedade Intelectual: Caso os serviços envolvam criação intelectual, definir quem detém os direitos sobre os produtos gerados.
+                                        </i>
+                                        <select name="clausulaEspecifica" onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {clausulaEspecifica && (
+                                <>
+                                    {step === 37 && (
+                                        <>
+                                            <h2>OUTRAS CLÁUSULAS</h2>
+
+                                            {extras.map((_, index) => (
+                                                <div
+                                                    key={index}
+                                                    style={{
+                                                        marginBottom: "15px",
+                                                        borderBottom: "1px solid #ccc",
+                                                        paddingBottom: "10px",
+                                                    }}
+                                                >
+                                                    <label>Título da Cláusula</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Digite o título"
+                                                        name={`extras[${index}].titulo`}
+                                                        onChange={handleChange}
+                                                    />
+
+                                                    <label>Conteúdo</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Digite o conteúdo"
+                                                        name={`extras[${index}].conteudo`}
+                                                        onChange={handleChange}
+                                                    />
+
+                                                    <button onClick={() => removerClausula(index)}>Remover</button>
+                                                </div>
+                                            ))}
+
+                                            <button onClick={adicionarClausula}>Adicionar Nova Cláusula</button>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {step === 38 && (
+                                <>
+                                    <h2>Rescisão do Contrato</h2>
+                                    <div>
+                                        <label>Condições para rescisão do contrato por qualquer das partes</label>
+                                        <div>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="condicoesRescisao"
+                                                onChange={handleChange}
+                                            />
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 39 && (
+                                <>
+                                    <h2>Rescisão do Contrato</h2>
+                                    <div>
+                                        <label>Multas ou penalidades em caso de descumprimento de cláusulas contratuais</label>
+                                        <div>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="multasPenalidades"
+                                                onChange={handleChange}
+                                            />
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 40 && (
+                                <>
+                                    <h2>Rescisão do Contrato</h2>
+                                    <div>
+                                        <label>Prazo para notificação prévia em caso de rescisão</label>
+                                        <div>
+                                            <input
+                                                type='text'
+                                                placeholder=''
+                                                name="prazo"
+                                                onChange={handleChange}
+                                            />
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 41 && (
+                                <>
+                                    <h2>Rescisão do Contrato</h2>
+                                    <div>
+                                        <label>Qual será o método para resolver conflitos?</label>
+                                        <i>
+                                            Mediação:
+                                            A mediação é um método consensual de resolução de conflitos, no qual um terceiro neutro (mediador) auxilia as partes a dialogarem e encontrarem uma solução mutuamente satisfatória.
+                                            A mediação é um processo mais rápido e menos custoso do que o litígio judicial, e preserva o relacionamento entre as partes.
+
+                                            Arbitragem:
+                                            A arbitragem é um método alternativo de resolução de conflitos, no qual as partes elegem um ou mais árbitros para julgar a disputa.
+                                            A decisão arbitral é vinculante e tem força de título executivo judicial, ou seja, pode ser executada judicialmente caso não seja cumprida espontaneamente.
+
+                                            Litígio Judicial:
+                                            O litígio judicial é a forma tradicional de resolução de conflitos, na qual a disputa é levada ao Poder Judiciário para ser julgada por um juiz.
+                                            O litígio judicial pode ser um processo mais longo e custoso do que a mediação ou a arbitragem.
+                                        </i>
+                                        <div>
+                                            <select name='metodoResolucao' onChange={handleChange}>
+                                                <option value="">Selecione</option>
+                                                <option value="Med">Mediação</option>
+                                                <option value="Arb">Arbitragem</option>
+                                                <option value="Liti">Litígio Judicial</option>
+                                            </select>
+                                            <button onClick={handleBack}>Voltar</button>
+                                            <button onClick={handleNext}>Próximo</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 42 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -860,7 +1277,7 @@ export default function EmpreitadaObra() {
                                 </>
                             )}
 
-                            {step === 27 && (
+                            {step === 43 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -879,7 +1296,7 @@ export default function EmpreitadaObra() {
 
                             {Testemunhas && (
                                 <>
-                                    {step === 28 && (
+                                    {step === 44 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -898,7 +1315,7 @@ export default function EmpreitadaObra() {
                                         </>
                                     )}
 
-                                    {step === 29 && (
+                                    {step === 45 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -917,7 +1334,7 @@ export default function EmpreitadaObra() {
                                         </>
                                     )}
 
-                                    {step === 30 && (
+                                    {step === 46 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -937,7 +1354,7 @@ export default function EmpreitadaObra() {
                                         </>
                                     )}
 
-                                    {step === 31 && (
+                                    {step === 47 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -958,7 +1375,7 @@ export default function EmpreitadaObra() {
                                 </>
                             )}
 
-                            {step === 32 && (
+                            {step === 48 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -966,8 +1383,8 @@ export default function EmpreitadaObra() {
                                         <div>
                                             <select name='registroCartorioTest' onChange={handleChange}>
                                                 <option value="">Selecione</option>
-                                                <option value="S">Sim</option>
-                                                <option value="N">Não</option>
+                                                <option value="Sim">Sim</option>
+                                                <option value="Não">Não</option>
                                             </select>
                                             <button onClick={handleBack}>Voltar</button>
                                             <button onClick={handleNext}>Próximo</button>
@@ -976,7 +1393,7 @@ export default function EmpreitadaObra() {
                                 </>
                             )}
 
-                            {step === 33 && (
+                            {step === 49 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -994,7 +1411,7 @@ export default function EmpreitadaObra() {
                                     </div>
                                 </>
                             )}
-                            {step === 34 && (
+                            {step === 50 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1013,7 +1430,7 @@ export default function EmpreitadaObra() {
                                 </>
                             )}
 
-                            {step === 35 && (
+                            {step === 51 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -1083,7 +1500,7 @@ export default function EmpreitadaObra() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorEmpreitadaObraPago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorPrestacoesServicosPago(formData) }}>
                         Baixar PDF
                     </button>
                 ) : (
