@@ -1,4 +1,5 @@
 'use client'
+
 import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
@@ -7,54 +8,51 @@ import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
-import geradorPrestacoesServicosPago from '../util/pdf';
 
 
 
-
-const prestacoesservicosschema = z.object({
-    /**CONTRATANTE */
-    contratante_nome: z.string(),
-    contratante_estado_civil: z.string(),
-    contratante_nacionalidade: z.string(),
-    contratante_profissao: z.string(),
-    contratante_rg: z.string(),
-    contratante_cpf_cnpj: z.string(),
-    contratante_endereco: z.string(),
-    contratante_email: z.string(),
+const servicosalaoschema = z.object({
+    /**SALÃO PARCEIRO */
+    razaoSocial: z.string(),
+    cnpjsalao: z.string(),
+    enderecosalao: z.string(),
+    telefonesalao: z.string(),
+    emailsalao: z.string(),
+    represetanteNome: z.string(),
+    represetanteFuncao: z.string(),
+    represetanteCpf: z.string(),
     /** */
 
-    /**CONTRATADO */
-    contratado_nome: z.string(),
-    contratado_estado_civil: z.string(),
-    contratado_nacionalidade: z.string(),
-    contratado_profissao: z.string(),
-    contratado_rg: z.string(),
-    contratado_cpf_cnpj: z.string(),
-    contratado_endereco: z.string(),
-    contratado_email: z.string(),
+    /**Empresa ou Profissional Parceiro */
+    razaoSocialouNome: z.string(),
+    cnpjsalaooucpf: z.string(),
+    endereco: z.string(),
+    telefone: z.string(),
+    email: z.string(),
+
+    umrepresetanteNome: z.string(),
+    umrepresetanteFuncao: z.string(),
+    umrepresetanteCpf: z.string(),
+
+    doisrepresetanteNome: z.string(),
+    doisrepresetanteFuncao: z.string(),
+    doisrepresetanteCpf: z.string(),
     /** */
 
     /**OBJETO */
     descricaoServico: z.string(),
-    escopoServico: z.string(),
-    criterioServico: z.string(),
     /** */
 
-    /**PRAZO VIGÊNCIA */
-    duracaoDoContrato: z.enum(['INDETERMINADO', 'DETERMINADO']),
-    //se for determinado
-    dataInicio: z.string(),
-    condicoesRenovacao: z.string(),
-    prazosRevisao: z.string(),
+    /**PRAZO */
+    dataPrazo: z.string(),
+    prazoConclusao: z.string(),
     /** */
 
-    /**PRECO E CONDICOES DE PAGAMENTO */
-    valorTotal: z.string(),
-    formaPagamento: z.enum(['Avista', 'Parcelado']),
+    /**RETRIBUIÇÃO */
+    percentual: z.string(),
+    formaPagamento: z.enum(['diariamente', 'semanalmente', 'mensamente']),
 
-    //se for parcelado
-    numeroDeParcela: z.string(),
+    //se for mensalmente
     valorParcela: z.string(),
     dataVenc: z.string(),
 
@@ -66,33 +64,36 @@ const prestacoesservicosschema = z.object({
     valorSinal: z.string(),
     dataPag: z.string(),
 
-    aplicaReajuste: z.enum(['S', 'N']),
-
-    //se sim
-    qualReajuste: z.enum(['INCC', 'IGPM', 'IPCA', 'TR']),
-    // Índice Nacional de Custo da Construção
-    // Índice Geral de Preços de Mercado
-    // Índice Nacional de Preços ao Consumidor Amplo
-    // Taxa Referencial (não é um índice de correção monetária, mas pode ser utilizada em conjunto)
+    multaAtraso: z.string(),
     contaBancaria: z.string(),
     /** */
 
 
-
-    /**OUTRAS CLAUSULAS */
-    clausulaEspecifica: z.enum(['S', 'N']),
-    extras: z.record(z.string(), z.any()),
+    /**FREQUÊNCIA E HORÁRIOS PARA ATENDIMENTO*/
+    horarioFunc: z.string(),
+    recepcao: z.enum(['S', 'N']),
+    fornecerMaterial: z.string(),
     /** */
 
-    /**RESCISÃO DO CONTRATO */
-    condicoesRescisao: z.string(),
-    multasPenalidades: z.string(),
-    prazo: z.string(),
-    metodoResolucao: z.enum(['Med', 'Arb', 'Liti']),
+    /**DESCUMPRIMENTO */
+    percentualDescumprimento: z.string(),
+    /** */
+
+
+    clausulaEspecifica: z.enum(['S', 'N']),
+    extras: z.record(z.string(), z.any()),
+
+
+    /**FORO */
+    cidade: z.string(),
+    estado: z.string(),
+    /** */
+
+    /**PROPRIEDADE INTELCTUAL */
+    direitos: z.string(),
     /** */
 
     /**DISPOSIÇÕES GERAIS */
-    foroResolucaoConflitos: z.string(), // Foro eleito para resolução de conflitos
     testemunhasNecessarias: z.enum(['S', 'N']), // Necessidade de testemunhas para assinatura do contrato
     //se sim 
     nomeTest1: z.string(),
@@ -103,13 +104,13 @@ const prestacoesservicosschema = z.object({
     dataAssinatura: z.string(),
     registroCartorioTest: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
+
 });
 
+type FormData = z.infer<typeof servicosalaoschema>;
 
-type FormData = z.infer<typeof prestacoesservicosschema>;
 
-
-export default function PrestacoesServicos() {
+export default function ServicoSalao() {
 
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
@@ -126,19 +127,16 @@ export default function PrestacoesServicos() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 29.90;
+    const valor = 24.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
     /** */
 
     //VARIAVEIS DE CONTROLE DE FLUXO
-    const [Testemunhas, setTestemunhas] = useState(false);
-    const [Parcelado, setParcelado] = useState(false);
-    const [DETERMINADO, setDETERMINADO] = useState(false);
-    const [Avista, setAvista] = useState(false);
+    const [Mensalmente, setMensalmente] = useState(false);
     const [sinal, setSinal] = useState(false);
-    const [aplicaReajuste, setAplicaReajuste] = useState(false);
+    const [Testemunhas, setTestemunhas] = useState(false);
     const [clausulaEspecifica, setClausulaEspecifica] = useState(false);
     const [extras, setExtras] = useState<ClausulasExtras[]>([]);
     const pilha = useRef(new Pilha());
@@ -157,8 +155,6 @@ export default function PrestacoesServicos() {
             )
         );
     };
-
-
 
     const handleFinalize = () => {
         setIsLoading(true)
@@ -251,58 +247,37 @@ export default function PrestacoesServicos() {
         let nextStep = step;
 
 
-        if (currentStepData.duracaoDoContrato === 'DETERMINADO') {
-            setDETERMINADO(true);
-            nextStep = 21;
-        } else if (currentStepData.duracaoDoContrato === 'INDETERMINADO') {
+
+        if (currentStepData.formaPagamento === 'mensamente') {
+            setMensalmente(true);
+            nextStep = 22;
+        } else if (currentStepData.formaPagamento === 'semanalmente') {
             nextStep = 24;
-        }
-
-
-        if (currentStepData.formaPagamento === 'Parcelado') {
-            setParcelado(true);
-            nextStep = 26;
-        } else if (currentStepData.formaPagamento === 'Avista') {
-            setAvista(true);
-            nextStep = 29;
-        }
-
-        if (nextStep === 28) {
-            nextStep = 30;
+        } else if (currentStepData.formaPagamento === 'diariamente') {
+            nextStep = 24;
         }
 
         if (currentStepData.sinal === 'S') {
             setSinal(true);
-            nextStep = 31;
+            nextStep = 26;
         } else if (currentStepData.sinal === 'N') {
-            nextStep = 33;
-        }
-
-
-        if (currentStepData.aplicaReajuste === 'S') {
-            setSinal(true);
-            nextStep = 32;
-        } else if (currentStepData.aplicaReajuste === 'N') {
-            nextStep = 35;
+            nextStep = 28;
         }
 
 
         if (currentStepData.clausulaEspecifica === 'S') {
             setClausulaEspecifica(true);
-            nextStep = 37;
+            nextStep = 35;
         } else if (currentStepData.clausulaEspecifica === 'N') {
-            nextStep = 38;
+            nextStep = 36;
         }
 
         if (currentStepData.testemunhasNecessarias === 'S') {
             setTestemunhas(true);
-            nextStep = 44;
+            nextStep = 39;
         } else if (currentStepData.testemunhasNecessarias === 'N') {
-            nextStep = 48;
+            nextStep = 43;
         }
-
-
-
 
 
 
@@ -337,132 +312,115 @@ export default function PrestacoesServicos() {
         setExtras((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const geradorPrestacoesServicos = (dados: any) => {
+    const geradorServicoSalaoPdf = (dados: any): void => {
         const doc = new jsPDF();
+        const marginX: number = 10;
+        let posY: number = 20;
+        const maxPageHeight: number = 280;
+        const maxTextWidth: number = 190;
 
-        // Configuração inicial de fonte e margens
-        const marginX = 10;
-        let posY = 20;
-
-        // Altura máxima permitida antes de criar uma nova página
-        const maxPageHeight = 280;
-
-        // Largura do texto permitida dentro das margens
-        const maxTextWidth = 190;
-
-        // Função auxiliar para verificar espaço restante na página
-        const checkPageBreak = (additionalHeight: number) => {
+        const checkPageBreak = (additionalHeight: number): void => {
             if (posY + additionalHeight >= maxPageHeight) {
                 doc.addPage();
-                posY = 20; // Reinicia a posição no topo da nova página
+                posY = 20;
             }
         };
 
-        // Função auxiliar para adicionar seções e ajustar a posição Y
-        const addSection = (title: string, content: string[]) => {
-            const titleHeight = 15; // Altura do título
-            const lineHeight = 10; // Altura de cada linha de texto
-
-            // Verifica espaço antes de adicionar o título
-            checkPageBreak(titleHeight);
+        const addSection = (title: string, content: string[]): void => {
+            checkPageBreak(15);
             doc.setFontSize(12);
             doc.text(title, 105, posY, { align: "center" });
-            posY += titleHeight;
-
-            // Adiciona o conteúdo, verificando quebra de páginas
+            posY += 15;
             doc.setFontSize(10);
+
             content.forEach((line: string) => {
-                // Divide o texto em linhas com base na largura permitida
-                const splitLines = doc.splitTextToSize(line, maxTextWidth); // Quebra automática
+                const splitLines: string[] = doc.splitTextToSize(line, maxTextWidth);
                 splitLines.forEach((splitLine: string) => {
-                    checkPageBreak(lineHeight); // Verifica quebra de página para cada linha
+                    checkPageBreak(10);
                     doc.text(splitLine, marginX, posY);
-                    posY += lineHeight;
+                    posY += 10;
                 });
             });
         };
 
         // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE PRESTAÇÃO DE SERVIÇO", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE PARCERIA SALÃO PARCEIRO", 105, posY, { align: "center" });
         posY += 15;
 
-        // Seção CONTRATANTE
-        addSection("CONTRATANTE", [
-            `Nome completo ou Razão Social: ${verificarValor(dados.contratante_nome)}`,
-            `Estado Civil: ${verificarValor(dados.contratante_estado_civil)}`,
-            `Nacionalidade: ${verificarValor(dados.contratante_nacionalidade)}`,
-            `Profissão: ${verificarValor(dados.contratante_profissao)}`,
-            `Carteira de Identidade: ${verificarValor(dados.contratante_rg)}`,
-            `CPF/CNPJ: ${verificarValor(dados.contratante_cpf_cnpj)}`,
-            `Residência: ${verificarValor(dados.contratante_endereco)}`,
-            `Email: ${verificarValor(dados.contratante_email)}`,
-            "Art. 104 do Código Civil: A validade do negócio jurídico requer agente capaz, objeto lícito e forma prescrita em lei."
+
+        addSection("1. IDENTIFICAÇÃO DAS PARTES", [
+            `Salão Parceiro:`,
+            `Razão Social: ${verificarValor(dados.razaoSocial)}`,
+            `CNPJ: ${verificarValor(dados.cnpjsalao)}`,
+            `Endereço: ${verificarValor(dados.enderecosalao)}`,
+            `Telefone: ${verificarValor(dados.telefonesalao)}`,
+            `E-mail: ${verificarValor(dados.emailsalao)}`,
+            `1º Representante: ${verificarValor(dados.represetanteNome)}, ${verificarValor(dados.represetanteFuncao)}, ${verificarValor(dados.represetanteCpf)}`,
+            `2º Representante: ${verificarValor(dados.doisrepresetanteNome)}, ${verificarValor(dados.doisrepresetanteFuncao)}, ${verificarValor(dados.doisrepresetanteCpf)}`,
+            "",
+            `Empresa ou Profissional Parceiro:`,
+            `Nome/Razão Social: ${verificarValor(dados.razaoSocialouNome)}`,
+            `CPF/CNPJ: ${verificarValor(dados.cnpjsalaooucpf)}`,
+            `Endereço: ${verificarValor(dados.endereco)}`,
+            `Telefone: ${verificarValor(dados.telefone)}`,
+            `E-mail: ${verificarValor(dados.email)}`,
+            "Conforme disposto no Art. 1º da Lei nº 13.352/2016, este contrato visa regulamentar a relação entre salão parceiro e profissional parceiro."
+
         ]);
 
-        // Seção CONTRATADO
-        addSection("CONTRATADO", [
-            `Nome completo ou Razão Social: ${verificarValor(dados.contratado_nome)}`,
-            `Estado Civil: ${verificarValor(dados.contratado_estado_civil)}`,
-            `Nacionalidade: ${verificarValor(dados.contratado_nacionalidade)}`,
-            `Profissão: ${verificarValor(dados.contratado_profissao)}`,
-            `Carteira de Identidade: ${verificarValor(dados.contratado_rg)}`,
-            `CPF/CNPJ: ${verificarValor(dados.contratado_cpf_cnpj)}`,
-            `Residência: ${verificarValor(dados.contratado_endereco)}`,
-            `Email: ${verificarValor(dados.contratado_email)}`,
-            "Art. 113 do Código Civil: Os negócios jurídicos devem ser interpretados conforme a boa-fé e os usos do lugar de sua celebração."
+        addSection("2. DO OBJETO", [
+            "O presente contrato tem como objeto a prestação de serviços de beleza pelo(a) profissional parceiro(a) dentro do estabelecimento do Salão Parceiro.",
+            `Descrição: ${verificarValor(dados.descricaoServico)}`,
+            "De acordo com o Art. 1º, § 1º da Lei nº 13.352/2016, este contrato deve estabelecer direitos e deveres de ambas as partes."
+
         ]);
 
-        // Seção OBJETO
-        addSection("OBJETO", [
-            `Descrição do Serviço: ${verificarValor(dados.descricaoServico)}`,
-            `Escopo do Serviço: ${verificarValor(dados.escopoServico)}`,
-            `Critério de Avaliação do Serviço: ${verificarValor(dados.criterioServico)}`,
-            "Art. 482 da CLT: Definição de justa causa e critérios de avaliação de desempenho."
+        addSection("3. DO PRAZO", [
+            `Data de início: ${verificarValor(dados.dataPrazo)}`,
+            `Prazo para conclusão: ${verificarValor(dados.prazoConclusao)}`,
+            "Conforme o Código Civil, contratos devem ter prazo determinado ou indeterminado, respeitando o acordo entre as partes."
+
         ]);
 
-        // Seção PRAZO E VIGÊNCIA
-        addSection("PRAZO E VIGÊNCIA", [
-            `Duração do Contrato: ${verificarValor(dados.duracaoDoContrato)}`,
-            `Data de Início: ${verificarValor(dados.dataInicio)}`,
-            `Condições de Renovação: ${verificarValor(dados.condicoesRenovacao)}`,
-            `Prazos de Revisão: ${verificarValor(dados.prazosRevisao)}`,
-            "Art. 598 do Código Civil: O contrato de prestação de serviço não pode ser convencionado por mais de quatro anos."
+        addSection("4. DA RETRIBUIÇÃO", [
+            `Percentual repassado: ${verificarValor(dados.percentual)}`,
+            `Frequência do pagamento: ${verificarValor(dados.formaPagamento)}`,
+            dados.formaPagamento === "mensalmente" ? `Valor da parcela: ${verificarValor(dados.valorParcela)}` : `Forma de pagamento: ${verificarValor(dados.modalidade)}`,
+            dados.formaPagamento === "mensalmente" ? `Data de vencimento: ${verificarValor(dados.dataVenc)}` : "",
+            dados.sinal === "S" ? `Sinal: Sim, Valor: ${verificarValor(dados.valorSinal)}, Data de pagamento: ${verificarValor(dados.dataPag)}` : "Sinal: Não",
+            `Multa por atraso: ${verificarValor(dados.multaAtraso)}`,
+            `Conta bancária: ${verificarValor(dados.contaBancaria)}`,
+            "De acordo com o Art. 1º, § 6º da Lei nº 13.352/2016, a remuneração do profissional parceiro será acordada entre as partes e não configurará vínculo empregatício."
+
         ]);
 
-        // Seção PREÇO E CONDIÇÕES DE PAGAMENTO
-        const pagamentoContent = [
-            `Valor Total: ${verificarValor(dados.valorTotal)}`,
-            `Forma de Pagamento: ${verificarValor(dados.formaPagamento)}`
-        ];
+        addSection("5. DA FREQUÊNCIA E HORÁRIOS PARA ATENDIMENTO", [
+            `Horários de funcionamento: ${verificarValor(dados.horarioFunc)}`,
+            `Recepção disponível: ${verificarValor(dados.recepcao)}`,
+            `Fornecimento de materiais: ${verificarValor(dados.fornecerMaterial)}`,
+            "Nos termos do Art. 1º, § 5º da Lei nº 13.352/2016, o profissional parceiro tem autonomia para definir seus horários de trabalho."
 
-        if (dados.formaPagamento === "Parcelado") {
-            pagamentoContent.push(
-                `Número de Parcelas: ${verificarValor(dados.numeroDeParcela)}`,
-                `Valor da Parcela: ${verificarValor(dados.valorParcela)}`,
-                `Data de Vencimento: ${verificarValor(dados.dataVenc)}`
-            );
-        } else {
-            pagamentoContent.push(`Modalidade de Pagamento: ${verificarValor(dados.modalidade)}`);
-        }
+        ]);
 
-        if (dados.sinal === "S") {
-            pagamentoContent.push(
-                `Valor do Sinal: ${verificarValor(dados.valorSinal)}`,
-                `Data de Pagamento do Sinal: ${verificarValor(dados.dataPag)}`
-            );
-        }
+        addSection("6. DO DESCUMPRIMENTO", [
+            `Em caso de descumprimento, multa de ${verificarValor(dados.percentualDescumprimento)} será aplicada.`,
+            "Nos termos do Código Civil, cláusulas de penalidade devem ser proporcionais ao dano causado."
 
-        if (dados.aplicaReajuste === "S") {
-            pagamentoContent.push(
-                `Reajuste Aplicado: ${verificarValor(dados.qualReajuste)}`
-            );
-        }
+        ]);
 
-        pagamentoContent.push(`Conta Bancária: ${verificarValor(dados.contaBancaria)}`,
-            "Art. 315 do Código Civil: As dívidas em dinheiro devem ser pagas em moeda corrente e pelo valor nominal.");
+        addSection("7. DO FORO", [
+            `Foro eleito: Comarca de ${verificarValor(dados.cidade)}/${verificarValor(dados.estado)}`,
+            "Nos termos do Art. 63 do Código de Processo Civil, as partes podem eleger foro para dirimir eventuais litígios."
 
-        addSection("PREÇO E CONDIÇÕES DE PAGAMENTO", pagamentoContent);
+        ]);
+
+        addSection("8. PROPRIEDADE INTELECTUAL E CONFIDENCIALIDADE", [
+            "Informações sigilosas sobre clientes e estratégias de negócios não poderão ser compartilhadas sem autorização.",
+            `Propriedade intelectual: ${verificarValor(dados.direitos)}`,
+            "Conforme a Lei nº 9.279/96 (Lei de Propriedade Industrial), informações confidenciais devem ser protegidas entre as partes."
+
+        ]);
 
         // Seção OUTRAS CLAUSULAS
         const outrasClausulasContent = [
@@ -476,86 +434,49 @@ export default function PrestacoesServicos() {
             });
         }
 
-
-        addSection("OUTRAS CLAUSULAS", outrasClausulasContent);
-
-        // Seção RESCISÃO DO CONTRATO
-        addSection("RESCISÃO DO CONTRATO", [
-            `Condições de Rescisão: ${verificarValor(dados.condicoesRescisao)}`,
-            `Multas e Penalidades: ${verificarValor(dados.multasPenalidades)}`,
-            `Prazo: ${verificarValor(dados.prazo)}`,
-            `Método de Resolução de Disputas: ${verificarValor(dados.metodoResolucao)}`,
-            "Art. 478 do Código Civil: Nos contratos de execução continuada, se a prestação de uma das partes se tornar excessivamente onerosa, poderá ser resolvido ou revisto."
+        addSection("9. CLÁUSULAS ADICIONAIS", [
+            `${outrasClausulasContent}`,
+            "Disposições adicionais relevantes para ambas as partes, respeitando as normas da Lei nº 13.352/2016."
         ]);
 
-        // Seção DISPOSIÇÕES GERAIS
-        const disposicoesGeraisContent = [
-            `Foro de Resolução de Conflitos: ${verificarValor(dados.foroResolucaoConflitos)}`,
-            `Necessidade de Testemunhas: ${verificarValor(dados.testemunhasNecessarias)}`
-        ];
+        addSection("10. ASSINATURA E TESTEMUNHAS", [
+            "Nos termos do Código Civil, testemunhas são recomendadas para garantir validade jurídica ao contrato.",
+            `[${verificarValor(dados.razaoSocial)}]`,
+            "Assinatura: ___________________________________________",
+            `Nome do Representante: ${verificarValor(dados.represetanteNome)}`,
+            `CPF: ${verificarValor(dados.represetanteCpf)}`,
+            "",
+            `[${verificarValor(dados.razaoSocialouNome)}]`,
+            "Assinatura: ___________________________________________",
+            `Nome do Representante: ${verificarValor(dados.umrepresetanteNome)}`,
+            `CPF: ${verificarValor(dados.umrepresetanteCpf)}`,
+            "",
+            dados.testemunhasNecessarias === "S" ? `Testemunhas:
+        Nome: ${verificarValor(dados.nomeTest1)}
+        CPF: ${verificarValor(dados.cpfTest1)}
+        Assinatura: ________________________________________
+        Nome: ${verificarValor(dados.nomeTest2)}
+        CPF: ${verificarValor(dados.cpfTest2)}
+        Assinatura: ________________________________________` : "",
+            `Local: ${verificarValor(dados.local)}`,
+            `Data de assinatura: ${verificarValor(dados.dataAssinatura)}`,
+            `Registro em cartório: ${verificarValor(dados.registroCartorioTest)}`
+        ]);
 
-        if (dados.testemunhasNecessarias === "S") {
-            disposicoesGeraisContent.push(
-                `Nome da Testemunha 1: ${verificarValor(dados.nomeTest1)}`,
-                `CPF da Testemunha 1: ${verificarValor(dados.cpfTest1)}`,
-                `Nome da Testemunha 2: ${verificarValor(dados.nomeTest2)}`,
-                `CPF da Testemunha 2: ${verificarValor(dados.cpfTest2)}`
-            );
-        }
-
-        disposicoesGeraisContent.push(
-            `Local de Assinatura: ${verificarValor(dados.local)}`,
-            `Data de Assinatura: ${verificarValor(dados.dataAssinatura)}`,
-            `Registro em Cartório: ${verificarValor(dados.registroCartorioTest)}`,
-            "Art. 129 da Lei de Registros Públicos: Alguns contratos podem exigir registro para maior segurança jurídica."
-        );
-
-        addSection("DISPOSIÇÕES GERAIS", disposicoesGeraisContent);
-
-
-        // Espaço para assinatura do vendedor
-        checkPageBreak(30);
-        doc.text("__________________________________________", marginX, posY);
-        posY += 10;
-        doc.text("Assinatura do Contratante", marginX, posY);
-        posY += 15;
-
-        // Espaço para assinatura do comprador
-        checkPageBreak(30);
-        doc.text("__________________________________________", marginX, posY);
-        posY += 10;
-        doc.text("Assinatura do Contratado", marginX, posY);
-        posY += 15;
-
-        // Verifica se há testemunhas e adiciona os espaços para assinatura
-        if (dados.testemunhasNecessarias === 'S') {
-            checkPageBreak(30);
-            doc.text("__________________________________________", marginX, posY);
-            posY += 10;
-            doc.text(`Assinatura da Testemunha 1: ${verificarValor(dados.nomeTest1)}`, marginX, posY);
-            posY += 15;
-
-            checkPageBreak(30);
-            doc.text("__________________________________________", marginX, posY);
-            posY += 10;
-            doc.text(`Assinatura da Testemunha 2: ${verificarValor(dados.nomeTest2)}`, marginX, posY);
-            posY += 15;
-        }
-
-
-        const pdfDataUri = doc.output("datauristring");
+        const pdfDataUri: string = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
 
+
     useEffect(() => {
-        geradorPrestacoesServicos({ ...formData });
+        geradorServicoSalaoPdf({ ...formData });
     }, [formData]);
 
 
     return (
         <>
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">CONTRATO DE PRESTAÇÃO DE SERVIÇOS </h1>
+                <h1 className="title">Contrato de Parceria Salão Parceiro</h1>
             </div>
             <div className="container">
                 <div className="left-panel">
@@ -563,18 +484,19 @@ export default function PrestacoesServicos() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 49) * 100}%` }}
+                                style={{ width: `${(step / 45) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
                             {step === 1 && (
                                 <>
-                                    <h2>CONTRATANTE </h2>                                    <div>
-                                        <label>Nome completo ou Razão Social</label>
+                                    <div>
+                                        <h2>Salão Parceiro</h2>
+                                        <label>Razão Social</label>
                                         <input
                                             type='text'
-                                            placeholder='Nome do Contratante'
-                                            name="contratante_nome"
+                                            placeholder='Nome da Empresa'
+                                            name="razaoSocial"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -585,12 +507,12 @@ export default function PrestacoesServicos() {
 
                             {step === 2 && (
                                 <>
-                                    <h2>CONTRATANTE </h2>                                    <div>
-                                        <label>Estado Civil</label>
+                                    <h2>Salão Parceiro</h2>                                    <div>
+                                        <label>CNPJ</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="contratante_estado_civil"
+                                            placeholder='Número do CNPJ'
+                                            name="cnpjsalao"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -601,12 +523,12 @@ export default function PrestacoesServicos() {
 
                             {step === 3 && (
                                 <>
-                                    <h2>CONTRATANTE </h2>                                    <div>
-                                        <label>Nacionalidade</label>
+                                    <h2>Salão Parceiro</h2>                                    <div>
+                                        <label>Endereço</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="contratante_nacionalidade"
+                                            placeholder='Endereço Completo'
+                                            name="enderecosalao"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -617,12 +539,12 @@ export default function PrestacoesServicos() {
 
                             {step === 4 && (
                                 <>
-                                    <h2>CONTRATANTE </h2>                                    <div>
-                                        <label>Profissão</label>
+                                    <h2>Salão Parceiro</h2>                                    <div>
+                                        <label>Telefone</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="contratante_profissao"
+                                            placeholder='Número de Contato'
+                                            name="telefonesalao"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -633,12 +555,12 @@ export default function PrestacoesServicos() {
 
                             {step === 5 && (
                                 <>
-                                    <h2>CONTRATANTE </h2>                                    <div>
-                                        <label>Carteira de Identidade</label>
+                                    <h2>Salão Parceiro</h2>                                    <div>
+                                        <label>E-mail</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="contratante_rg"
+                                            placeholder='Endereço de E-mail'
+                                            name="emailsalao"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -649,12 +571,12 @@ export default function PrestacoesServicos() {
 
                             {step === 6 && (
                                 <>
-                                    <h2>CONTRATANTE </h2>                                    <div>
-                                        <label>CPF/CNPJ</label>
+                                    <h2>Salão Parceiro</h2>                                    <div>
+                                        <label>Nome do Representante</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="contratante_cpf_cnpj"
+                                            placeholder='Nome Completo'
+                                            name="represetanteNome"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -663,15 +585,14 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-
                             {step === 7 && (
                                 <>
-                                    <h2>CONTRATANTE </h2>                                    <div>
-                                        <label>Residência</label>
+                                    <h2>Salão Parceiro</h2>                                    <div>
+                                        <label>Função do Representante</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratante_endereco"
+                                            name="represetanteFuncao"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -682,12 +603,12 @@ export default function PrestacoesServicos() {
 
                             {step === 8 && (
                                 <>
-                                    <h2>CONTRATANTE </h2>                                    <div>
-                                        <label>Email (se tiver)</label>
+                                    <h2>Salão Parceiro</h2>                                    <div>
+                                        <label>CPF do Representante</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratante_email"
+                                            name="represetanteCpf"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -696,15 +617,14 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-
                             {step === 9 && (
                                 <>
-                                    <h2>CONTRATADO </h2>                                    <div>
-                                        <label>Nome completo ou Razão Social</label>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>Nome Completo ou Razão Social</label>
                                         <input
                                             type='text'
-                                            placeholder='Nome do Contratado'
-                                            name="contratado_nome"
+                                            placeholder=''
+                                            name="razaoSocialouNome"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -715,12 +635,12 @@ export default function PrestacoesServicos() {
 
                             {step === 10 && (
                                 <>
-                                    <h2>CONTRATADO </h2>                                    <div>
-                                        <label>Estado Civil</label>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>CPF ou CNPJ</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratado_estado_civil"
+                                            name="cnpjsalaooucpf"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -731,12 +651,12 @@ export default function PrestacoesServicos() {
 
                             {step === 11 && (
                                 <>
-                                    <h2>CONTRATADO </h2>                                    <div>
-                                        <label>Nacionalidade</label>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>Endereço</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratado_nacionalidade"
+                                            name="endereco"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -747,12 +667,12 @@ export default function PrestacoesServicos() {
 
                             {step === 12 && (
                                 <>
-                                    <h2>CONTRATADO </h2>                                    <div>
-                                        <label>Profissão</label>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>Telefone</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratado_profissao"
+                                            name="telefone"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -763,12 +683,12 @@ export default function PrestacoesServicos() {
 
                             {step === 13 && (
                                 <>
-                                    <h2>CONTRATADO </h2>                                    <div>
-                                        <label>Carteira de Identidade</label>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>Telefone</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratado_rg"
+                                            name="email"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -779,12 +699,12 @@ export default function PrestacoesServicos() {
 
                             {step === 14 && (
                                 <>
-                                    <h2>CONTRATADO </h2>                                    <div>
-                                        <label>CPF/CNPJ</label>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>Nome do 1° Representante</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="contratado_cpf_cnpj"
+                                            placeholder='Nome Completo'
+                                            name="umrepresetanteNome"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -793,15 +713,14 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-
                             {step === 15 && (
                                 <>
-                                    <h2>CONTRATADO </h2>                                    <div>
-                                        <label>Residência</label>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>Função do 1° Representante</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratado_endereco"
+                                            name="umrepresetanteFuncao"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -812,12 +731,61 @@ export default function PrestacoesServicos() {
 
                             {step === 16 && (
                                 <>
-                                    <h2>CONTRATADO </h2>                                    <div>
-                                        <label>Email (se tiver)</label>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>CPF do 1° Representante</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="contratado_email"
+                                            name="umrepresetanteCpf"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {step === 17 && (
+                                <>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>Nome do 2° Representante</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Nome Completo'
+                                            name="doisrepresetanteNome"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 15 && (
+                                <>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>Função do 2° Representante</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="doisrepresetanteFuncao"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 16 && (
+                                <>
+                                    <h2>Empresa ou Profissional Parceiro</h2>                                    <div>
+                                        <label>CPF do 2° Representante</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="doisrepresetanteCpf"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -828,15 +796,16 @@ export default function PrestacoesServicos() {
 
                             {step === 17 && (
                                 <>
-                                    <h2>OBJETO </h2>                                    <div>
-                                        <label>Descrição detalhada do serviço: (Especificar de maneira clara e objetiva o que será realizado pelo contratado).</label>
+                                    <h2>Objeto</h2>                                    <div>
+                                        <label>O presente contrato tem como objeto a
+                                            prestação de serviços de beleza pelo(a) profissional parceiro(a) dentro do estabelecimento do Salão Parceiro. Os serviços incluem, mas não se limitam a</label>
                                         <textarea
                                             id="descricaoServico"
                                             name="descricaoServico"
                                             onChange={handleChange}
                                             rows={10}
                                             cols={50}
-                                            placeholder="descreva"
+                                            placeholder="Descrever os serviços a serem prestados, como cortes de cabelo, coloração, tratamentos estéticos"
                                         />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -846,15 +815,13 @@ export default function PrestacoesServicos() {
 
                             {step === 18 && (
                                 <>
-                                    <h2>OBJETO </h2>                                    <div>
-                                        <label>Escopo dos serviços: Definição clara do que está incluso e o que não está incluso na prestação dos serviços</label>
-                                        <textarea
-                                            id="escopoServico"
-                                            name="escopoServico"
+                                    <h2>Prazo</h2>                                    <div>
+                                        <label>Data de início</label>
+                                        <input
+                                            type='date'
+                                            placeholder=''
+                                            name="dataPrazo"
                                             onChange={handleChange}
-                                            rows={10}
-                                            cols={50}
-                                            placeholder="descreva"
                                         />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -862,18 +829,15 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-
                             {step === 19 && (
                                 <>
-                                    <h2>OBJETO </h2>                                    <div>
-                                        <label>Critérios de qualidade e padrões exigidos: Garantia de que os serviços serão prestados conforme padrões preestabelecidos. </label>
-                                        <textarea
-                                            id="criterioServico"
-                                            name="criterioServico"
+                                    <h2>Prazo</h2>                                    <div>
+                                        <label>Prazo para conclusão</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Especificar se é por tempo indeterminado ou um período definido'
+                                            name="prazoConclusao"
                                             onChange={handleChange}
-                                            rows={10}
-                                            cols={50}
-                                            placeholder="descreva"
                                         />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -883,87 +847,12 @@ export default function PrestacoesServicos() {
 
                             {step === 20 && (
                                 <>
-                                    <div>
-                                        <h2>PRAZO VIGÊNCIA </h2>
-                                        <label>Duração do contrato: (Especificar se será por prazo determinado ou indeterminado)</label>
-                                        <select name='duracaoDoContrato' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="INDETERMINADO">Indeterminado</option>
-                                            <option value="DETERMINADO">Determinado</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {DETERMINADO && (
-                                <>
-                                    {step === 21 && (
-                                        <>
-                                            <div>
-                                                <h2>PRAZO VIGÊNCIA </h2>
-                                                <label>Data de Inicio</label>
-                                                <input
-                                                    type='date'
-                                                    placeholder=''
-                                                    name="dataInicio"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {step === 22 && (
-                                        <>
-                                            <div>
-                                                <h2>PRAZO VIGÊNCIA </h2>
-                                                <label>Condições de renovação ou rescisão: (Se aplicável)</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="condicoesRenovacao"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {step === 23 && (
-                                        <>
-                                            <div>
-                                                <h2>PRAZO VIGÊNCIA </h2>
-                                                <label>Prazos para revisão e ajustes no contrato: Definição de periódicos para revisão do contrato e ajustes conforme necessidade das partes</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="prazosRevisao"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
-
-                                </>
-                            )}
-
-
-                            {step === 24 && (
-                                <>
-                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                    <div>
-                                        <label>Valor total do Serviço </label>
+                                    <h2>Retribuição</h2>                                    <div>
+                                        <label>Percentual a ser repassado ao(a) parceiro(a) pela prestação do serviço</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="valorTotal"
+                                            placeholder='Exemplo: 50% sobre o valor de cada serviço'
+                                            name="percentual"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -972,16 +861,15 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-
-                            {step === 25 && (
+                            {step === 21 && (
                                 <>
-                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                    <div>
-                                        <label>Pagamento à vista ou parcelado? </label>
+                                    <h2>Retribuição</h2>                                    <div>
+                                        <label>Frequência do pagamento</label>
                                         <select name='formaPagamento' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="Avista">A vista</option>
-                                            <option value="Parcelado">Parcelado</option>
+                                            <option value="diariamente">Diariamente</option>
+                                            <option value="semanalmente">Semanalmente</option>
+                                            <option value="mensamente">Mensalmente</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -989,29 +877,12 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {Parcelado && (
+                            {Mensalmente && (
                                 <>
-                                    {step === 26 && (
+                                    {step === 22 && (
                                         <>
-                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                            <div>
-                                                <label>Número de parcelas</label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="numeroDeParcela"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                    {step === 27 && (
-                                        <>
-                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                            <div>
-                                                <label>Valor das parcelas</label>
+                                            <h2>Retribuição</h2>                                    <div>
+                                                <label>Valor de cada parcela</label>
                                                 <input
                                                     type='text'
                                                     placeholder=''
@@ -1024,11 +895,11 @@ export default function PrestacoesServicos() {
                                         </>
                                     )}
 
-                                    {step === 28 && (
+
+                                    {step === 23 && (
                                         <>
-                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                            <div>
-                                                <label>Data de Vencimento</label>
+                                            <h2>Retribuição</h2>                                    <div>
+                                                <label>Data de pagamento cada parcela</label>
                                                 <input
                                                     type='date'
                                                     placeholder=''
@@ -1043,33 +914,26 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {Avista && (
+                            {step === 24 && (
                                 <>
-                                    {step === 29 && (
-                                        <>
-                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                            <div>
-                                                <label>Forma de Pagamento</label>
-                                                <select name='modalidade' onChange={handleChange}>
-                                                    <option value="">Selecione</option>
-                                                    <option value="Pix">Pix</option>
-                                                    <option value="CartaoDebito">Cartão de Débito</option>
-                                                    <option value="CartaoCredito">Cartão de Crédito</option>
-                                                    <option value="Boleto">Boleto</option>
-                                                </select>
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
+                                    <h2>Retribuição</h2>                                    <div>
+                                        <label>Modalidade de pagamento</label>
+                                        <select name='modalidade' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="Pix">Pix</option>
+                                            <option value="CartaoDebito">Cartão de Débito</option>
+                                            <option value="CartaoCredito">Cartão de Crédito</option>
+                                            <option value="Boleto">Boleto</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
                                 </>
                             )}
 
-
-                            {step === 30 && (
+                            {step === 25 && (
                                 <>
-                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                    <div>
+                                    <h2>Retribuição</h2>                                    <div>
                                         <label>Existência de sinal ou entrada? </label>
                                         <select name='sinal' onChange={handleChange}>
                                             <option value="">Selecione</option>
@@ -1084,9 +948,9 @@ export default function PrestacoesServicos() {
 
                             {sinal && (
                                 <>
-                                    {step === 31 && (
+                                    {step === 26 && (
                                         <>
-                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <h2>Preço e Condições de Pagamento</h2>
                                             <div>
                                                 <label>Valor do sinal ou entrada </label>
                                                 <input
@@ -1101,9 +965,9 @@ export default function PrestacoesServicos() {
                                         </>
                                     )}
 
-                                    {step === 32 && (
+                                    {step === 27 && (
                                         <>
-                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
+                                            <h2>Preço e Condições de Pagamento</h2>
                                             <div>
                                                 <label>Data de Pagamento</label>
                                                 <input
@@ -1120,48 +984,27 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {step === 33 && (
+
+                            {step === 28 && (
                                 <>
-                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                    <div>
-                                        <label>Ocorrerá rejuste nas parcelas?</label>
-                                        <select name='aplicaReajuste' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="S">Sim</option>
-                                            <option value="N">Não</option>
-                                        </select>
+                                    <h2>Retribuição</h2>                                    <div>
+                                        <label>Multa por atraso de pagamento</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="multaAtraso"
+                                            onChange={handleChange}
+                                        />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
-                            {aplicaReajuste && (
-                                <>
-                                    {step === 34 && (
-                                        <>
-                                            <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                            <div>
-                                                <label>Qual índice será aplicado ?</label>
-                                                <select name='qualReajuste' onChange={handleChange}>
-                                                    <option value="">Selecione</option>
-                                                    <option value="INCC">Índice Nacional de Custo da Construção</option>
-                                                    <option value="IGPM">Índice Geral de Preços de Mercado</option>
-                                                    <option value="IPCA">Índice Nacional de Preços ao Consumidor Amplo</option>
-                                                    <option value="TR">Taxa Referencial (não é um índice de correção monetária, mas pode ser utilizada em conjunto)</option>
-                                                </select>
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                </>
-                            )}
 
-                            {step === 35 && (
+                            {step === 29 && (
                                 <>
-                                    <h2>PREÇOS E CONDIÇÕES DE PAGAMENTO</h2>
-                                    <div>
+                                    <h2>Retribuição</h2>                                    <div>
                                         <label>Conta bancária para depósito (se aplicável)</label>
                                         <input
                                             type='text'
@@ -1175,7 +1018,75 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {step === 36 && (
+
+                            {step === 30 && (
+                                <>
+                                    <h2>Frequência e Horários para Atendimento</h2>                                    <div>
+                                        <label>Horários de funcionamento do salão parceiro</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Exemplo: Segunda a sábado, das 9h às 19h'
+                                            name="horarioFunc"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+
+                            {step === 31 && (
+                                <>
+                                    <h2>Frequência e Horários para Atendimento</h2>
+                                    <div>
+                                        <label>O salão conta com recepção para atender os clientes?</label>
+                                        <select name='recepcao' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 32 && (
+                                <>
+                                    <h2>Frequência e Horários para Atendimento</h2>                                    <div>
+                                        <label>Quem fornecerá os materiais e equipamentos para execução dos serviços?</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Especificar: salão, profissional ou ambos'
+                                            name="fornecerMaterial"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {step === 33 && (
+                                <>
+                                    <h2>Frequência e Horários para Atendimento</h2>                                    <div>
+                                        <label>Em caso de descumprimento contratual, a parte infratora estará sujeita ao pagamento de uma multa no valor de</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Especificar o valor ou percentual'
+                                            name="percentualDescumprimento"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 34 && (
                                 <>
                                     <h2>OUTRAS CLÁUSULAS</h2>
                                     <div>
@@ -1204,7 +1115,7 @@ export default function PrestacoesServicos() {
 
                             {clausulaEspecifica && (
                                 <>
-                                    {step === 37 && (
+                                    {step === 35 && (
                                         <>
                                             <h2>OUTRAS CLÁUSULAS</h2>
 
@@ -1247,104 +1158,22 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {step === 38 && (
+
+                            {step === 36 && (
                                 <>
-                                    <h2>Rescisão do Contrato</h2>
-                                    <div>
-                                        <label>Condições para rescisão do contrato por qualquer das partes</label>
-                                        <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="condicoesRescisao"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 39 && (
-                                <>
-                                    <h2>Rescisão do Contrato</h2>
-                                    <div>
-                                        <label>Multas ou penalidades em caso de descumprimento de cláusulas contratuais</label>
-                                        <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="multasPenalidades"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 40 && (
-                                <>
-                                    <h2>Rescisão do Contrato</h2>
-                                    <div>
-                                        <label>Prazo para notificação prévia em caso de rescisão</label>
-                                        <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="prazo"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 41 && (
-                                <>
-                                    <h2>Rescisão do Contrato</h2>
-                                    <div>
-                                        <label>Qual será o método para resolver conflitos?</label>
-                                        <i>
-                                            Mediação:
-                                            A mediação é um método consensual de resolução de conflitos, no qual um terceiro neutro (mediador) auxilia as partes a dialogarem e encontrarem uma solução mutuamente satisfatória.
-                                            A mediação é um processo mais rápido e menos custoso do que o litígio judicial, e preserva o relacionamento entre as partes.
-
-                                            Arbitragem:
-                                            A arbitragem é um método alternativo de resolução de conflitos, no qual as partes elegem um ou mais árbitros para julgar a disputa.
-                                            A decisão arbitral é vinculante e tem força de título executivo judicial, ou seja, pode ser executada judicialmente caso não seja cumprida espontaneamente.
-
-                                            Litígio Judicial:
-                                            O litígio judicial é a forma tradicional de resolução de conflitos, na qual a disputa é levada ao Poder Judiciário para ser julgada por um juiz.
-                                            O litígio judicial pode ser um processo mais longo e custoso do que a mediação ou a arbitragem.
-                                        </i>
-                                        <div>
-                                            <select name='metodoResolucao' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="Med">Mediação</option>
-                                                <option value="Arb">Arbitragem</option>
-                                                <option value="Liti">Litígio Judicial</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 42 && (
-                                <>
-                                    <h2>Disposições Gerais</h2>
-                                    <div>
-                                        <label>Foro eleito para resolução de conflitos</label>
+                                    <h2>Foro</h2>                                    <div>
+                                        <label>Fica eleito o foro da comarca de [Cidade/Estado] para dirimir quaisquer dúvidas ou conflitos decorrentes deste contrato</label>
                                         <input
                                             type='text'
-                                            placeholder=''
-                                            name="foroResolucaoConflitos"
+                                            placeholder='Cidade'
+                                            name="cidade"
+                                            onChange={handleChange}
+                                        />
+
+                                        <input
+                                            type='text'
+                                            placeholder='Estado'
+                                            name="estado"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1353,7 +1182,23 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {step === 43 && (
+                            {step === 37 && (
+                                <>
+                                    <h2>Propriedade intelectual e confidencialidade</h2>                                    <div>
+                                        <label>A propriedade intelectual de materiais criados durante a parceria pertencerá a</label>
+                                        <input
+                                            type='text'
+                                            placeholder='Especificar quem detém os direitos'
+                                            name="direitos"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 38 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1372,7 +1217,7 @@ export default function PrestacoesServicos() {
 
                             {Testemunhas && (
                                 <>
-                                    {step === 44 && (
+                                    {step === 39 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1391,7 +1236,7 @@ export default function PrestacoesServicos() {
                                         </>
                                     )}
 
-                                    {step === 45 && (
+                                    {step === 40 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1410,7 +1255,7 @@ export default function PrestacoesServicos() {
                                         </>
                                     )}
 
-                                    {step === 46 && (
+                                    {step === 41 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1430,7 +1275,7 @@ export default function PrestacoesServicos() {
                                         </>
                                     )}
 
-                                    {step === 47 && (
+                                    {step === 42 && (
                                         <>
                                             <h2>Dados das Testemunhas</h2>
                                             <div>
@@ -1451,7 +1296,7 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {step === 48 && (
+                            {step === 43 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1469,7 +1314,7 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {step === 49 && (
+                            {step === 44 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1487,7 +1332,7 @@ export default function PrestacoesServicos() {
                                     </div>
                                 </>
                             )}
-                            {step === 50 && (
+                            {step === 45 && (
                                 <>
                                     <h2>Disposições Gerais</h2>
                                     <div>
@@ -1506,7 +1351,7 @@ export default function PrestacoesServicos() {
                                 </>
                             )}
 
-                            {step === 51 && (
+                            {step === 46 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -1572,7 +1417,7 @@ export default function PrestacoesServicos() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorPrestacoesServicosPago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { }}>
                         Baixar PDF
                     </button>
                 ) : (
