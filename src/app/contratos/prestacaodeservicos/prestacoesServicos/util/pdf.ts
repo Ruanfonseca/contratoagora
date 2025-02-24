@@ -1,7 +1,7 @@
 import { verificarValor } from "@/lib/utils";
 import jsPDF from "jspdf";
 
-export default function geradorPrestacoesServicosPago(dados: any) {
+export default function geradorPrestacoesServicosPago(dados: any, extras: ClausulasExtras[]) {
     const doc = new jsPDF();
 
     // Configuração inicial de fonte e margens
@@ -134,11 +134,12 @@ export default function geradorPrestacoesServicosPago(dados: any) {
         "Art. 421 do Código Civil: A liberdade contratual será exercida nos limites da função social do contrato."
     ];
 
-    if (dados.clausulaEspecifica === "S") {
-        Object.entries(dados.extras).forEach(([key, value]) => {
-            outrasClausulasContent.push(`${key}: ${verificarValor(value as string)}`);
+    if (dados.clausulaEspecifica === "S" && extras.length > 0) {
+        extras.forEach(({ Titulo, Conteudo }) => {
+            outrasClausulasContent.push(`${Titulo}: ${Conteudo}`);
         });
     }
+
 
     addSection("OUTRAS CLAUSULAS", outrasClausulasContent);
 
@@ -204,7 +205,6 @@ export default function geradorPrestacoesServicosPago(dados: any) {
         doc.text(`Assinatura da Testemunha 2: ${verificarValor(dados.nomeTest2)}`, marginX, posY);
         posY += 15;
     }
-
 
     doc.save(`contrato_PrestacaoServico_${verificarValor(dados.contratante_nome)}.pdf`);
 

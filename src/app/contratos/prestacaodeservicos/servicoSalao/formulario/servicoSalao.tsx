@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
+import geradorServicoSalaoPago from '../util/pdf';
 
 
 
@@ -1417,7 +1418,7 @@ export default function ServicoSalao() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorServicoSalaoPago(formData, extras) }}>
                         Baixar PDF
                     </button>
                 ) : (

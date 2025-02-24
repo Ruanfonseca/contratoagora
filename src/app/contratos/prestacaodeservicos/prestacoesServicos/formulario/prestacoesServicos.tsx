@@ -1572,7 +1572,7 @@ export default function PrestacoesServicos() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorPrestacoesServicosPago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorPrestacoesServicosPago(formData, extras) }}>
                         Baixar PDF
                     </button>
                 ) : (
