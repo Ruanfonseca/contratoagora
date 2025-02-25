@@ -64,7 +64,7 @@ export default function contratos() {
             <li><Link className='' href="/contratos/prestacaodeservicos/empreitadaObra">Contrato de empreitada | Obra - R$ 29,90</Link></li>
             <li><Link className='' href="/contratos/prestacaodeservicos/prestacoesServicos">Contrato de prestação de serviços - R$ 29,90</Link></li>
             <li><Link className='' href="/contratos/prestacaodeservicos/servicoSalao">Contrato de prestação de serviços de beleza | Salão-Parceiro - R$ 24,90</Link></li>
-            <li>Contrato de prestação de serviços de ensino | aulas | educação - R$ 14,90</li>
+            <li><Link className='' href="/contratos/prestacaodeservicos/servicoEnsino">Contrato de prestação de serviços de ensino | aulas | educação - R$ 14,90</Link></li>
             <li>Contrato de prestação de serviços de fisioterapia - R$ 19,90</li>
             <li>Contrato de prestação de serviços de manicure - R$ 19,90</li>
             <li>Contrato de prestação de serviços de nutricionista - R$ 19,90</li>
