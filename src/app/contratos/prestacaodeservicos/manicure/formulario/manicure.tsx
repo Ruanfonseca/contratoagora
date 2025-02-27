@@ -18,7 +18,6 @@ const manicureschema = z.object({
     contratante_nacionalidade: z.string(),
     contratante_profissao: z.string(),
     contratante_documento: z.string(),
-    contratante_orgao: z.string(),
     contratante_cpf_cnpj: z.string(),
     contratante_endereco: z.string(),
     contratante_telefone: z.string(),
@@ -31,13 +30,13 @@ const manicureschema = z.object({
     contratado_profissao: z.string(),
     contratado_documento: z.string(),
     contratado_cpf_cnpj: z.string(),
-    contratado_orgao: z.string(),
     contratado_endereco: z.string(),
     contratado_telefone: z.string(),
     /** */
 
     /**PRAZO */
     prazo: z.enum(['determinado', 'indeterminado']),
+
     // se for determinado
     duracao: z.string(),
     dataInicio: z.string(),
@@ -61,6 +60,10 @@ const manicureschema = z.object({
     horasReagendamento: z.string(),
     /** */
 
+    /*MATERIAS E EQUIPAMENTOS*/
+    fornecimento: z.enum(['Contratado', 'Contratante']),
+    /**/
+
     /**CANCELAMENTO E MULTAS */
     multaCancelamento: z.string(),
     dataAntecedenciaCance: z.string(),
@@ -82,7 +85,6 @@ const manicureschema = z.object({
 
 
 });
-
 type FormData = z.infer<typeof manicureschema>;
 
 
@@ -103,7 +105,7 @@ export default function Manicure() {
     const [paymentStatus, setPaymentStatus] = useState('pendente');
     const [isModalOpen, setModalOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-    const valor = 29.90;
+    const valor = 19.90;
     const [pdfDataUrl, setPdfDataUrl] = useState<string>("");
     const [modalPagamento, setModalPagamento] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -365,15 +367,22 @@ export default function Manicure() {
             `Em caso de descumprimento de qualquer cláusula, a parte infratora poderá ser penalizada com multa de R$ ${verificarValor(dados.multaCancelamento)}.`,
         ]);
 
+
+        addSection("7. MATERIAIS E EQUIPAMENTOS", [
+            `Os materiais e equipamentos necessários para a execução dos serviços serão fornecidos por
+    (${dados.fornecimento === 'Contratado' ? 'X' : '_'}) Contratado (${dados.fornecimento === 'Contratante' ? 'X' : '_'}) Contratante.
+    Caso o contratante forneça os materiais, este se responsabiliza pela qualidade e adequação dos mesmos.`
+        ]);
+
         // 7. FORO E RESOLUÇÃO DE CONFLITOS
-        addSection("7. FORO E RESOLUÇÃO DE CONFLITOS", [
+        addSection("8. FORO E RESOLUÇÃO DE CONFLITOS", [
             "Código Civil (CC): Art. 75, Inciso IV – Trata da representação judicial de pessoas físicas e jurídicas.",
             "Art. 112 – Quando houver cláusula de eleição de foro, prevalecerá o foro eleito, salvo nos casos legais.\n",
             `As partes elegem o foro da Comarca de ${verificarValor(dados.foroResolucaoConflitos)}, para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato.`,
         ]);
 
         // 8. DISPOSIÇÕES FINAIS
-        addSection("8. DISPOSIÇÕES FINAIS", [
+        addSection("9. DISPOSIÇÕES FINAIS", [
             "Constituição Federal (CF): Art. 5º, Inciso XXXVI – A lei não prejudicará o direito adquirido, o ato jurídico perfeito e a coisa julgada.",
             "Art. 170 – A ordem econômica tem por base a valorização do trabalho humano e a livre iniciativa.\n",
             `Este contrato passa a vigorar a partir da data de assinatura pelas partes: ${verificarValor(dados.dataAssinatura)}.`,

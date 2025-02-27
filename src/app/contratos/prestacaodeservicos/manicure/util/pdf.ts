@@ -135,15 +135,21 @@ export default function geradorManicurePago(dados: any) {
         `Em caso de descumprimento de qualquer cláusula, a parte infratora poderá ser penalizada com multa de R$ ${verificarValor(dados.multaCancelamento)}.`,
     ]);
 
+    addSection("7. MATERIAIS E EQUIPAMENTOS", [
+        `Os materiais e equipamentos necessários para a execução dos serviços serão fornecidos por
+    (${dados.fornecimento === 'Contratado' ? 'X' : '_'}) Contratado (${dados.fornecimento === 'Contratante' ? 'X' : '_'}) Contratante.
+    Caso o contratante forneça os materiais, este se responsabiliza pela qualidade e adequação dos mesmos.`
+    ]);
+
     // 7. FORO E RESOLUÇÃO DE CONFLITOS
-    addSection("7. FORO E RESOLUÇÃO DE CONFLITOS", [
+    addSection("8. FORO E RESOLUÇÃO DE CONFLITOS", [
         "Código Civil (CC): Art. 75, Inciso IV – Trata da representação judicial de pessoas físicas e jurídicas.",
         "Art. 112 – Quando houver cláusula de eleição de foro, prevalecerá o foro eleito, salvo nos casos legais.\n",
         `As partes elegem o foro da Comarca de ${verificarValor(dados.foroResolucaoConflitos)}, para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato.`,
     ]);
 
     // 8. DISPOSIÇÕES FINAIS
-    addSection("8. DISPOSIÇÕES FINAIS", [
+    addSection("9. DISPOSIÇÕES FINAIS", [
         "Constituição Federal (CF): Art. 5º, Inciso XXXVI – A lei não prejudicará o direito adquirido, o ato jurídico perfeito e a coisa julgada.",
         "Art. 170 – A ordem econômica tem por base a valorização do trabalho humano e a livre iniciativa.\n",
         `Este contrato passa a vigorar a partir da data de assinatura pelas partes: ${verificarValor(dados.dataAssinatura)}.`,
