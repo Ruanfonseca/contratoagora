@@ -7,11 +7,10 @@ import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
-import geradorManicurePago from '../util/pdf';
+import geradorNutricaoPago from '../util/pdf';
 
 
-
-const manicureschema = z.object({
+const mutricaoschema = z.object({
     /**CONTRATANTE */
     contratante_nome: z.string(),
     contratante_estado_civil: z.string(),
@@ -32,64 +31,62 @@ const manicureschema = z.object({
     contratado_cpf_cnpj: z.string(),
     contratado_endereco: z.string(),
     contratado_telefone: z.string(),
+    contratado_rcrn: z.string(),
     /** */
 
-    /**PRAZO */
-    prazo: z.enum(['determinado', 'indeterminado']),
+    /**OBJETO */
+    prazoPrestacao: z.enum(['determinado', 'indeterminado']),
 
-    // se for determinado
-    duracao: z.string(),
-    dataInicio: z.string(),
+    //se for determinado
+    dataInicial: z.string(),
     dataFinal: z.string(),
-
-    //se for indeterminado
-    avisoPrevio: z.string(),
     /** */
 
-    /**REMUNERAÇÃO E FORMA DE PAGAMENTO */
-    pagamentoRealizado: z.enum(['servicoRealizado', 'horaTrabalhada', 'mesTrabalhado']),
-    valorPagoServico: z.string(),
-    modalidade: z.enum(['dinheiro', 'pix', 'cartao', 'transferBanc']),
+    /**HONORÁRIOS E FORMAS DE PAGAMENTO */
+    taxaInicial: z.string(),
+    finalidadeTaxa: z.string(),
+    valorConsulta: z.string(),
+    formaPagamento: z.enum(['dinheiro', 'cartao', 'transfer', 'pix']),
+    vencimentoData: z.string(),
     multaAtraso: z.string(),
-    taxaAdicional: z.string(),
+    /** */
+
+    /**POLÍTICA DE CANCELAMENTO E REEMBOLSO */
     horasAntecedencia: z.string(),
-    taxaCancelamento: z.string(),
+    cancelamentoAvisoPrevio: z.string(),
+    reembolso: z.string(),
     /** */
 
-    /**RESPONSABILIDADES DAS PARTES */
-    horasReagendamento: z.string(),
+    /**DURAÇÃO E RESCISÃO DO CONTRATO */
+    duracaoMesesAnosDias: z.string(),
+    rescisaoAvisoPrevio: z.string(),
+    multaDescumprimento: z.string(),
     /** */
 
-    /*MATERIAS E EQUIPAMENTOS*/
-    fornecimento: z.enum(['Contratado', 'Contratante']),
-    /**/
-
-    /**CANCELAMENTO E MULTAS */
-    multaCancelamento: z.string(),
-    dataAntecedenciaCance: z.string(),
-    /** */
-
-    /**DISPOSIÇÕES GERAIS */
-    foroResolucaoConflitos: z.string(), // Foro eleito para resolução de conflitos
-    testemunhasNecessarias: z.enum(['S', 'N']), // Necessidade de testemunhas para assinatura do contrato
+    /**JURISDIÇÃO E LEI APLICÁVEL */
+    comarca: z.string(),
     estado: z.string(),
+    testemunhasNecessarias: z.enum(['S', 'N']),
     //se sim 
     nomeTest1: z.string(),
     cpfTest1: z.string(),
     nomeTest2: z.string(),
     cpfTest2: z.string(),
+
+
     local: z.string(),
     dataAssinatura: z.string(),
     registroCartorioTest: z.enum(['S', 'N']), // Indicação se o contrato será registrado em cartório 
     /** */
 
 
+
+
 });
-type FormData = z.infer<typeof manicureschema>;
 
+type FormData = z.infer<typeof mutricaoschema>;
 
-export default function Manicure() {
-
+export default function Nutricao() {
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
@@ -113,7 +110,7 @@ export default function Manicure() {
 
     //VARIAVEIS DE CONTROLE DE FLUXO
     const [Testemunhas, setTestemunhas] = useState(false);
-    const [Parcelado, setParcelado] = useState(false);
+    const [testemunhasNecessarias, setTestemunhasNecessarias] = useState(false);
     const [determinado, setDeterminado] = useState(false);
     const [indeterminado, setIndeterminado] = useState(false);
     const [sinal, setSinal] = useState(false);
@@ -217,26 +214,19 @@ export default function Manicure() {
         setFormData((prev) => ({ ...prev, ...currentStepData }));
         let nextStep = step;
 
-        if (currentStepData.prazo === 'determinado') {
+        if (currentStepData.prazoPrestacao === 'determinado') {
             setDeterminado(true);
-            nextStep = 18;
-        } else if (currentStepData.prazo === 'indeterminado') {
-            setIndeterminado(true);
+            nextStep = 19;
+        } else if (currentStepData.prazoPrestacao === 'indeterminado') {
             nextStep = 21;
         }
 
-        if (nextStep === 20) {
-            nextStep = 22;
-        }
-
         if (currentStepData.testemunhasNecessarias === 'S') {
-            setTestemunhas(true);
+            setTestemunhasNecessarias(true);
             nextStep = 36;
         } else if (currentStepData.testemunhasNecessarias === 'N') {
             nextStep = 40;
         }
-
-
 
 
         if (nextStep === step) {
@@ -255,8 +245,7 @@ export default function Manicure() {
     }
 
 
-
-    const geradorManicurePdf = (dados: any) => {
+    const geradorNutricaoPdf = (dados: any) => {
         const doc = new jsPDF();
 
         // Configuração inicial de fonte e margens
@@ -303,128 +292,133 @@ export default function Manicure() {
 
         // Página 1 - Cabeçalho
         doc.setFontSize(14);
-        doc.text("CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE MANICURE", 105, posY, { align: "center" });
+        doc.text("CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE NUTRICIONISTA", 105, posY, { align: "center" });
         posY += 15;
 
-        // 1. IDENTIFICAÇÃO DAS PARTES
+        // Seção 1: Identificação das Partes
         addSection("1. IDENTIFICAÇÃO DAS PARTES", [
-            "Código Civil (CC): Art. 104 – Para a validade do negócio jurídico, é necessário agente capaz, objeto lícito e forma prescrita ou não defesa em lei.",
-            "Art. 107 – A validade da declaração de vontade não dependerá de forma especial, salvo quando a lei expressamente exigir.\n",
-            "Contratante:",
-            `Nome/Razão Social: ${verificarValor(dados.contratante_nome)}`,
-            `Estado Civil (se pessoa física): ${verificarValor(dados.contratante_estado_civil)}`,
+            `Código Civil - Art. 104
+             A validade do negócio jurídico requer: I - agente capaz; II - objeto lícito, possível, determinado ou determinável; III - forma prescrita ou não defesa em lei.`,
+            `Código Civil - Art. 107
+             A validade da declaração de vontade não dependerá de forma especial, senão quando a lei expressamente a exigir.`,
+            "CONTRATANTE:",
+            `Nome completo: ${verificarValor(dados.contratante_nome)}`,
+            `Estado civil: ${verificarValor(dados.contratante_estado_civil)}`,
             `Nacionalidade: ${verificarValor(dados.contratante_nacionalidade)}`,
-            `Profissão: ${verificarValor(dados.contratante_profissao)}`,
-            `Documento de Identificação (RG/CPF ou CNPJ): ${verificarValor(dados.contratante_documento)}`,
-            `Endereço Completo: ${verificarValor(dados.contratante_endereco)}`,
-            `Telefone/Contato: ${verificarValor(dados.contratante_telefone)}`,
+            `Documento de identificação (RG/CPF): ${verificarValor(dados.contratante_documento)}`,
+            `Órgão expedidor: ${verificarValor(dados.contratante_cpf_cnpj)}`,
+            `Endereço completo: ${verificarValor(dados.contratante_endereco)}`,
+            `Telefone: ${verificarValor(dados.contratante_telefone)}`,
             "",
-            "Contratado (Manicure):",
-            `Nome/Razão Social: ${verificarValor(dados.contratado_nome)}`,
-            `Estado Civil (se pessoa física): ${verificarValor(dados.contratado_estado_civil)}`,
+            "CONTRATADO (NUTRICIONISTA):",
+            `Nome completo: ${verificarValor(dados.contratado_nome)}`,
+            `Estado civil: ${verificarValor(dados.contratado_estado_civil)}`,
             `Nacionalidade: ${verificarValor(dados.contratado_nacionalidade)}`,
-            `Profissão: Manicure`,
-            `Documento de Identificação (RG/CPF ou CNPJ): ${verificarValor(dados.contratado_documento)}`,
-            `Endereço Completo: ${verificarValor(dados.contratado_endereco)}`,
-            `Telefone/Contato: ${verificarValor(dados.contratado_telefone)}`,
+            `Documento de identificação (RG/CPF): ${verificarValor(dados.contratado_documento)}`,
+            `Órgão expedidor: ${verificarValor(dados.contratado_cpf_cnpj)}`,
+            `Endereço completo: ${verificarValor(dados.contratado_endereco)}`,
+            `Telefone: ${verificarValor(dados.contratado_telefone)}`,
+            `Registro no Conselho Regional de Nutrição: ${verificarValor(dados.contratado_rcrn)}`,
         ]);
 
-        // 2. OBJETO DO CONTRATO
-        addSection("2. OBJETO DO CONTRATO", [
-            "Código Civil (CC): Art. 593 – Considera-se prestação de serviço o contrato em que uma das partes se obriga a realizar um serviço mediante retribuição.",
-            "Art. 594 – Toda espécie de serviço ou trabalho lícito pode ser contratada.\n",
-            "O presente contrato tem por objeto a prestação de serviços de manicure pelo(a) contratado(a) ao(à) contratante, incluindo, mas não se limitando a:",
-            "Corte e limpeza das unhas;",
-            "Esmaltação;",
-            "Aplicação de unhas postiças;",
-            "Decoração de unhas;",
-            "Manutenção de alongamentos;",
-            "Outros serviços acordados entre as partes.",
-        ]);
-
-        // 3. PRAZO DO CONTRATO
-        addSection("3. PRAZO DO CONTRATO", [
-            "Código Civil (CC):Art. 598 – O contrato de prestação de serviço não pode ultrapassar quatro anos, salvo disposição em contrário.",
-            "Art. 599 – Se o contrato for por prazo determinado, extinguir-se-á com o término do período acordado.",
-            "Art. 600 – Nos contratos por prazo indeterminado, qualquer das partes pode resilir o contrato, mediante aviso prévio.\n",
-            "O presente contrato terá:",
-            dados.prazo === 'determinado'
-                ? `(X) Prazo determinado, com duração de ${verificarValor(dados.duracao)} meses, iniciando-se em ${verificarValor(dados.dataInicio)} e encerrando-se em ${verificarValor(dados.dataFinal)}.`
-                : `(X) Prazo indeterminado, podendo ser rescindido por qualquer uma das partes mediante aviso prévio de ${verificarValor(dados.avisoPrevio)} dias.`,
-        ]);
-
-        // 4. REMUNERAÇÃO E FORMA DE PAGAMENTO
-        addSection("4. REMUNERAÇÃO E FORMA DE PAGAMENTO", [
-            "Código Civil (CC): Art. 596 – A retribuição pelo serviço prestado será ajustada pelas partes e, na falta de ajuste, regulada pelos usos do local.",
-            "Art. 397 – O inadimplemento da obrigação pelo devedor sujeita-o à mora, cabendo-lhe pagar os encargos decorrentes do atraso.\n",
-            `O pagamento será realizado com base em: (${dados.pagamentoRealizado === 'servicoRealizado' ? 'X' : '_'}) Serviço realizado (${dados.pagamentoRealizado === 'horaTrabalhada' ? 'X' : '_'}) Hora trabalhada (${dados.pagamentoRealizado === 'mesTrabalhado' ? 'X' : '_'}) Mês trabalhado.`,
-            `O valor a ser pago pelos serviços será de R$ ${verificarValor(dados.valorPagoServico)}.`,
-            `O pagamento será efetuado por (${dados.modalidade === 'dinheiro' ? 'X' : '_'}) Dinheiro (${dados.modalidade === 'pix' ? 'X' : '_'}) Pix (${dados.modalidade === 'cartao' ? 'X' : '_'}) Cartão (${dados.modalidade === 'transferBanc' ? 'X' : '_'}) Transferência bancária.`,
-            `Em caso de atraso no pagamento, será aplicada multa de ${verificarValor(dados.multaAtraso)}% sobre o valor devido.`,
-            `Caso haja necessidade de deslocamento do(a) contratado(a), poderá ser cobrada uma taxa adicional de R$ ${verificarValor(dados.taxaAdicional)}.`,
-            `Cancelamentos realizados com menos de ${verificarValor(dados.horasAntecedencia)} horas de antecedência estarão sujeitos a uma taxa de cancelamento de R$ ${verificarValor(dados.taxaCancelamento)}.`,
-        ]);
-
-        // 5. RESPONSABILIDADES DAS PARTES
-        addSection("5. RESPONSABILIDADES DAS PARTES", [
-            "Código Civil (CC): Art. 422 – Os contratantes são obrigados a guardar, assim na conclusão do contrato como em sua execução, os princípios da probidade e boa-fé.",
-            "Art. 927 – Aquele que, por ato ilícito, causar dano a outrem, fica obrigado a repará-lo.\n",
-            "Do(a) contratado(a):",
-            "Utilizar produtos de qualidade e manter os materiais devidamente higienizados.",
-            "Cumprir os horários e datas estabelecidas para a prestação dos serviços.",
-            `Informar previamente sobre eventuais reagendamentos ou impossibilidades de atendimento com antecedência de ${verificarValor(dados.horasReagendamento)} horas.`,
-            "Garantir a esterilização adequada de materiais reutilizáveis.",
+        // Seção 2: Do Objeto
+        addSection("2. DO OBJETO", [
+            `Código Civil - Art. 421
+            A liberdade contratual será exercida nos limites da função social do contrato.
+            Código Civil - Art. 425
+            É lícito às partes estipular contratos atípicos, observadas as normas gerais fixadas neste Código.`,
+            "O presente contrato tem como objeto a prestação de serviços de nutrição, incluindo, mas não se limitando a:",
+            "- Consultas individuais;",
+            "- Avaliação nutricional;",
+            "- Elaboração de planos alimentares personalizados;",
+            "- Acompanhamento e reavaliação periódica;",
+            "- Orientação sobre hábitos alimentares saudáveis;",
+            "- Atendimento presencial ou online, conforme acordado.",
             "",
-            "Do(a) contratante:",
-            "Comparecer ao local e no horário agendado para a realização do serviço.",
-            `Informar com antecedência de pelo menos ${verificarValor(dados.horasReagendamento)} horas caso deseje reagendar ou cancelar o serviço.`,
-            "Arcar com os custos dos serviços conforme estipulado neste contrato.",
-            "Zelar pelos cuidados recomendados após a prestação do serviço.",
+            `Os serviços serão prestados por prazo ${verificarValor(dados.prazoPrestacao)} e terão início em ${verificarValor(dados.dataInicial)}.`,
         ]);
 
-        // 6. CANCELAMENTO E MULTAS
-        addSection("6. CANCELAMENTO E MULTAS", [
-            "Código Civil (CC): Art. 408 – A cláusula penal estipulada no contrato serve para garantir o cumprimento da obrigação e pode ser exigida no caso de inadimplência.",
-            "Art. 416 – Para exigir a multa, não se faz necessária a prova do prejuízo.\n",
-            `Caso uma das partes deseje rescindir este contrato antes do prazo acordado, deverá comunicar a outra parte com antecedência de ${verificarValor(dados.dataAntecedenciaCance)} dias.`,
-            `Em caso de descumprimento de qualquer cláusula, a parte infratora poderá ser penalizada com multa de R$ ${verificarValor(dados.multaCancelamento)}.`,
+        // Seção 3: Dos Honorários e Formas de Pagamento
+        addSection("3. DOS HONORÁRIOS E FORMAS DE PAGAMENTO", [
+            `Código Civil - Art. 481
+             Pelo contrato de compra e venda, um dos contratantes se obriga a transferir o domínio de certa coisa, e o outro, a pagar-lhe certo preço em dinheiro.
+             Código Civil - Art. 317
+             Quando, por motivos imprevisíveis, sobrevier desproporção manifesta entre o valor da prestação devida e o do momento de sua execução, poderá o juiz corrigi-lo, a pedido da parte, de modo que assegure, quanto possível, o valor real da prestação.`,
+            `Taxa inicial (se houver): R$ ${verificarValor(dados.taxaInicial)} (finalidade da taxa: ${verificarValor(dados.finalidadeTaxa)}).`,
+            `Valor por consulta/pacote de consultas: R$ ${verificarValor(dados.valorConsulta)}.`,
+            `Forma de pagamento: ${verificarValor(dados.formaPagamento)}.`,
+            `Vencimento do pagamento: Todo dia ${verificarValor(dados.vencimentoData)} do mês.`,
+            `Multa por atraso: ${verificarValor(dados.multaAtraso)} % ao dia.`,
         ]);
 
-
-        addSection("7. MATERIAIS E EQUIPAMENTOS", [
-            `Os materiais e equipamentos necessários para a execução dos serviços serão fornecidos por
-    (${dados.fornecimento === 'Contratado' ? 'X' : '_'}) Contratado (${dados.fornecimento === 'Contratante' ? 'X' : '_'}) Contratante.
-    Caso o contratante forneça os materiais, este se responsabiliza pela qualidade e adequação dos mesmos.`
+        // Seção 4: Política de Cancelamento e Reembolso
+        addSection("4. POLÍTICA DE CANCELAMENTO E REEMBOLSO", [
+            `Código Civil - Art. 396
+            O inadimplemento da obrigação, positiva e líquida, no seu termo, constitui de pleno direito em mora o devedor.
+            Código Civil - Art. 395
+            Responde o devedor pelos prejuízos a que sua mora der causa, mais juros, atualização dos valores monetários e honorários de advogado.`,
+            `Cancelamentos devem ser comunicados com ${verificarValor(dados.horasAntecedencia)} horas de antecedência.`,
+            `Em caso de cancelamento sem aviso prévio, poderá ser cobrado ${verificarValor(dados.cancelamentoAvisoPrevio)} % do valor da consulta.`,
+            `Reembolso de valores pagos antecipadamente: ${verificarValor(dados.reembolso)}.`,
         ]);
 
-        // 7. FORO E RESOLUÇÃO DE CONFLITOS
-        addSection("8. FORO E RESOLUÇÃO DE CONFLITOS", [
-            "Código Civil (CC): Art. 75, Inciso IV – Trata da representação judicial de pessoas físicas e jurídicas.",
-            "Art. 112 – Quando houver cláusula de eleição de foro, prevalecerá o foro eleito, salvo nos casos legais.\n",
-            `As partes elegem o foro da Comarca de ${verificarValor(dados.foroResolucaoConflitos)}, para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato.`,
+        // Seção 5: Responsabilidades do Cliente
+        addSection("5. RESPONSABILIDADES DO CLIENTE", [
+            `Código Civil - Art. 113
+             Os negócios jurídicos devem ser interpretados conforme a boa-fé e os usos do lugar de sua celebração.`,
+            "O contratante se compromete a:",
+            "- Fornecer informações precisas e completas sobre sua saúde;",
+            "- Seguir as orientações do nutricionista;",
+            "- Comparecer aos atendimentos agendados;",
+            "- Informar sobre quaisquer mudanças em sua condição de saúde;",
+            "- Respeitar os prazos e condições estabelecidos neste contrato.",
         ]);
 
-        // 8. DISPOSIÇÕES FINAIS
-        addSection("9. DISPOSIÇÕES FINAIS", [
-            "Constituição Federal (CF): Art. 5º, Inciso XXXVI – A lei não prejudicará o direito adquirido, o ato jurídico perfeito e a coisa julgada.",
-            "Art. 170 – A ordem econômica tem por base a valorização do trabalho humano e a livre iniciativa.\n",
-            `Este contrato passa a vigorar a partir da data de assinatura pelas partes: ${verificarValor(dados.dataAssinatura)}.`,
-            "Qualquer alteração ou acréscimo ao presente contrato deverá ser feito por escrito e assinado por ambas as partes.",
-            "O presente contrato obriga não apenas as partes contratantes, mas também seus herdeiros e sucessores.",
+        // Seção 6: Das Limitações de Responsabilidade
+        addSection("6. DAS LIMITAÇÕES DE RESPONSABILIDADE", [
+            `Código Civil - Art. 14 do Código de Defesa do Consumidor (CDC)
+             O fornecedor de serviços responde, independentemente da existência de culpa, pela reparação dos danos causados aos consumidores por defeitos relativos à prestação dos serviços, bem como por informações insuficientes ou inadequadas sobre sua fruição e riscos.`,
+            "O nutricionista não se responsabiliza por resultados específicos, visto que estes podem variar de acordo com a resposta individual do cliente. As recomendações fornecidas são baseadas em evidências científicas e boas práticas, não garantindo cura ou resultados exatos.",
+        ]);
+
+        // Seção 7: Duração e Rescisão do Contrato
+        addSection("7. DURAÇÃO E RESCISÃO DO CONTRATO", [
+            `Código Civil - Art. 473
+             A resilição unilateral, nos casos em que a lei expressa ou implicitamente o permita, opera mediante denúncia notificada à outra parte.
+             Código Civil - Art. 474
+             A rescisão do contrato pode ser invocada por qualquer das partes, desde que cumpridos os prazos estabelecidos.`,
+            `O contrato terá duração de ${verificarValor(dados.duracaoMesesAnosDias)}.`,
+            `Poderá ser rescindido por qualquer das partes mediante aviso prévio de ${verificarValor(dados.rescisaoAvisoPrevio)} dias.`,
+            `Em caso de descumprimento, será aplicada multa de R$ ${verificarValor(dados.multaDescumprimento)}.`,
+        ]);
+
+        // Seção 8: Jurisdição e Lei Aplicável
+        addSection("8. JURISDIÇÃO E LEI APLICÁVEL", [
+            `Constituição Federal - Art. 5º, inciso XXXV
+             A lei não excluirá da apreciação do Poder Judiciário lesão ou ameaça a direito.
+             Código Civil - Art. 112
+             Nas declarações de vontade se atenderá mais à intenção nelas consubstanciada do que ao sentido literal da linguagem.`,
+            `Fica eleito o foro da Comarca de ${verificarValor(dados.comarca)}, Estado de ${verificarValor(dados.estado)}, para dirimir quaisquer dúvidas ou conflitos decorrentes do presente contrato, sendo aplicável a legislação vigente no Brasil.`,
+        ]);
+
+        // Seção 9: Das Assinaturas
+        addSection("9. DAS ASSINATURAS", [
+            `Código Civil - Art. 129
+            Os atos jurídicos válidos se provam por todos os meios admitidos em direito.
+            Código Civil - Art. 215
+            O instrumento particular, feito e assinado ou somente assinado por quem esteja na livre disposição e administração de seus bens, prova as obrigações convencionadas.`,
+            "Por estarem de pleno acordo, as partes assinam o presente contrato na presença de duas testemunhas.",
             "",
-            "Local e Data: ____________________, _____ de ______________ de ______.",
+            `Data: ${verificarValor(dados.dataAssinatura)}`,
             "",
-            "Assinaturas:",
-            "Contratante: __________________________________________",
-            "Contratado(a): ________________________________________",
+            "Contratante: _________________________________",
             "",
-            dados.testemunhasNecessarias === 'S'
-                ? `Testemunhas: 
-               Nome: ${verificarValor(dados.nomeTest1)} CPF: ${verificarValor(dados.cpfTest1)}
-               Nome: ${verificarValor(dados.nomeTest2)} CPF: ${verificarValor(dados.cpfTest2)}`
-                : "Testemunhas: Não necessárias.",
+            "Contratado (Nutricionista): _________________________________",
+            "",
+            `1ª Testemunha: Nome: ${verificarValor(dados.nomeTest1)} CPF: ${verificarValor(dados.cpfTest1)}`,
+            "",
+            `2ª Testemunha: Nome: ${verificarValor(dados.nomeTest2)} CPF: ${verificarValor(dados.cpfTest2)}`,
         ]);
-
 
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
@@ -432,14 +426,14 @@ export default function Manicure() {
 
 
     useEffect(() => {
-        geradorManicurePdf({ ...formData });
+        geradorNutricaoPdf({ ...formData });
     }, [formData]);
 
 
     return (
         <>
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">Contrato de Prestação de Serviços de Manicure </h1>
+                <h1 className="title">Contrato de Prestação de Serviços de Nutricionista</h1>
             </div>
             <div className="container">
                 <div className="left-panel">
@@ -712,10 +706,26 @@ export default function Manicure() {
 
                             {step === 17 && (
                                 <>
+                                    <h2>Contratado </h2>                                    <div>
+                                        <label>Registro no Conselho Regional de Nutrição</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="contratado_rcrn"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 18 && (
+                                <>
                                     <div>
-                                        <h2>Prazo do Contrato </h2>
+                                        <h2>Objeto </h2>
                                         <label>Duração do contrato: (Especificar se será por prazo determinado ou indeterminado)</label>
-                                        <select name='prazo' onChange={handleChange}>
+                                        <select name='prazoPrestacao' onChange={handleChange}>
                                             <option value="">Selecione</option>
                                             <option value="indeterminado">Indeterminado</option>
                                             <option value="determinado">Determinado</option>
@@ -728,30 +738,14 @@ export default function Manicure() {
 
                             {determinado && (
                                 <>
-                                    {step === 18 && (
+                                    {step === 19 && (
                                         <>
-                                            <h2>Prazo do Contrato</h2>                                    <div>
-                                                <label>Prazo determinado, com duração de ___ meses</label>
+                                            <h2>Objeto </h2>                                    <div>
+                                                <label>Data de inicio da prestação</label>
                                                 <input
                                                     type='text'
                                                     placeholder=''
-                                                    name="duracao"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {step === 19 && (
-                                        <>
-                                            <h2>Prazo do Contrato</h2>                                    <div>
-                                                <label>iniciando-se em //____</label>
-                                                <input
-                                                    type='date'
-                                                    placeholder=''
-                                                    name="dataInicio"
+                                                    name="dataInicial"
                                                     onChange={handleChange}
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
@@ -762,10 +756,10 @@ export default function Manicure() {
 
                                     {step === 20 && (
                                         <>
-                                            <h2>Prazo do Contrato</h2>                                    <div>
-                                                <label>e encerrando-se em //____</label>
+                                            <h2>Objeto </h2>                                    <div>
+                                                <label>Data de final da prestação</label>
                                                 <input
-                                                    type='date'
+                                                    type='text'
                                                     placeholder=''
                                                     name="dataFinal"
                                                     onChange={handleChange}
@@ -778,36 +772,32 @@ export default function Manicure() {
                                 </>
                             )}
 
-                            {indeterminado && (
+                            {step === 21 && (
                                 <>
-                                    {step === 21 && (
-                                        <>
-                                            <h2>Prazo do Contrato</h2>                                    <div>
-                                                <label>Prazo indeterminado, podendo ser rescindido por qualquer uma das partes mediante aviso prévio de ___ dias.</label>
-                                                <input
-                                                    type='date'
-                                                    placeholder=''
-                                                    name="avisoPrevio"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
+                                    <h2>Honorários e Formas de Pagamento </h2>                                    <div>
+                                        <label>Taxa inicial (se houver): R$ _______</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="taxaInicial"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
                                 </>
                             )}
 
                             {step === 22 && (
                                 <>
-                                    <h2>Remuneração e Forma de Pagamento</h2>                                    <div>
-                                        <label>Prazo indeterminado, podendo ser rescindido por qualquer uma das partes mediante aviso prévio de ___ dias.</label>
-                                        <select name='pagamentoRealizado' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="servicoRealizado">Serviço realizado</option>
-                                            <option value="horaTrabalhada">Hora trabalhada</option>
-                                            <option value="mesTrabalhado">Mês trabalhado</option>
-                                        </select>
+                                    <h2>Honorários e Formas de Pagamento </h2>                                    <div>
+                                        <label>finalidade da taxa: _______</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="finalidadeTaxa"
+                                            onChange={handleChange}
+                                        />
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
                                     </div>
@@ -816,12 +806,12 @@ export default function Manicure() {
 
                             {step === 23 && (
                                 <>
-                                    <h2>Remuneração e Forma de Pagamento</h2>                                    <div>
-                                        <label>O valor a ser pago pelos serviços será de R$ ________.</label>
+                                    <h2>Honorários e Formas de Pagamento </h2>                                    <div>
+                                        <label>Valor por consulta/pacote de consultas: R$ _______</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="valorPagoServico"
+                                            name="valorConsulta"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -832,15 +822,15 @@ export default function Manicure() {
 
                             {step === 24 && (
                                 <>
-                                    <h2>Remuneração e Forma de Pagamento</h2>                                    <div>
-                                        <label>O pagamento será efetuado por</label>
-                                        <select name='modalidade' onChange={handleChange}>
+                                    <div>
+                                        <h2>Honorários e Formas de Pagamento </h2>
+                                        <label>Duração do contrato: (Especificar se será por prazo determinado ou indeterminado)</label>
+                                        <select name='formaPagamento' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="dinheiro">Dinheiro </option>
-                                            <option value="pix">Pix </option>
-                                            <option value="cartao">Cartão </option>
-                                            <option value="transferBanc">Transferência bancária</option>
-
+                                            <option value="dinheiro">Dinheiro</option>
+                                            <option value="cartao">Cartão</option>
+                                            <option value="transfer">Transferência Bancária</option>
+                                            <option value="pix">Pix</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -850,12 +840,12 @@ export default function Manicure() {
 
                             {step === 25 && (
                                 <>
-                                    <h2>Remuneração e Forma de Pagamento</h2>                                    <div>
-                                        <label>Em caso de atraso no pagamento, será aplicada multa de ___% sobre o valor devido. </label>
+                                    <h2>Honorários e Formas de Pagamento </h2>                                    <div>
+                                        <label>Vencimento do pagamento: Todo dia _______ do mês</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="multaAtraso"
+                                            name="vencimentoData"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -866,8 +856,8 @@ export default function Manicure() {
 
                             {step === 26 && (
                                 <>
-                                    <h2>Remuneração e Forma de Pagamento</h2>                                    <div>
-                                        <label>Em caso de atraso no pagamento, será aplicada multa de ___% sobre o valor devido. </label>
+                                    <h2>Honorários e Formas de Pagamento </h2>                                    <div>
+                                        <label>Multa por atraso: _______ % ao dia</label>
                                         <input
                                             type='text'
                                             placeholder=''
@@ -880,26 +870,11 @@ export default function Manicure() {
                                 </>
                             )}
 
+
                             {step === 27 && (
                                 <>
-                                    <h2>Remuneração e Forma de Pagamento</h2>                                    <div>
-                                        <label>Caso haja necessidade de deslocamento do(a) contratado(a), poderá ser cobrada uma taxa adicional de R$ _______.  </label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="taxaAdicional"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 28 && (
-                                <>
-                                    <h2>Remuneração e Forma de Pagamento</h2>                                    <div>
-                                        <label>Cancelamentos realizados com menos de ___ horas de antecedência </label>
+                                    <h2>Política de Cancelamento e Reembolso </h2>                                    <div>
+                                        <label>Cancelamentos devem ser comunicados com _______ horas de antecedência. </label>
                                         <input
                                             type='text'
                                             placeholder=''
@@ -912,14 +887,14 @@ export default function Manicure() {
                                 </>
                             )}
 
-                            {step === 29 && (
+                            {step === 28 && (
                                 <>
-                                    <h2>Remuneração e Forma de Pagamento</h2>                                    <div>
-                                        <label>Estarão sujeitos a uma taxa de cancelamento de R$ _______. </label>
+                                    <h2>Política de Cancelamento e Reembolso </h2>                                    <div>
+                                        <label>Em caso de cancelamento sem aviso prévio, poderá ser cobrado _______ % do valor da consulta.  </label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="taxaCancelamento"
+                                            name="cancelamentoAvisoPrevio"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -928,16 +903,31 @@ export default function Manicure() {
                                 </>
                             )}
 
-                            {step === 30 && (
+                            {step === 29 && (
                                 <>
-                                    <div>
-                                        <h2>Responsabilidade das Partes</h2>
-                                        <i>Do(a) contratante:</i>
-                                        <label>Informar com antecedência de pelo menos ___ horas caso deseje reagendar ou cancelar o serviço.  </label>
+                                    <h2>Política de Cancelamento e Reembolso </h2>                                    <div>
+                                        <label>Reembolso de valores pagos antecipadamente: _______.</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="horasReagendamento"
+                                            name="reembolso"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {step === 30 && (
+                                <>
+                                    <h2>Duração e Rescisão do Contrato </h2>                                    <div>
+                                        <label>O contrato terá duração de _______ meses/anos/dias. </label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="duracaoMesesAnosDias"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -948,28 +938,12 @@ export default function Manicure() {
 
                             {step === 31 && (
                                 <>
-                                    <h2>Materias e Equipamentos</h2>                                    <div>
-                                        <label>Os materiais e equipamentos necessários para a execução dos serviços serão fornecidos por (__) Contratado (__) Contratante. </label>
-                                        <select name='fornecimento' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="Contratado">Contratado</option>
-                                            <option value="Contratante">Contratante</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 32 && (
-                                <>
-                                    <div>
-                                        <h2>Cancelamento e Multas</h2>
-                                        <label>Caso uma das partes deseje rescindir este contrato antes do prazo acordado, deverá comunicar a outra parte com antecedência de ___ dias.</label>
+                                    <h2>Duração e Rescisão do Contrato </h2>                                    <div>
+                                        <label>Poderá ser rescindido por qualquer das partes mediante aviso prévio de _______ dias. </label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="multaCancelamento"
+                                            name="rescisaoAvisoPrevio"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -978,15 +952,32 @@ export default function Manicure() {
                                 </>
                             )}
 
-                            {step === 33 && (
+
+                            {step === 32 && (
                                 <>
-                                    <div>
-                                        <h2>Cancelamento e Multas</h2>
-                                        <label>Em caso de descumprimento de qualquer cláusula, a parte infratora poderá ser penalizada com multa de R$ ______.</label>
+                                    <h2>Duração e Rescisão do Contrato </h2>                                    <div>
+                                        <label>Em caso de descumprimento, será aplicada multa de R$ _______.  </label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="dataAntecedenciaCance"
+                                            name="multaDescumprimento"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
+                            {step === 33 && (
+                                <>
+                                    <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                        <label>Fica eleito o foro da Comarca de _______.</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="comarca"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -997,18 +988,11 @@ export default function Manicure() {
 
                             {step === 34 && (
                                 <>
-                                    <h2>Disposições Gerais</h2>
-                                    <div>
-                                        <label>As partes elegem o foro da Comarca de __________/__, para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato. </label>
+                                    <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                        <label>Estado de _______, para dirimir quaisquer dúvidas ou conflitos decorrentes do presente contrato.</label>
                                         <input
                                             type='text'
-                                            placeholder='Cidade'
-                                            name="foroResolucaoConflitos"
-                                            onChange={handleChange}
-                                        />
-                                        <input
-                                            type='text'
-                                            placeholder='Estado'
+                                            placeholder=''
                                             name="estado"
                                             onChange={handleChange}
                                         />
@@ -1018,12 +1002,11 @@ export default function Manicure() {
                                 </>
                             )}
 
-
                             {step === 35 && (
                                 <>
-                                    <h2>Disposições Gerais</h2>
                                     <div>
-                                        <label>Necessidade de testemunhas para assinatura do contrato</label>
+                                        <h2>Jurisdição e Lei Aplicável </h2>
+                                        <label>Necessidade de testemunhas</label>
                                         <select name='testemunhasNecessarias' onChange={handleChange}>
                                             <option value="">Selecione</option>
                                             <option value="S">Sim</option>
@@ -1035,142 +1018,140 @@ export default function Manicure() {
                                 </>
                             )}
 
-
-                            {Testemunhas && (
+                            {testemunhasNecessarias && (
                                 <>
                                     {step === 36 && (
                                         <>
-                                            <h2>Dados das Testemunhas</h2>
-                                            <div>
-                                                <label>Nome da 1° testemunha </label>
-                                                <div>
-                                                    <input
-                                                        type='text'
-                                                        placeholder=''
-                                                        name="nomeTest1"
-                                                        onChange={handleChange}
-                                                    />
-                                                    <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                            <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                                <label>Nome da 1° Testemunha</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="nomeTest1"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
                                     )}
 
                                     {step === 37 && (
                                         <>
-                                            <h2>Dados das Testemunhas</h2>
-                                            <div>
-                                                <label>CPF da 1° testemunha </label>
-                                                <div>
-                                                    <input
-                                                        type='text'
-                                                        placeholder=''
-                                                        name="cpfTest1"
-                                                        onChange={handleChange}
-                                                    />
-                                                    <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                            <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                                <label>CPF da 1° Testemunha</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="cpfTest1"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
                                     )}
 
+
                                     {step === 38 && (
                                         <>
-                                            <h2>Dados das Testemunhas</h2>
-                                            <div>
-                                                <label>Nome da 2° testemunha </label>
-                                                <div>
-                                                    <input
-                                                        type='text'
-                                                        placeholder=''
-                                                        name="nomeTest2"
-                                                        onChange={handleChange}
-                                                    />
-                                                    <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>
-
-                                                </div>
+                                            <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                                <label>Nome da 2° Testemunha</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="nomeTest2"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
                                     )}
 
                                     {step === 39 && (
                                         <>
-                                            <h2>Dados das Testemunhas</h2>
-                                            <div>
-                                                <label>CPF da 2° testemunha </label>
-                                                <div>
-                                                    <input
-                                                        type='text'
-                                                        placeholder=''
-                                                        name="cpfTest2"
-                                                        onChange={handleChange}
-                                                    />
-                                                    <button onClick={handleBack}>Voltar</button>
-                                                    <button onClick={handleNext}>Próximo</button>
-                                                </div>
+                                            <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                                <label>CPF da 2° Testemunha</label>
+                                                <input
+                                                    type='text'
+                                                    placeholder=''
+                                                    name="cpfTest2"
+                                                    onChange={handleChange}
+                                                />
+                                                <button onClick={handleBack}>Voltar</button>
+                                                <button onClick={handleNext}>Próximo</button>
                                             </div>
                                         </>
                                     )}
                                 </>
                             )}
 
+
                             {step === 40 && (
                                 <>
-                                    <h2>Disposições Gerais</h2>
-                                    <div>
-                                        <label>O contrato será registrado em cartório?</label>
-                                        <div>
-                                            <select name='registroCartorioTest' onChange={handleChange}>
-                                                <option value="">Selecione</option>
-                                                <option value="Sim">Sim</option>
-                                                <option value="Não">Não</option>
-                                            </select>
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                    <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                        <label>Local de Assinatura</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="local"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
 
                             {step === 41 && (
                                 <>
-                                    <h2>Disposições Gerais</h2>
-                                    <div>
-                                        <label>Local de Assinatura</label>
-                                        <div>
-                                            <input
-                                                type='text'
-                                                placeholder=''
-                                                name="local"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                    <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                        <label>Data de Assinatura</label>
+                                        <input
+                                            type='date'
+                                            placeholder=''
+                                            name="dataAssinatura"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
+
+                            {step === 41 && (
+                                <>
+                                    <h2>Jurisdição e Lei Aplicável </h2>                                    <div>
+                                        <label>Data de Assinatura</label>
+                                        <input
+                                            type='date'
+                                            placeholder=''
+                                            name="dataAssinatura"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
                             {step === 42 && (
                                 <>
-                                    <h2>Disposições Gerais</h2>
                                     <div>
-                                        <label>Data da Assinatura</label>
-                                        <div>
-                                            <input
-                                                type='date'
-                                                placeholder=''
-                                                name="dataAssinatura"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
+                                        <h2>Jurisdição e Lei Aplicável </h2>
+                                        <label>Será registrado em cartório?</label>
+                                        <select name='registroCartorioTest' onChange={handleChange}>
+                                            <option value="">Selecione</option>
+                                            <option value="S">Sim</option>
+                                            <option value="N">Não</option>
+                                        </select>
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
                                     </div>
                                 </>
                             )}
+
 
                             {step === 43 && (
                                 <>
@@ -1190,8 +1171,6 @@ export default function Manicure() {
                                     </button>
                                 </>
                             )}
-
-
                         </div>
                     </div>
                 </div>
@@ -1239,7 +1218,7 @@ export default function Manicure() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorManicurePago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { geradorNutricaoPago(formData) }}>
                         Baixar PDF
                     </button>
                 ) : (
