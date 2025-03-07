@@ -69,7 +69,7 @@ export default function contratos() {
             <li><Link className='' href="/contratos/prestacaodeservicos/manicure">Contrato de prestação de serviços de manicure - R$ 19,90</Link></li>
             <li><Link className='' href="/contratos/prestacaodeservicos/nutricao">Contrato de prestação de serviços de nutricionista - R$ 19,90</Link></li>
             <li><Link className='' href="/contratos/prestacaodeservicos/personal">Contrato de prestação de serviços de personal trainer - R$ 19,90</Link></li>
-            <li>Contrato de prestação de serviços de transporte escolar - R$ 14,90</li>
+            <li><Link className='' href="/contratos/prestacaodeservicos/transporteEscolar">Contrato de prestação de serviços de transporte escolar - R$ 14,90</Link></li>
             <li>Contrato de representação de jogador de futebol | intermediação | agente - R$ 29,90</li>
           </ul>
 

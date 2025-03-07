@@ -1,3 +1,4 @@
+'use client'
 import Pilha from '@/lib/pilha';
 import { verificarValor } from '@/lib/utils';
 import api from '@/services';
@@ -5,7 +6,9 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
+import '../css/form.css';
 import geradorPersonalPdfPago from '../util/pdf';
+
 
 const personalschema = z.object({
     /**CONTRATANTE */
