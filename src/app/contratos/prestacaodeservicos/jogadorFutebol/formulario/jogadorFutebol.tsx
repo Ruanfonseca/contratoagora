@@ -386,7 +386,8 @@ export default function JogadorFutebol() {
         ]);
 
         // Assinaturas
-        addSection("E por estarem assim justas e contratadas, as partes assinam o presente instrumento em duas vias de igual teor e forma.", [
+        addSection("Assinaturas", [
+            `E por estarem assim justas e contratadas, as partes assinam o presente instrumento em duas vias de igual teor e forma.`,
             `Data: ${verificarValor(dados.dataAssinatura)}`,
             "Assinaturas:",
             "_____________________________ (JOGADOR)",
