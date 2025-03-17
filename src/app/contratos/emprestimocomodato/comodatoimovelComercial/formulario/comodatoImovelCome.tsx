@@ -1318,8 +1318,8 @@ export default function ComodatoImovelComercial() {
                                         <label>As despesas com manutenção, energia elétrica, água e outras contas serão arcadas por</label>
                                         <select name='despesas' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="comodante">Sim</option>
-                                            <option value="comodatario">Não</option>
+                                            <option value="comodante">Comodante</option>
+                                            <option value="comodatario">Comodatario</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1438,7 +1438,7 @@ export default function ComodatoImovelComercial() {
                             {step === 51 && (
                                 <>
                                     <h2>Benfeitorias e Obras</h2>                                    <div>
-                                        <label>OO comodatário poderá realizar benfeitorias no imóvel?   </label>
+                                        <label>O comodatário poderá realizar benfeitorias no imóvel?   </label>
                                         <select name='emprestimo' onChange={handleChange}>
                                             <option value="">Selecione</option>
                                             <option value="S">Sim, desde que previamente autorizadas pelo comodante.</option>
