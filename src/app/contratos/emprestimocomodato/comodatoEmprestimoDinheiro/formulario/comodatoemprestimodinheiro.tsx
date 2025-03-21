@@ -44,6 +44,7 @@ const comodatoempredinheirochema = z.object({
 
     /**DISPOSIÇÕES GERAIS */
     foroResolucaoConflitos: z.string(), // Foro eleito para resolução de conflitos
+    cidade: z.string(),
     estado: z.string(),
     testemunhasNecessarias: z.enum(['S', 'N']), // Necessidade de testemunhas para assinatura do contrato
     //se sim 
