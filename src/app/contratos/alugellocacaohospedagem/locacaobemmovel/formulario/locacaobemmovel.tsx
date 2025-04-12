@@ -577,8 +577,6 @@ export default function LocacaobemMovel() {
         setPdfDataUrl(pdfDataUri);
     };
 
-
-
     useEffect(() => {
         gerarContratoLocacaoBemMovel({ ...formData });
     }, [formData]);

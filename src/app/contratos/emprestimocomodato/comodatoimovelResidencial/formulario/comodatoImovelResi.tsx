@@ -339,6 +339,7 @@ export default function ComodatoImovelResidencial() {
             setCurrentStepData({});
         }
     }
+
     const geracaodecomodatoresidencialpdf = (dados: any) => {
         const doc = new jsPDF();
 

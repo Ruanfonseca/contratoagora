@@ -76,20 +76,20 @@ export default function contratos() {
           <h2 className="subtitle">EMPRÉSTIMO | COMODATO</h2>
           <ul>
             <li><Link className='' href="/contratos/emprestimocomodato/comodatoimovelComercial">Contrato de comodato de imóvel comercial - R$ 14,90</Link></li>
-            <li>Contrato de comodato de imóvel residencial - R$ 14,90</li>
-            <li>Contrato de empréstimo de dinheiro - R$ 24,90</li>
-            <li>Contrato de empréstimo de veículo - R$ 19,90</li>
+            <li><Link className='' href="/contratos/emprestimocomodato/comodatoimovelResidencial">Contrato de comodato de imóvel residencial - R$ 14,90</Link></li>
+            <li><Link className='' href="/contratos/emprestimocomodato/comodatoEmprestimoDinheiro">Contrato de empréstimo de dinheiro - R$ 24,90</Link></li>
+            <li><Link className='' href="/contratos/emprestimocomodato/comodatoEmprestimoVeiculo">Contrato de empréstimo de veículo - R$ 19,90</Link></li>
           </ul>
 
           <h2 className="subtitle">TROCA | PERMUTA</h2>
           <ul>
-            <li>Contrato de permuta | troca simples - R$ 19,90</li>
-            <li>Contrato de permuta de imóveis - R$ 29,90</li>
+            <li><Link className='' href="/contratos/permuta/trocaSimples">Contrato de permuta | troca simples - R$ 19,90</Link></li>
+            <li><Link className='' href="/contratos/permuta/deImoveis">Contrato de permuta de imóveis - R$ 29,90</Link></li>
           </ul>
 
           <h2 className="subtitle">DOAÇÃO</h2>
           <ul>
-            <li>Contrato de doação simples - R$ 19,90</li>
+            <li><Link className='' href="/contratos/doacao/simples">Contrato de doação simples - R$ 19,90</Link></li>
             <li>Contrato de doação de dinheiro - R$ 19,90</li>
             <li>Contrato de doação de imóvel - R$ 24,90</li>
             <li>Contrato de doação de terreno - R$ 24,90</li>
