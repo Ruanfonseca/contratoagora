@@ -6,10 +6,10 @@ import jsPDF from 'jspdf';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import '../css/form.css';
-import geradorDoacaoImovelPago from '../util/pdf';
 
 
-const doacaoImovelschema = z.object({
+
+const doacaoterrenoschema = z.object({
     doador: z.enum(['fisica', 'juridico']),
 
     /****  Doador pf ****** */
@@ -37,7 +37,7 @@ const doacaoImovelschema = z.object({
 
     donatario: z.enum(['fisica', 'juridico']),
 
-    /****  Donatario pf ****** */
+    /****  Doador pf ****** */
     nomeDona: z.string(),
     sexoDona: z.enum(['M', 'F']),
     estadoCivilDona: z.string(),
@@ -50,7 +50,7 @@ const doacaoImovelschema = z.object({
     enderecoDona: z.string(),
     /** */
 
-    /**Donatario pj */
+    /**Doador pj */
     razaoSocialDona: z.string(),
     cnpjDona: z.string(),
     enderecoSedeDona: z.string(),
@@ -60,52 +60,47 @@ const doacaoImovelschema = z.object({
     enderecoRepresentanteDona: z.string(),
     /** */
 
-    /**OBJETO */
-    enderecoImovel: z.string(),
-    descDetalhe: z.string(),
-    matricula: z.string(),
+    /**Objeto */
+    enderecoDetalhadoTerreno: z.string(),
+    descricaoDetelhada: z.string(),
+    numeroMatricula: z.string(),
     cartorioRegistro: z.string(),
-    valorAproximado: z.string(),
-    situacao: z.enum(['realizada', 'datarealizacao']),
-    /**** */
+    valorEstimado: z.string(),
+    situacao: z.enum(['realizada', 'asrealizada']),
+    /*** */
+
+    /**Encargos */
+    encargos: z.enum(['puraSimples', 'seguinteEncargo']),
+    //se seguinteEncargo
+    obrigacoesDonatario: z.string(),
+    /** */
+
+    /**Despesas */
+    despesas: z.enum(['despesaDoador', 'despesaDonatario', 'despesaDoadorAmbos']),
+    /** */
 
     /**Efetivacao */
     dataEfetivacao: z.string(),
-    /****** */
-
-    /**Usufruto */
-    usufruto: z.enum(['semReserva', 'comReserva']),
-    //se for com usufrut
-    usufrutoPazo: z.string(),
-
-    /***** */
-
-    /**Encargos e Condições */
-    sujeito: z.enum(['encargos', 'encargoEspec']),
-    //se for com usufruto
-    sujeitoEncargos: z.string(),
-    /***** */
-
-
-    /**Responsabilidades e Custos */
-    despesas: z.enum(['doador', 'donatario', 'ambos']),
-    /***** */
+    /** */
 
     /**Foro */
-    cidade: z.string(),
+    ciadadeComarca: z.string(),
     estado: z.string(),
     /** */
 
     /**Assinatura */
+    localAssinatura: z.string(),
     dataAssinatura: z.string(),
     /** */
+
+
 });
 
-type FormData = z.infer<typeof doacaoImovelschema>;
+type FormData = z.infer<typeof doacaoterrenoschema>;
 
 
 
-export default function DoacaoImovel() {
+export default function DoacaoTerreno() {
     //FLUXO
     const [formData, setFormData] = useState<Partial<FormData>>({});
     const [currentStepData, setCurrentStepData] = useState<Partial<FormData>>({});
@@ -127,17 +122,12 @@ export default function DoacaoImovel() {
     const [isLoading, setIsLoading] = useState(false);
     /** */
 
-
     //VARIAVEIS DE CONTROLE DE FLUXO
-    const [reserva, setReserva] = useState(false);
+    const [Testemunhas, setTestemunhas] = useState(false);
+    const [despesas, setDespesas] = useState(false);
     const [encargos, setEncargos] = useState(false);
-    const [data, setData] = useState(false);
-
-
     const [doadorpj, setDoadorpj] = useState(false);
     const [donatariopj, setDonatariopj] = useState(false);
-
-
     const pilha = useRef(new Pilha());
 
 
@@ -145,6 +135,57 @@ export default function DoacaoImovel() {
         const { name, value } = e.target;
         setCurrentStepData((prev) => ({ ...prev, [name]: value }));
     };
+
+    const handleNext = () => {
+
+        setFormData((prev) => ({ ...prev, ...currentStepData }));
+        let nextStep = step;
+
+        if (currentStepData.doador === 'fisica') {
+            nextStep = 2;
+        } else if (currentStepData.doador === 'juridico') {
+            setDoadorpj(true);
+            nextStep = 11;
+        }
+
+        if (nextStep === 10) {
+            nextStep = 18;
+        }
+
+
+
+        if (currentStepData.donatario === 'fisica') {
+            nextStep = 19;
+        } else if (currentStepData.donatario === 'juridico') {
+            setDonatariopj(true);
+            nextStep = 28;
+        }
+
+        if (nextStep === 27) {
+            nextStep = 35;
+        }
+
+        if (currentStepData.encargos === 'puraSimples') {
+            nextStep = 42;
+        } else if (currentStepData.encargos === 'seguinteEncargo') {
+            setEncargos(true);
+            nextStep = 41;
+        }
+
+        if (nextStep === step) {
+            nextStep += 1;
+        }
+
+        setStep(nextStep);
+        pilha.current.empilhar(nextStep);
+
+
+        // Logs para depuração
+        console.log(`qtd step depois do ajuste: ${nextStep}`);
+
+        // Limpar os dados do passo atual.
+        setCurrentStepData({});
+    }
 
     const handleFinalize = () => {
         setIsLoading(true)
@@ -232,76 +273,7 @@ export default function DoacaoImovel() {
         setStep(pilha.current.desempilhar());
     }
 
-    const handleNext = () => {
-        setFormData((prev) => ({ ...prev, ...currentStepData }));
-        let nextStep = step;
-
-        if (currentStepData.doador === 'fisica') {
-            nextStep = 2;
-        } else if (currentStepData.doador === 'juridico') {
-            setDoadorpj(true);
-            nextStep = 11;
-        }
-
-        if (nextStep === 10) {
-            nextStep = 18;
-        }
-
-
-
-        if (currentStepData.donatario === 'fisica') {
-            nextStep = 19;
-        } else if (currentStepData.donatario === 'juridico') {
-            setDonatariopj(true);
-            nextStep = 28;
-        }
-
-        if (nextStep === 27) {
-            nextStep = 35;
-        }
-
-        if (currentStepData.situacao === 'realizada') {
-            nextStep = 41;
-        } else if (currentStepData.situacao === 'datarealizacao') {
-            setData(true);
-            nextStep = 40;
-
-            if (currentStepData.usufruto === 'semReserva') {
-                nextStep = 43;
-            } else if (currentStepData.usufruto === 'comReserva') {
-                setReserva(true);
-                nextStep = 42;
-            }
-
-
-        }
-
-        if (currentStepData.sujeito === 'encargos') {
-            nextStep = 45;
-        } else if (currentStepData.sujeito === 'encargoEspec') {
-            setEncargos(true);
-            nextStep = 44;
-        }
-
-
-
-
-        if (nextStep === step) {
-            nextStep += 1;
-        }
-
-        setStep(nextStep);
-        pilha.current.empilhar(nextStep);
-
-
-        // Logs para depuração
-        console.log(`qtd step depois do ajuste: ${nextStep}`);
-
-        // Limpar os dados do passo atual.
-        setCurrentStepData({});
-    }
-
-    const geradorDoacaoImovel = (dados: any) => {
+    const gerarDoacaoTerrenoPdf = (dados: any) => {
         const doc = new jsPDF();
 
         // Configuração inicial de fonte ABNT e margens
@@ -351,185 +323,219 @@ export default function DoacaoImovel() {
             });
         };
 
-        // Função para verificar valor e retornar string ou vazio
-        const verificarValor = (valor: any) => {
-            return valor ? valor.toString() : "";
+        // Função para verificar e formatar valores
+        const verificarValor = (valor: any, prefixo = "", sufixo = "") => {
+            return valor ? `${prefixo}${valor}${sufixo}` : "____________________________________________";
         };
 
         // Cabeçalho da primeira página
         doc.setFontSize(14);
         doc.setFont("Times", "bold");
-        doc.text("CONTRATO DE DOAÇÃO", pageWidth / 2, posY, { align: "center" });
+        doc.text("CONTRATO DE DOAÇÃO DE TERRENO", pageWidth / 2, posY, { align: "center" });
+        posY += 5;
+        doc.setFontSize(10);
+        doc.text("(Conforme o Código Civil - Lei Federal nº 10.406/2002)", pageWidth / 2, posY, { align: "center" });
         posY += 15;
 
         doc.setFontSize(12);
         doc.setFont("Times", "normal");
-        const introText = "Pelo presente instrumento particular de doação, de um lado, como DOADOR(A), e de outro, como DONATÁRIO(A), têm entre si, justa e contratada, a doação do bem descrito neste contrato, mediante as cláusulas e condições seguintes, que mutuamente outorgam e aceitam, na forma da Lei nº 10.406/2002 (Código Civil Brasileiro). ";
+        const introText = "Pelo presente instrumento particular de doação, de um lado, como DOADOR(A), e de outro, como DONATÁRIO(A), têm entre si justo e contratado o que segue, em conformidade com os artigos 538 a 564 do Código Civil Brasileiro, mediante as cláusulas e condições abaixo expostas:";
         const introLines = doc.splitTextToSize(introText, maxTextWidth);
         introLines.forEach((line: string) => {
             checkPageBreak(lineHeight);
             doc.text(line, marginLeft, posY);
             posY += lineHeight;
         });
+        posY += lineHeight;
 
-        // CLÁUSULA PRIMEIRA - DAS PARTES
-        addSection("CLÁUSULA PRIMEIRA - DAS PARTES", [
-            "1.1. DOADOR(A):",
-            `Natureza Jurídica: ${dados.doador === 'fisica' ? '(X) Pessoa Física' : '( ) Pessoa Física'} ${dados.doador === 'juridico' ? '(X) Pessoa Jurídica' : '( ) Pessoa Jurídica'}`,
-            ...(dados.doador === 'fisica' ? [
-                `Nome: ${verificarValor(dados.nomeDoador)}`,
-                `Sexo: ${verificarValor(dados.sexo)}`,
-                `Estado Civil: ${verificarValor(dados.estadoCivil)}`,
-                `Nacionalidade: ${verificarValor(dados.nacionalidade)}`,
-                `Profissão: ${verificarValor(dados.profissao)}`,
-                `RG: ${verificarValor(dados.Rg)}`,
-                `Órgão Emissor: ${verificarValor(dados.orgaoEmissor)}`,
-                `UF: ${verificarValor(dados.uf)}`,
-                `CPF: ${verificarValor(dados.cpf)}`,
-                `Endereço Completo (com CEP): ${verificarValor(dados.endereco)}`
-            ] : [
-                `Razão Social: ${verificarValor(dados.razaoSocial)}`,
-                `CNPJ: ${verificarValor(dados.cnpj)}`,
-                `Sede: ${verificarValor(dados.enderecoSede)}`,
-                "",
-                `Nome do Representante Legal: ${verificarValor(dados.nomeRepresentante)}`,
-                `Cargo: ${verificarValor(dados.cargoRepresentante)}`,
-                `CPF: ${verificarValor(dados.cpfRepresentante)}`,
-                `Endereço do Representante: ${verificarValor(dados.enderecoRepresentante)}`
-            ]),
+        // CLÁUSULA PRIMEIRA – DAS PARTES
+        const partesContent = [
+            "DOADOR(A):",
+            `Nome: ${verificarValor(dados.doador === 'fisica' ? dados.nomeDoador : dados.nomeRepresentante)}`,
+            `Sexo: ${verificarValor(dados.doador === 'fisica' ? (dados.sexo === 'M' ? 'Masculino' : 'Feminino') : '')}`,
+            `Nacionalidade: ${verificarValor(dados.doador === 'fisica' ? dados.nacionalidade : '')}`,
+            `Estado Civil: ${verificarValor(dados.doador === 'fisica' ? dados.estadoCivil : '')}`,
+            `Profissão: ${verificarValor(dados.doador === 'fisica' ? dados.profissao : dados.cargoRepresentante)}`,
+            `RG: ${verificarValor(dados.doador === 'fisica' ? dados.Rg : '')}`,
+            `Órgão Emissor: ${verificarValor(dados.doador === 'fisica' ? dados.orgaoEmissor : '')}`,
+            `UF: ${verificarValor(dados.doador === 'fisica' ? dados.uf : '')}`,
+            `CPF: ${verificarValor(dados.doador === 'fisica' ? dados.cpf : dados.cpfRepresentante)}`,
+            `Endereço Completo: ${verificarValor(dados.doador === 'fisica' ? dados.endereco : dados.enderecoRepresentante)}`,
             "",
-            "1.2. DONATÁRIO(A):",
-            `Natureza Jurídica: ${dados.donatario === 'fisica' ? '(X) Pessoa Física' : '( ) Pessoa Física'} ${dados.donatario === 'juridico' ? '(X) Pessoa Jurídica' : '( ) Pessoa Jurídica'}`,
-            ...(dados.donatario === 'fisica' ? [
-                `Nome: ${verificarValor(dados.nomeDona)}`,
-                `Sexo: ${verificarValor(dados.sexoDona)}`,
-                `Estado Civil: ${verificarValor(dados.estadoCivilDona)}`,
-                `Nacionalidade: ${verificarValor(dados.nacionalidadeDona)}`,
-                `Profissão: ${verificarValor(dados.profissaoDona)}`,
-                `RG: ${verificarValor(dados.RgDona)}`,
-                `Órgão Emissor: ${verificarValor(dados.orgaoEmissorDona)}`,
-                `UF: ${verificarValor(dados.ufDona)}`,
-                `CPF: ${verificarValor(dados.cpfDona)}`,
-                `Endereço Completo (com CEP): ${verificarValor(dados.enderecoDona)}`
-            ] : [
-                `Razão Social: ${verificarValor(dados.razaoSocialDona)}`,
-                `CNPJ: ${verificarValor(dados.cnpjDona)}`,
-                `Sede: ${verificarValor(dados.enderecoSedeDona)}`,
-                "",
-                `Nome do Representante Legal: ${verificarValor(dados.nomeRepresentanteDona)}`,
-                `Cargo: ${verificarValor(dados.cargoRepresentanteDona)}`,
-                `CPF: ${verificarValor(dados.cpfRepresentanteDona)}`,
-                `Endereço do Representante: ${verificarValor(dados.enderecoRepresentanteDona)}`
-            ])
-        ]);
+            dados.doador === 'juridico' ? "Caso pessoa jurídica:" : "",
+            dados.doador === 'juridico' ? `CNPJ: ${verificarValor(dados.cnpj)}` : "",
+            dados.doador === 'juridico' ? `Razão Social: ${verificarValor(dados.razaoSocial)}` : "",
+            dados.doador === 'juridico' ? `Sede: ${verificarValor(dados.enderecoSede)}` : "",
+            dados.doador === 'juridico' ? `Nome do Representante Legal: ${verificarValor(dados.nomeRepresentante)}` : "",
+            dados.doador === 'juridico' ? `Cargo: ${verificarValor(dados.cargoRepresentante)}` : "",
+            dados.doador === 'juridico' ? `CPF do Representante: ${verificarValor(dados.cpfRepresentante)}` : "",
+            dados.doador === 'juridico' ? `Endereço do Representante: ${verificarValor(dados.enderecoRepresentante)}` : "",
+            "",
+            "DONATÁRIO(A):",
+            `Nome: ${verificarValor(dados.donatario === 'fisica' ? dados.nomeDona : dados.nomeRepresentanteDona)}`,
+            `Sexo: ${verificarValor(dados.donatario === 'fisica' ? (dados.sexoDona === 'M' ? 'Masculino' : 'Feminino') : '')}`,
+            `Nacionalidade: ${verificarValor(dados.donatario === 'fisica' ? dados.nacionalidadeDona : '')}`,
+            `Estado Civil: ${verificarValor(dados.donatario === 'fisica' ? dados.estadoCivilDona : '')}`,
+            `Profissão: ${verificarValor(dados.donatario === 'fisica' ? dados.profissaoDona : dados.cargoRepresentanteDona)}`,
+            `RG: ${verificarValor(dados.donatario === 'fisica' ? dados.RgDona : '')}`,
+            `Órgão Emissor: ${verificarValor(dados.donatario === 'fisica' ? dados.orgaoEmissorDona : '')}`,
+            `UF: ${verificarValor(dados.donatario === 'fisica' ? dados.ufDona : '')}`,
+            `CPF: ${verificarValor(dados.donatario === 'fisica' ? dados.cpfDona : dados.cpfRepresentanteDona)}`,
+            `Endereço Completo: ${verificarValor(dados.donatario === 'fisica' ? dados.enderecoDona : dados.enderecoRepresentanteDona)}`,
+            "",
+            dados.donatario === 'juridico' ? "Caso pessoa jurídica:" : "",
+            dados.donatario === 'juridico' ? `Razão Social: ${verificarValor(dados.razaoSocialDona)}` : "",
+            dados.donatario === 'juridico' ? `CNPJ: ${verificarValor(dados.cnpjDona)}` : "",
+            dados.donatario === 'juridico' ? `Sede: ${verificarValor(dados.enderecoSedeDona)}` : "",
+            dados.donatario === 'juridico' ? `Nome do Representante Legal: ${verificarValor(dados.nomeRepresentanteDona)}` : "",
+            dados.donatario === 'juridico' ? `Cargo: ${verificarValor(dados.cargoRepresentanteDona)}` : "",
+            dados.donatario === 'juridico' ? `CPF do Representante: ${verificarValor(dados.cpfRepresentanteDona)}` : "",
+            dados.donatario === 'juridico' ? `Endereço do Representante: ${verificarValor(dados.enderecoRepresentanteDona)}` : ""
+        ].filter(line => line !== "");
 
-        // CLÁUSULA SEGUNDA - DO OBJETO DA DOAÇÃO
-        addSection("CLÁUSULA SEGUNDA - DO OBJETO DA DOAÇÃO", [
+        addSection("CLÁUSULA PRIMEIRA – DAS PARTES", partesContent);
+
+        // CLÁUSULA SEGUNDA – DO OBJETO
+        const objetoContent = [
             "O presente contrato tem como objeto a doação do seguinte bem imóvel:",
-            `Endereço Completo do Imóvel: ${verificarValor(dados.enderecoImovel)}`,
-            `Descrição Detalhada: ${verificarValor(dados.descDetalhe)}`,
-            `Matrícula: nº ${verificarValor(dados.matricula)}`,
+            "",
+            "Descrição Detalhada do Terreno:",
+            verificarValor(dados.descricaoDetelhada),
+            "",
+            "Endereço Completo do Terreno:",
+            verificarValor(dados.enderecoDetalhadoTerreno),
+            "",
+            `Número da Matrícula do Imóvel: ${verificarValor(dados.numeroMatricula)}`,
             `Cartório de Registro de Imóveis: ${verificarValor(dados.cartorioRegistro)}`,
-            `Valor Aproximado do Imóvel: R$ ${verificarValor(dados.valorAproximado)}`,
-            `Situação da Doação: ${dados.situacao === 'realizada' ? '(X) A doação já foi realizada.' : '( ) A doação já foi realizada.'} ${dados.situacao === 'datarealizacao' ? '(X) A doação será realizada na data indicada na cláusula terceira.' : '( ) A doação será realizada na data indicada na cláusula terceira.'}`
-        ]);
-
-        // CLÁUSULA TERCEIRA - DA EFETIVAÇÃO E TRANSFERÊNCIA DA PROPRIEDADE
-        addSection("CLÁUSULA TERCEIRA - DA EFETIVAÇÃO E TRANSFERÊNCIA DA PROPRIEDADE", [
-            `A doação será efetivada na data de: ${verificarValor(dados.dataEfetivacao)}, mediante lavratura de escritura pública de doação e posterior registro junto ao Cartório de Registro de Imóveis competente, momento no qual se operará a transferência da propriedade do imóvel para o(a) DONATÁRIO(A).`
-        ]);
-
-        // CLÁUSULA QUARTA - DECLARAÇÃO DE DOAÇÃO
-        addSection("CLÁUSULA QUARTA - DECLARAÇÃO DE DOAÇÃO", [
-            "O(A) DOADOR(A) declara que realiza a presente doação de forma livre, espontânea e sem qualquer expectativa de contraprestação, de modo gratuito, transferindo a propriedade plena do imóvel ao(à) DONATÁRIO(A), ressalvadas eventuais cláusulas de usufruto, encargos ou restrições previstas neste instrumento."
-        ]);
-
-        // CLÁUSULA QUINTA - ACEITAÇÃO DA DOAÇÃO
-        addSection("CLÁUSULA QUINTA - ACEITAÇÃO DA DOAÇÃO", [
-            "O(A) DONATÁRIO(A), por sua vez, declara que aceita expressamente a presente doação, comprometendo-se a respeitar todas as disposições legais e contratuais aqui estabelecidas, bem como as obrigações inerentes ao imóvel recebido."
-        ]);
-
-        // CLÁUSULA SEXTA - USUFRUTO (SE APLICÁVEL)
-        addSection("CLÁUSULA SEXTA - USUFRUTO (SE APLICÁVEL)", [
-            `${dados.usufruto === 'semReserva' ? '(X) O imóvel será doado sem reserva de usufruto.' : '( ) O imóvel será doado sem reserva de usufruto.'}`,
-            `${dados.usufruto === 'comReserva' ? `(X) O imóvel será doado com reserva de usufruto em favor do(a) DOADOR(A), que permanecerá usufruindo do bem até ${verificarValor(dados.usufrutoPazo)}.` : '( ) O imóvel será doado com reserva de usufruto em favor do(a) DOADOR(A), que permanecerá usufruindo do bem até [prazo ou condição de extinção do usufruto].'}`
-        ]);
-
-        // CLÁUSULA SÉTIMA - ENCARGOS E CONDIÇÕES
-        addSection("CLÁUSULA SÉTIMA - ENCARGOS E CONDIÇÕES", [
-            `${dados.sujeito === 'encargos' ? '(X) A doação não está sujeita a encargos ou condições.' : '( ) A doação não está sujeita a encargos ou condições.'}`,
-            `${dados.sujeito === 'encargoEspec' ? `(X) A doação está condicionada ao seguinte encargo ou obrigação por parte do(a) DONATÁRIO(A): ${verificarValor(dados.sujeitoEncargos)}` : '( ) A doação está condicionada ao seguinte encargo ou obrigação por parte do(a) DONATÁRIO(A): [Descrever encargos: preservação do imóvel, utilização específica, manutenção, etc.]'}`
-        ]);
-
-        // CLÁUSULA OITAVA - DAS RESPONSABILIDADES E CUSTOS
-        addSection("CLÁUSULA OITAVA - DAS RESPONSABILIDADES E CUSTOS", [
-            "As partes ajustam que:",
+            `Valor Estimado do Terreno: R$ ${verificarValor(dados.valorEstimado)}`,
             "",
-            "As despesas com escritura pública, registros cartorários, impostos (como ITCMD) e demais taxas e encargos referentes à doação e transferência de propriedade serão de responsabilidade de:",
-            `${dados.despesas === 'doador' ? '(X) DOADOR(A)' : '( ) DOADOR(A)'} ${dados.despesas === 'donatario' ? '(X) DONATÁRIO(A)' : '( ) DONATÁRIO(A)'} ${dados.despesas === 'ambos' ? '(X) Ambos, em partes iguais.' : '( ) Ambos, em partes iguais.'}`,
-            "",
-            "A responsabilidade por tributos futuros, manutenção, conservação e uso do imóvel passará ao(à) DONATÁRIO(A) a partir da data de efetivação da doação."
-        ]);
+            "Situação da Doação:",
+            `( ${dados.situacao === 'realizada' ? 'X' : ' '} ) Já realizada`,
+            `( ${dados.situacao === 'asrealizada' ? 'X' : ' '} ) A ser realizada`
+        ];
 
-        // CLÁUSULA NONA - DA IRREVOGABILIDADE E IRRETRATABILIDADE
-        addSection("CLÁUSULA NONA - DA IRREVOGABILIDADE E IRRETRATABILIDADE", [
-            "A doação ora formalizada é feita em caráter irrevogável e irretratável, salvo nas hipóteses expressamente previstas em lei, como nos casos de ingratidão do(a) DONATÁRIO(A), conforme previsto nos artigos 555 a 559 do Código Civil."
-        ]);
+        addSection("CLÁUSULA SEGUNDA – DO OBJETO", objetoContent);
 
-        // CLÁUSULA DÉCIMA - DO FORO
-        addSection("CLÁUSULA DÉCIMA - DO FORO", [
-            `Para dirimir quaisquer dúvidas oriundas deste contrato, as partes elegem o foro da comarca de ${verificarValor(dados.cidade)} - ${verificarValor(dados.estado)}, com renúncia expressa a qualquer outro, por mais privilegiado que seja.`
-        ]);
+        // CLÁUSULA TERCEIRA – DA DECLARAÇÃO DE DOAÇÃO
+        const declaracaoContent = [
+            "O(A) DOADOR(A) declara, de livre e espontânea vontade, que doa o imóvel acima descrito ao(à) DONATÁRIO(A), sem qualquer tipo de remuneração, contraprestação ou encargo, salvo o disposto na cláusula seguinte, se houver."
+        ];
 
-        // CLÁUSULA DÉCIMA PRIMEIRA - DAS DISPOSIÇÕES GERAIS
-        addSection("CLÁUSULA DÉCIMA PRIMEIRA - DAS DISPOSIÇÕES GERAIS", [
-            "Este contrato obriga as partes, seus herdeiros e sucessores;",
-            "A assinatura deste instrumento poderá se dar fisicamente ou por meio eletrônico, nos termos da legislação vigente;",
-            "O presente contrato será complementado pela lavratura da escritura pública de doação, conforme exigência legal."
-        ]);
+        addSection("CLÁUSULA TERCEIRA – DA DECLARAÇÃO DE DOAÇÃO", declaracaoContent);
+
+        // CLÁUSULA QUARTA – DA ACEITAÇÃO
+        const aceitacaoContent = [
+            "O(A) DONATÁRIO(A) declara, de maneira expressa, que aceita a presente doação nos termos ora pactuados, comprometendo-se a cumprir todas as disposições legais e contratuais relativas à posse e propriedade do terreno."
+        ];
+
+        addSection("CLÁUSULA QUARTA – DA ACEITAÇÃO", aceitacaoContent);
+
+        // CLÁUSULA QUINTA – DA TRANSFERÊNCIA DE PROPRIEDADE
+        const transferenciaContent = [
+            "A transferência da propriedade do terreno objeto deste contrato dar-se-á na data de efetivação da doação, mediante a lavratura da escritura pública e posterior registro no Cartório de Registro de Imóveis competente."
+        ];
+
+        addSection("CLÁUSULA QUINTA – DA TRANSFERÊNCIA DE PROPRIEDADE", transferenciaContent);
+
+        // CLÁUSULA SEXTA – DOS ENCARGOS E CONDIÇÕES (SE HOUVER)
+        const encargosContent = [
+            `( ${dados.encargos === 'puraSimples' ? 'X' : ' '} ) A doação é feita de forma pura e simples, sem encargos.`,
+            `( ${dados.encargos === 'seguinteEncargo' ? 'X' : ' '} ) A doação está condicionada aos seguintes encargos ou obrigações por parte do(a) DONATÁRIO(A):`,
+            dados.encargos === 'seguinteEncargo' ? verificarValor(dados.obrigacoesDonatario) : ""
+        ];
+
+        addSection("CLÁUSULA SEXTA – DOS ENCARGOS E CONDIÇÕES (SE HOUVER)", encargosContent);
+
+        // CLÁUSULA SÉTIMA – DAS DESPESAS E CUSTOS
+        const despesasContent = [
+            "As partes convencionam que as despesas oriundas da lavratura da escritura, registro do imóvel, pagamento de tributos e demais encargos legais decorrentes da doação serão de responsabilidade:",
+            `( ${dados.despesas === 'despesaDoador' ? 'X' : ' '} ) do DOADOR(A)`,
+            `( ${dados.despesas === 'despesaDonatario' ? 'X' : ' '} ) do DONATÁRIO(A)`,
+            `( ${dados.despesas === 'despesaDoadorAmbos' ? 'X' : ' '} ) divididas igualmente entre DOADOR(A) e DONATÁRIO(A)`
+        ];
+
+        addSection("CLÁUSULA SÉTIMA – DAS DESPESAS E CUSTOS", despesasContent);
+
+        // CLÁUSULA OITAVA – DA EFETIVAÇÃO DA DOAÇÃO
+        const efetivacaoContent = [
+            `A doação será efetivada na seguinte data: ${verificarValor(dados.dataEfetivacao, "//")}.`,
+            "A transferência da propriedade será considerada válida a partir da lavratura e registro da escritura de doação."
+        ];
+
+        addSection("CLÁUSULA OITAVA – DA EFETIVAÇÃO DA DOAÇÃO", efetivacaoContent);
+
+        // CLÁUSULA NONA – DA RESCISÃO
+        const rescisaoContent = [
+            "O descumprimento de quaisquer obrigações assumidas neste contrato poderá ensejar a sua rescisão, sem prejuízo de eventuais perdas e danos e demais sanções cabíveis previstas na legislação vigente."
+        ];
+
+        addSection("CLÁUSULA NONA – DA RESCISÃO", rescisaoContent);
+
+        // CLÁUSULA DÉCIMA – DO FORO
+        const foroContent = [
+            `Para dirimir quaisquer dúvidas ou litígios oriundos deste contrato, as partes elegem o foro da Comarca de ${verificarValor(dados.ciadadeComarca)}, Estado de ${verificarValor(dados.estado)}, com exclusão de qualquer outro, por mais privilegiado que seja.`
+        ];
+
+        addSection("CLÁUSULA DÉCIMA – DO FORO", foroContent);
 
         // ASSINATURAS
-        addSection("ASSINATURAS", [
-            `E, por estarem assim justas e contratadas, firmam o presente contrato em 2 (duas) vias de igual teor, juntamente com as testemunhas abaixo identificadas.`,
+        const assinaturasContent = [
+            "E, por estarem assim justas e contratadas, firmam o presente instrumento em duas vias de igual teor e forma, juntamente com as testemunhas abaixo identificadas.",
             "",
-            `Local: ${verificarValor(dados.cidade)}/${verificarValor(dados.estado)}  Data: ${verificarValor(dados.dataAssinatura)}`,
+            `Local: ${verificarValor(dados.localAssinatura)}`,
+            `Data: ${verificarValor(dados.dataAssinatura, "//")}`,
+            "",
+            "",
+            "ASSINATURAS",
             "",
             "DOADOR(A):",
-            `Nome/Razão Social: ${dados.doador === 'fisica' ? verificarValor(dados.nomeDoador) : verificarValor(dados.razaoSocial)}`,
-            "Assinatura: ___________________________________",
+            "",
+            "",
+            "Assinatura",
+            `Nome completo: ${verificarValor(dados.doador === 'fisica' ? dados.nomeDoador : dados.razaoSocial)}`,
+            `CPF/CNPJ: ${verificarValor(dados.doador === 'fisica' ? dados.cpf : dados.cnpj)}`,
             "",
             "",
             "DONATÁRIO(A):",
-            `Nome/Razão Social: ${dados.donatario === 'fisica' ? verificarValor(dados.nomeDona) : verificarValor(dados.razaoSocialDona)}`,
-            "Assinatura: ___________________________________",
             "",
+            "",
+            "Assinatura",
+            `Nome completo: ${verificarValor(dados.donatario === 'fisica' ? dados.nomeDona : dados.razaoSocialDona)}`,
+            `CPF/CNPJ: ${verificarValor(dados.donatario === 'fisica' ? dados.cpfDona : dados.cnpjDona)}`,
+            "",
+            "",
+            "TESTEMUNHAS:",
             "",
             "1ª TESTEMUNHA:",
-            "Nome Completo: ",
-            "CPF: ",
-            "Assinatura: ___________________________________",
+            "",
+            "",
+            "Assinatura",
+            "Nome completo: ____________________________________________",
+            "CPF: ___________________________________",
             "",
             "",
             "2ª TESTEMUNHA:",
-            "Nome Completo: ",
-            "CPF: ",
-            "Assinatura: ___________________________________"
-        ]);
+            "",
+            "",
+            "Assinatura",
+            "Nome completo: ____________________________________________",
+            "CPF: ___________________________________"
+        ];
 
         const pdfDataUri = doc.output("datauristring");
         setPdfDataUrl(pdfDataUri);
     };
 
+
     useEffect(() => {
-        geradorDoacaoImovel({ ...formData });
+        gerarDoacaoTerrenoPdf({ ...formData });
     }, [formData]);
 
 
     return (
         <>
-
             <div className="caixa-titulo-subtitulo">
-                <h1 className="title">Contrato de Doação de Imóvel </h1>
+                <h1 className="title">Contrato de Doação Terreno </h1>
             </div>
             <div className="container">
                 <div className="left-panel">
@@ -537,7 +543,7 @@ export default function DoacaoImovel() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 47) * 100}%` }}
+                                style={{ width: `${(step / 45) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">
@@ -1107,30 +1113,13 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
-
                             {step === 35 && (
                                 <>
                                     <h2>Objeto </h2>                                    <div>
-                                        <label>Endereço Completo do Imóvel</label>
-                                        <input
-                                            type='text'
-                                            placeholder=''
-                                            name="enderecoImovel"
-                                            onChange={handleChange}
-                                        />
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {step === 36 && (
-                                <>
-                                    <h2>Objeto </h2>                                    <div>
-                                        <label>Descrição Detalhada: (área construída, área do terreno, número de cômodos, tipo de imóvel, benfeitorias, confrontações, características físicas, etc.) </label>
+                                        <label>Descrição Detalhada do Terreno</label>
                                         <textarea
-                                            id="descDetalhe"
-                                            name="descDetalhe"
+                                            id="enderecoDetalhadoTerreno"
+                                            name="enderecoDetalhadoTerreno"
                                             onChange={handleChange}
                                             rows={10}
                                             cols={50}
@@ -1142,10 +1131,27 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
+                            {step === 36 && (
+                                <>
+                                    <h2>Objeto </h2>                                    <div>
+                                        <label>Endereço Completo do Terreno</label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="descricaoDetelhada"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+
                             {step === 37 && (
                                 <>
                                     <h2>Objeto </h2>                                    <div>
-                                        <label>Cartório de Registro de Imóveis: [nome e cidade do cartório]</label>
+                                        <label>Cartório de Registro de Imóveis</label>
                                         <input
                                             type='text'
                                             placeholder=''
@@ -1153,12 +1159,11 @@ export default function DoacaoImovel() {
                                             onChange={handleChange}
                                         />
 
-
-                                        <label>Matrícula: nº [número] </label>
+                                        <label>Número da Matrícula do Imóvel</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="matricula"
+                                            name="numeroMatricula"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1171,11 +1176,11 @@ export default function DoacaoImovel() {
                             {step === 38 && (
                                 <>
                                     <h2>Objeto </h2>                                    <div>
-                                        <label>Valor Aproximado do Imóvel: R$ [valor numérico] ([valor por extenso]) </label>
+                                        <label>Valor Estimado do Terreno: R$</label>
                                         <input
                                             type='text'
                                             placeholder=''
-                                            name="valorAproximado"
+                                            name="valorEstimado"
                                             onChange={handleChange}
                                         />
                                         <button onClick={handleBack}>Voltar</button>
@@ -1184,15 +1189,14 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
-
                             {step === 39 && (
                                 <>
                                     <h2>Objeto </h2>                                    <div>
                                         <label>Situação da Doação</label>
                                         <select name='situacao' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="realizada">A doação já foi realizada.</option>
-                                            <option value="datarealizacao">A doação será realizada na data indicada na cláusula terceira.</option>
+                                            <option value="realizada">Já realizada</option>
+                                            <option value="asrealizada">A ser realizada</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1200,70 +1204,15 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
-                            {data && (<>
 
-                                {step === 40 && (
-                                    <>
-                                        <h2>Efetivação </h2>                                    <div>
-                                            <label>A doação será efetivada na data de: [dd/mm/aaaa], mediante lavratura de escritura pública de doação e posterior registro junto ao Cartório de Registro de Imóveis competente, momento no qual se operará a transferência da propriedade do imóvel para o(a) DONATÁRIO(A).  </label>
-                                            <input
-                                                type='date'
-                                                placeholder=''
-                                                name="dataEfetivacao"
-                                                onChange={handleChange}
-                                            />
-                                            <button onClick={handleBack}>Voltar</button>
-                                            <button onClick={handleNext}>Próximo</button>
-                                        </div>
-                                    </>
-                                )}
-                            </>)}
-
-
-                            {step === 41 && (
-                                <>
-                                    <h2>Usufruto </h2>                                    <div>
-                                        <label>Usufruto do Donatário</label>
-                                        <select name='usufruto' onChange={handleChange}>
-                                            <option value="">Selecione</option>
-                                            <option value="semReserva">O imóvel será doado sem reserva de usufruto.</option>
-                                            <option value="comReserva">O imóvel será doado com reserva de usufruto em favor do(a) DOADOR(A)...</option>
-                                        </select>
-                                        <button onClick={handleBack}>Voltar</button>
-                                        <button onClick={handleNext}>Próximo</button>
-                                    </div>
-                                </>
-                            )}
-
-                            {reserva && (
-                                <>
-                                    {step === 42 && (
-                                        <>
-                                            <h2>Usufruto </h2>                                    <div>
-                                                <label>...que permanecerá usufruindo do bem até [prazo ou condição de extinção do usufruto].   </label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="usufrutoPazo"
-                                                    onChange={handleChange}
-                                                />
-                                                <button onClick={handleBack}>Voltar</button>
-                                                <button onClick={handleNext}>Próximo</button>
-                                            </div>
-                                        </>
-                                    )}
-                                </>
-                            )}
-
-
-                            {step === 43 && (
+                            {step === 40 && (
                                 <>
                                     <h2>Encargos </h2>                                    <div>
-                                        <label>Encargos da doação </label>
-                                        <select name='sujeito' onChange={handleChange}>
+                                        <label>Situação da Doação</label>
+                                        <select name='encargos' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="encargos">A doação não está sujeita a encargos ou condições.</option>
-                                            <option value="encargoEspec">A doação não está sujeita a encargos ou condições.</option>
+                                            <option value="puraSimples">A doação é feita de forma pura e simples, sem encargos.</option>
+                                            <option value="seguinteEncargo">A doação está condicionada aos seguintes encargos ou obrigações por parte do(a) DONATÁRIO(A)</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1273,15 +1222,17 @@ export default function DoacaoImovel() {
 
                             {encargos && (
                                 <>
-                                    {step === 44 && (
+                                    {step === 41 && (
                                         <>
                                             <h2>Encargos </h2>                                    <div>
-                                                <label>Descrever encargos: preservação do imóvel, utilização específica, manutenção, etc.   </label>
-                                                <input
-                                                    type='text'
-                                                    placeholder=''
-                                                    name="sujeitoEncargos"
+                                                <label>Descreva os Encargos e Obrigações por parte do(a) DONATÁRIO(A)</label>
+                                                <textarea
+                                                    id="obrigacoesDonatario"
+                                                    name="obrigacoesDonatario"
                                                     onChange={handleChange}
+                                                    rows={10}
+                                                    cols={50}
+                                                    placeholder="Descrição"
                                                 />
                                                 <button onClick={handleBack}>Voltar</button>
                                                 <button onClick={handleNext}>Próximo</button>
@@ -1291,15 +1242,15 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
-                            {step === 45 && (
+                            {step === 42 && (
                                 <>
-                                    <h2>Encargos </h2>                                    <div>
-                                        <label>Encargos da doação </label>
+                                    <h2>Despesas e Custos </h2>                                    <div>
+                                        <label>Situação da Doação</label>
                                         <select name='despesas' onChange={handleChange}>
                                             <option value="">Selecione</option>
-                                            <option value="doador">DOADOR(A)</option>
-                                            <option value="donatario">DONATÁRIO(A)</option>
-                                            <option value="ambos">Ambos, em partes iguais.</option>
+                                            <option value="despesaDoador">do DOADOR(A)</option>
+                                            <option value="despesaDonatario">do DONATÁRIO(A)</option>
+                                            <option value="despesaDoadorAmbos">divididas igualmente entre DOADOR(A) e DONATÁRIO(A)</option>
                                         </select>
                                         <button onClick={handleBack}>Voltar</button>
                                         <button onClick={handleNext}>Próximo</button>
@@ -1307,14 +1258,30 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
-                            {step === 46 && (
+                            {step === 43 && (
+                                <>
+                                    <h2>Efetivação </h2>                                    <div>
+                                        <label>A doação será efetivada na seguinte data: //________.</label>
+                                        <input
+                                            type='date'
+                                            placeholder=''
+                                            name="dataEfetivacao"
+                                            onChange={handleChange}
+                                        />
+                                        <button onClick={handleBack}>Voltar</button>
+                                        <button onClick={handleNext}>Próximo</button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === 44 && (
                                 <>
                                     <h2>Foro </h2>                                    <div>
-                                        <label>Para dirimir quaisquer dúvidas oriundas deste contrato, as partes elegem o foro da comarca de [Cidade] – [Estado], com renúncia expressa a qualquer outro, por mais privilegiado que seja.    </label>
+                                        <label>Para dirimir quaisquer dúvidas ou litígios oriundos deste contrato, as partes elegem o foro da Comarca de _______________________________, Estado de ________________, com exclusão de qualquer outro, por mais privilegiado que seja. </label>
                                         <input
                                             type='text'
                                             placeholder='Cidade'
-                                            name="cidade"
+                                            name="ciadadeComarca"
                                             onChange={handleChange}
                                         />
 
@@ -1330,10 +1297,19 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
-                            {step === 47 && (
+
+                            {step === 45 && (
                                 <>
-                                    <h2>Encargos </h2>                                    <div>
-                                        <label>Data de Assinatura   </label>
+                                    <h2>Foro </h2>                                    <div>
+                                        <label>Local de Assinatura </label>
+                                        <input
+                                            type='text'
+                                            placeholder=''
+                                            name="localAssinatura"
+                                            onChange={handleChange}
+                                        />
+
+                                        <label>Data de Assinatura </label>
                                         <input
                                             type='date'
                                             placeholder=''
@@ -1346,7 +1322,7 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
-                            {step === 48 && (
+                            {step === 46 && (
                                 <>
                                     <h2>Dados Preenchidos</h2>
                                     <div>
@@ -1365,9 +1341,11 @@ export default function DoacaoImovel() {
                                 </>
                             )}
 
+
                         </div>
                     </div>
                 </div>
+
                 <div className="right-panel">
                     <div className="pdf-preview">
                         {pdfDataUrl && (
@@ -1416,7 +1394,7 @@ export default function DoacaoImovel() {
 
             <div className="BaixarPdf">
                 {isPaymentApproved ? (
-                    <button className='btnBaixarPdf' onClick={() => { geradorDoacaoImovelPago(formData) }}>
+                    <button className='btnBaixarPdf' onClick={() => { }}>
                         Baixar PDF
                     </button>
                 ) : (
@@ -1426,5 +1404,5 @@ export default function DoacaoImovel() {
                 )}
             </div>
         </>
-    )
+    );
 }

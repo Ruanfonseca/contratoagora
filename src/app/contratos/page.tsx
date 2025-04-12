@@ -90,9 +90,9 @@ export default function contratos() {
           <h2 className="subtitle">DOAÇÃO</h2>
           <ul>
             <li><Link className='' href="/contratos/doacao/simples">Contrato de doação simples - R$ 19,90</Link></li>
-            <li>Contrato de doação de dinheiro - R$ 19,90</li>
-            <li>Contrato de doação de imóvel - R$ 24,90</li>
-            <li>Contrato de doação de terreno - R$ 24,90</li>
+            <li><Link className='' href="/contratos/doacao/dinheiro">Contrato de doação de dinheiro - R$ 19,90</Link></li>
+            <li><Link className='' href="/contratos/doacao/imovel">Contrato de doação de imóvel - R$ 24,90</Link></li>
+            <li><Link className='' href="/contratos/doacao/terreno">Contrato de doação de terreno - R$ 24,90</Link></li>
           </ul>
 
           <h2 className="subtitle">ATIVIDADES E IMÓVEL RURAL</h2>
