@@ -98,8 +98,8 @@ export default function contratos() {
           <h2 className="subtitle">ATIVIDADES E IMÓVEL RURAL</h2>
           <ul>
             <li><Link className='' href="/contratos/atividadeseimovelrural/arredamento">Contrato de arrendamento de imóvel rural - R$ 24,90</Link></li>
-            <li>Contrato de compra e venda de imóvel rural - R$ 29,90</li>
-            <li>Contrato de parceria rural - R$ 24,90</li>
+            <li><Link className='' href="/contratos/atividadeseimovelrural/compraEvendaImovelRural">Contrato de compra e venda de imóvel rural - R$ 29,90</Link></li>
+            <li><Link className='' href="/contratos/atividadeseimovelrural/parceriaRural">Contrato de parceria rural - R$ 24,90</Link></li>
           </ul>
 
           <h2 className="subtitle">FAMÍLIA, MATRIMÔNIO E SUCESSÃO</h2>

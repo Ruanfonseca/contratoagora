@@ -233,7 +233,7 @@ export default function LocacaoImovelResidencialPorTemp() {
         try {
             const response = await api.post('/server/pix', {
                 transaction_amount: valor,
-                description: `Contrato de Compra e Venda`,
+                description: `Contrato de Locação de Imóvel Residencial para Temporada`,
                 paymentMethodId: "pix",
                 payer: {
                     name: "Contrato",
@@ -243,9 +243,9 @@ export default function LocacaoImovelResidencialPorTemp() {
                         number: "46866790018"
                     },
                     address: {
-                        street_name: "Rua Exemplo",
-                        street_number: 123,
-                        zip_code: "12345678"
+                        street_name: "Avenida Cesário de Melo, 2869 - Stand 01, Rio de Janeiro",
+                        street_number: 2869,
+                        zip_code: "23050102"
                     }
                 }
             });

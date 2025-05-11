@@ -496,7 +496,9 @@ export default function CessaodePossedeImovel() {
             "Conforme o artigo 75 do Código Civil, pessoas jurídicas são representadas ativa e passivamente, em juízo e fora dele, por quem os atos constitutivos designarem."
         ]);
 
-
+        // Salvar o PDF
+        const pdfDataUri = doc.output("datauristring");
+        setPdfDataUrl(pdfDataUri);
     };
 
 

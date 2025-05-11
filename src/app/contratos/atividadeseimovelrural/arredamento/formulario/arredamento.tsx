@@ -551,7 +551,7 @@ export default function Arredamento() {
                         <div className="progress-bar">
                             <div
                                 className="progress-bar-inner"
-                                style={{ width: `${(step / 65) * 100}%` }}
+                                style={{ width: `${(step / 42) * 100}%` }}
                             ></div>
                         </div>
                         <div className="form-wizard">

@@ -1,0 +1,47 @@
+const handlePayment = async () => {
+
+        try {
+            const response = await api.post('/server/pix', {
+                transaction_amount: valor,
+                description: `Contrato de Hospedagem`,
+                paymentMethodId: "pix",
+                payer: {
+                    name: "Contrato",
+                    email: "quedsoft@gmail.com",
+                    identification: {
+                        type: "CPF",
+                        number: "46866790018"
+                    },
+                    address: {
+                        street_name: "Avenida Cesário de Melo, 2869 - Stand 01, Rio de Janeiro",
+                        street_number: 2869,
+                        zip_code: "23050102"
+                    }
+                }
+            });
+
+
+            if (response.data.success) {
+                const pointOfInteraction = response.data.point_of_interaction;
+                if (pointOfInteraction?.transaction_data?.ticket_url) {
+                    setTicketUrl(pointOfInteraction.transaction_data.ticket_url);
+
+                    setPaymentId(response.data.result.id);
+                    setPaymentStatus(response.data.result.status);
+                    setModalPagamento(true);
+
+                } else {
+                    console.error('Dados do ponto de interação estão incompletos:', pointOfInteraction);
+                    alert('Erro ao obter o QR Code do PIX.');
+                }
+            } else {
+                console.error('Erro no pagamento:', response.data);
+                alert('Erro ao criar pagamento PIX.');
+            }
+        } catch (error) {
+            console.error('Erro ao criar pagamento PIX:', error);
+            alert(`Erro ao criar pagamento PIX: ${error}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };

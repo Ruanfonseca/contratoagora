@@ -416,7 +416,7 @@ export default function Hospedagem() {
         try {
             const response = await api.post('/server/pix', {
                 transaction_amount: valor,
-                description: `Contrato de Compra e Venda`,
+                description: `Contrato de Hospedagem`,
                 paymentMethodId: "pix",
                 payer: {
                     name: "Contrato",
@@ -426,14 +426,13 @@ export default function Hospedagem() {
                         number: "46866790018"
                     },
                     address: {
-                        street_name: "Rua Exemplo",
-                        street_number: 123,
-                        zip_code: "12345678"
+                        street_name: "Avenida Cesário de Melo, 2869 - Stand 01, Rio de Janeiro",
+                        street_number: 2869,
+                        zip_code: "23050102"
                     }
                 }
             });
 
-            //console.log('Resposta do servidor:', response.data);
 
             if (response.data.success) {
                 const pointOfInteraction = response.data.point_of_interaction;
