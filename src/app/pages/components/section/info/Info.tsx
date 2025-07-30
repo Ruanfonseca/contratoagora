@@ -17,18 +17,18 @@ const Info = () => {
   return (
     <>
       <div className="title-text" >
-        <h1>Criando seus contratos com rapidez, praticidade e segurança</h1>
-        <br />
-        <p>Na Contrato Agora, você encontra a solução perfeita para
-          criar contratos personalizados de forma ágil e segura.
-          Nossa plataforma oferece uma experiência simplificada para gerar
-          documentos que atendem exatamente às suas necessidades.
-          Para criar o seu contrato ideal, basta selecionar um modelo e
-          responder a algumas perguntas simples. O processo é rápido e
-          intuitivo, garantindo que seu contrato seja elaborado de maneira
-          eficiente e personalizada.</p>
-        <br />
-
+        <div className="h1ep">
+          <h1>Criando seus contratos com rapidez, praticidade e segurança</h1>
+          <br />
+          <p>Na Contrato Agora, você encontra a solução perfeita para
+            criar contratos personalizados de forma ágil e segura.
+            Nossa plataforma oferece uma experiência simplificada para gerar
+            documentos que atendem exatamente às suas necessidades.
+            Para criar o seu contrato ideal, basta selecionar um modelo e
+            responder a algumas perguntas simples. O processo é rápido e
+            intuitivo, garantindo que seu contrato seja elaborado de maneira
+            eficiente e personalizada.</p>
+        </div>
       </div>
 
       <div className='instructions-title' id='AJUDA'>

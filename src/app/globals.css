@@ -2,18 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'avenir_next';
+  src: url('fonts/AvenirNextCyr-Demi.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
 * {
   padding: 0;
   box-sizing: border-box;
   scroll-behavior: smooth;
+  
 }
 
 .btn {
-  background: rgba(3, 126, 91, 1);
-  color: #fff;
+  background: #F1F3F5;
+  color: #17494D !important;
   padding: 14px 25px;
-  font-size: 16px;
-  border-radius: 30px;
+  font-size: 20px;
+  border-radius: 15px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -21,21 +30,23 @@
 }
 
 .btn.dark-btn {
-  background: rgba(3, 126, 91, 1);
+  background: #17494D;
   color: #fff;
 }
 
+h1{
+  color: #F1F3F5 !important;
+}
+
 body {
-  background-color: #000;
-  color: #fff;
+  color: #fff !important;
+  margin: 0;
+  overflow-x: hidden;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    --foreground-rgb: 255, 255, 255;
-    --background-rgb: 0, 0, 0;
-    background-color: rgb(var(--background-rgb));
-    color: rgb(var(--foreground-rgb));
+    background-color: #17494D;
   }
 }
 

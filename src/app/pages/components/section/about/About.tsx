@@ -1,13 +1,13 @@
 
 import Image from 'next/image';
-import image1 from '../../../../assets/contrato.jpg';
+import image1 from '../../../../assets/faixada.png';
 import './About.css';
 
 const About = () => {
   return (
     <div className="sobre" id='SOBRE'>
         <div className="sobre-direita">
-          <h3 className='about-title'>Sobre</h3>
+          <h3 className='about-title'>Sobre nós</h3>
           <p className='about-text'>A Contrato Agora, fundada em 2024, simplifica a elaboração de documentos legais para todos, mantendo a segurança jurídica 
             e uma visão social.
              Como uma plataforma digital 100% nacional, nosso compromisso é melhorar constantemente nossos serviços para impactar
@@ -19,6 +19,7 @@ const About = () => {
         <div className="sobre-esquerda">
             <Image src={image1} className='imgsobre' alt='' />
         </div>
+        
 
     </div>
   )

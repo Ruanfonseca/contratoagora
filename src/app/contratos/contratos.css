@@ -1,65 +1,139 @@
-/* Estilos para o container inicial */
+/* contratos.css */
 
+/* Fundo geral da página - mantenha a cor que quiser para Navbar/Footer */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #222;
+  line-height: 1.6;
+}
 
+/* Container principal com fundo branco */
 .initial-container {
-    margin-top: 100px;
-    padding: 20px;
-    font-family: Arial, sans-serif;
+  margin-top: 90px !important;
+  max-width: 1000px;
+  margin: 40px auto 80px;
+  padding: 40px 30px;
+  background-color: #ffffff;  /* fundo branco só aqui */
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-sizing: border-box;
 }
 
-/* Estilos para a seção inicial */
+.initial-container h1{
+  color: #17494D !important;
+}
+
+/* Bloco inicial com título e descrição */
 .initial {
-    padding: 20px;
-    max-width: 800px; /* Largura máxima ajustada */
-    margin: 0 auto; /* Centraliza o contêiner */
+  text-align: center;
+  margin-bottom: 50px;
 }
 
-/* Estilos para o título principal */
+/* Título principal */
 .title {
-    font-size: 28px; /* Maior que o subtítulo */
-    font-weight: bold;
-    color: white;
-    margin-bottom: 10px;
+  font-size: 3rem;
+  font-weight: 700;
+  color: #17494D; /* Azul petróleo */
+  margin-bottom: 12px;
 }
 
-/* Estilos para o subtítulo */
-.subtitle {
-    font-size: 22px; /* Menor que o título principal */
-    color: white;
-    margin-bottom: 10px;
-    border: 1px solid white;
-}
-
-/* Estilos para o parágrafo de descrição */
+/* Parágrafo introdutório */
 .initial p {
-    font-size: 16px;
-    line-height: 1.5;
-    color: white;
-    margin-bottom: 20px;
+  max-width: 650px;
+  margin: 0 auto;
+  font-size: 1.15rem;
+  color: #444;
+  font-weight: 500;
 }
 
-/* Estilos para a lista de contratos */
-.initial-container ul {
-    list-style-type: none;
-    padding: 0;
-    max-width: 800px; /* Largura máxima ajustada */
-    margin: 0 auto; /* Centraliza o contêiner */
-}
-
-.initial-container ul li {
-    font-size: 16px;
-    color: white;
-    margin-bottom: 8px;
-    padding: 10px;
-    text-align: justify; /* Justifica o texto */
-}
-
-/* Estilos para a seção subinitial */
+/* Container que agrupa os cards */
 .subinitial {
-    text-align: center; /* Centraliza o conteúdo */
-    padding: 40px;
-    max-width: 800px; /* Largura máxima ajustada */
-    margin: 0 auto; /* Centraliza o contêiner */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
 }
 
+/* Card de categoria */
+.category-card {
+  background: #fafafa;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+  padding: 24px 28px;
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  transition: box-shadow 0.3s ease;
+}
 
+.category-card:hover {
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+/* Título das categorias */
+.subtitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #0F3B43;
+  border-bottom: 3px solid #0F3B43;
+  padding-bottom: 8px;
+}
+
+/* Lista de contratos dentro do card */
+.category-card ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+/* Itens da lista */
+.category-card ul li {
+  margin-bottom: 14px;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+/* Links nos itens */
+.category-card ul li a {
+  color: #17494D;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.25s ease;
+}
+
+/* Hover nos links */
+.category-card ul li a:hover {
+  color: #0F3B43;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Itens sem link (textos simples) */
+.category-card ul li:not(:has(a)) {
+  color: #666;
+  font-weight: 500;
+}
+
+/* Responsividade */
+@media (max-width: 1050px) {
+  .category-card {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 450px) {
+  .title {
+    font-size: 2.3rem;
+  }
+
+  .subtitle {
+    font-size: 1.5rem;
+  }
+
+  .category-card ul li {
+    font-size: 1rem;
+  }
+}

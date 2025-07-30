@@ -136,14 +136,14 @@ const Contact: React.FC = () => {
           </textarea>
 
           <button
-            className='btn dark-btn'
+            className='btn'
             disabled={isLoading}
             onClick={sendEmail}
           >
             {isLoading ? (
-              <span style={{ color: 'white' }}>Enviando...</span>
+              <span style={{ color: 'black' }}>Enviando...</span>
             ) : (
-              <span style={{ color: 'white' }}>Enviar Mensagem</span>
+              <span style={{ color: 'black' }}>Enviar Mensagem</span>
             )}
             {isLoading && <span style={{ color: 'white' }}>Aguarde..</span>}
           </button>

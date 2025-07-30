@@ -1,7 +1,7 @@
 .header{
     width: 100%;
     min-height: 100vh;
-    background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url('../../../assets/heroimg.jpg');
+    background-color: #17494D;
 
     background-size: cover;
     background-position: center;
@@ -11,24 +11,44 @@
     justify-content: center;
 }
 
+.logo-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px; 
+  margin-bottom: 10px;
+}
+
+.logo-titulo h1 {
+  margin: 0;
+}
+
+.header-text img {
+    max-width: 150px;
+    display: flex
+}
+
 .header-text{
     text-align: center;
     max-width: 800px;
 }
 .header-text h1{
-    font-size: 60px;
+    font-size: 70px;
     font-weight: 600;
+    letter-spacing: 3px;
+    font-family: avenir_next;
 }
 
 .header-text p{
     max-width: 700px;
     margin: 10px auto 20px;
     line-height: 1.4;
+    font-size: 30px;
 }
 
 nav{
     width: 100%;
-    color: #fff;
+    color: #17494D;
     padding: 4px 0;
     position: fixed;
     top: 0;
@@ -110,6 +130,14 @@ nav ul li {
     .hide-mobile-menu {
         right: -200px; /* Certifique-se de que a posição está correta para ocultar o menu */
     }
+    .logo-titulo {
+        margin-left: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px; 
+        margin-bottom: 10px;
+    }   
 }
 
 @media(max-width:650px){

@@ -1,17 +1,29 @@
 .sobre {
-  margin: 100px auto;
+  background-color: #17494D;
+  margin: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 90%;
+  width: 100%;
   flex-wrap: wrap;
   text-align: center;
 }
 
+.sobre h3{
+  font-family: avenir_next;
+}
 .sobre-direita, .sobre-esquerda {
   flex-basis: 100%;
   margin-bottom: 20px;
+  padding: 0 20px;
 }
+
+@media (min-width: 800px) {
+  .sobre-direita, .sobre-esquerda {
+    padding: 70px;
+  }
+}
+
 
 .sobre-direita {
   flex-basis: 56%;
@@ -26,7 +38,7 @@
 
 .imgsobre {
   width: 100%;
-  max-width: 500px; 
+  max-width: 700px; 
   border-radius: 10px;
   margin: 100px auto 0;
 }
@@ -41,7 +53,7 @@
 
 .about-text {
   text-align: justify;
-  font-size: 1em;
+  font-size: 1.3em;
   line-height: 1.6;
 }
 
@@ -58,7 +70,7 @@
     flex-basis: 100%;
   }
   .imgsobre {
-    width: 300px;
+    max-width: 450px;
   }
 }
 
