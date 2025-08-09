@@ -72,6 +72,9 @@
   .imgsobre {
     max-width: 450px;
   }
+  p{
+    font-size: 1.2rem !important;
+  }
 }
 
 /* Responsividade para monitores desktops */
