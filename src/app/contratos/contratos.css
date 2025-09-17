@@ -1,138 +1,112 @@
-/* contratos.css */
-
-/* Fundo geral da página - mantenha a cor que quiser para Navbar/Footer */
-body, html {
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #222;
-  line-height: 1.6;
-}
-
-/* Container principal com fundo branco */
+/* Container principal */
 .initial-container {
   margin-top: 90px !important;
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 40px auto 80px;
-  padding: 40px 30px;
-  background-color: #ffffff;  /* fundo branco só aqui */
+  padding: 50px 40px;
+  background-color: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   box-sizing: border-box;
 }
 
-.initial-container h1{
-  color: #17494D !important;
-}
-
-/* Bloco inicial com título e descrição */
+/* Bloco inicial */
 .initial {
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 60px;
 }
 
-/* Título principal */
 .title {
-  font-size: 3rem;
+  font-size: 2.6rem;
   font-weight: 700;
-  color: #17494D; /* Azul petróleo */
-  margin-bottom: 12px;
+  color: #000 !important; /* força o preto */
+  opacity: 1 !important; /* garante que não fica transparente */
+  margin-bottom: 15px;
 }
 
-/* Parágrafo introdutório */
 .initial p {
-  max-width: 650px;
+  max-width: 700px;
   margin: 0 auto;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   color: #444;
   font-weight: 500;
+  line-height: 1.7;
 }
 
-/* Container que agrupa os cards */
+/* Estrutura das categorias */
 .subinitial {
   display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  justify-content: center;
+  flex-direction: column;
+  gap: 40px;
 }
 
-/* Card de categoria */
+/* Cada categoria agora é uma seção com borda lateral */
 .category-card {
-  background: #fafafa;
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.5);
-  padding: 24px 28px;
-  width: 100%;
-  max-width: 480px;
-  box-sizing: border-box;
-  transition: box-shadow 0.3s ease;
+  border-left: 6px solid #17494d;
+  padding: 20px 25px;
+  background: #fdfdfd;
+  border-radius: 8px;
+  transition: background 0.3s ease;
 }
 
 .category-card:hover {
-  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+  background: #f9f9f9;
 }
 
-/* Título das categorias */
+/* Título da categoria */
 .subtitle {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  margin-bottom: 16px;
-  color: #0F3B43;
-  border-bottom: 3px solid #0F3B43;
-  padding-bottom: 8px;
+  margin-bottom: 18px;
+  color: #0f3b43;
 }
 
-/* Lista de contratos dentro do card */
+/* Lista */
 .category-card ul {
   list-style: none;
   padding-left: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* Itens da lista */
 .category-card ul li {
-  margin-bottom: 14px;
-  font-size: 1.1rem;
-  line-height: 1.4;
+  font-size: 1.05rem;
+  line-height: 1.5;
 }
 
-/* Links nos itens */
+/* Links */
 .category-card ul li a {
-  color: #17494D;
+  color: #17494d;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.25s ease;
 }
 
-/* Hover nos links */
 .category-card ul li a:hover {
-  color: #0F3B43;
+  color: #0f3b43;
   text-decoration: underline;
-  cursor: pointer;
 }
 
-/* Itens sem link (textos simples) */
+/* Itens sem link */
 .category-card ul li:not(:has(a)) {
-  color: #666;
+  color: #555;
   font-weight: 500;
+  font-style: italic;
 }
 
 /* Responsividade */
-@media (max-width: 1050px) {
-  .category-card {
-    max-width: 100%;
+@media (max-width: 768px) {
+  .initial-container {
+    padding: 30px 20px;
   }
-}
-
-@media (max-width: 450px) {
   .title {
-    font-size: 2.3rem;
+    font-size: 2rem;
   }
-
   .subtitle {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
   }
-
   .category-card ul li {
     font-size: 1rem;
   }

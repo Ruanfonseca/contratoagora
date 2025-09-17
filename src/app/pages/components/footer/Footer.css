@@ -1,26 +1,68 @@
-.rodape{
-    margin:10px auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid white;
-    padding: 15px;
+.rodape {
+  background-color: #17494d; /* mesmo fundo do About e Contato */
+  color: #f5f5f5;
+  margin: 0;
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  flex-wrap: wrap;
+  font-size: 0.95rem;
 }
-.rodape ul li{
-    list-style:none;
-    display: inline-block;
-    margin-left:20px;
+
+.rodape p {
+  margin: 0;
+  text-align: center;
+  font-family: avenir_next, sans-serif;
 }
-/*Responsividade*/
-@media(max-width:600px){
-  .rodape{
-    display: block;
+
+.rodape a {
+  color: #1abc9c; /* verde aqua para destaque */
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.rodape a:hover {
+  color: #16a085;
+  text-decoration: underline;
+}
+
+.rodape ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rodape ul li {
+  display: inline-block;
+  margin-left: 20px;
+}
+
+.rodape ul li a {
+  color: #f5f5f5;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.rodape ul li a:hover {
+  color: #1abc9c;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .rodape {
+    flex-direction: column;
     text-align: center;
+    padding: 20px;
+    gap: 12px;
   }
-  .rodape ul li{
-    margin: 10px;
-  }
-  .rodape ul{
+
+  .rodape ul {
     margin-top: 10px;
+  }
+
+  .rodape ul li {
+    margin: 0 10px;
   }
 }

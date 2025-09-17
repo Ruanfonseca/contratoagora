@@ -3,23 +3,29 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'avenir_next';
-  src: url('fonts/AvenirNextCyr-Demi.ttf') format('truetype');
+  font-family: "avenir_next";
+  src: url("fonts/AvenirNextCyr-Demi.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
-
+.parallax {
+  background-image: url("./assets/faixada.png");
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  width: 100%;
+}
 
 * {
   padding: 0;
   box-sizing: border-box;
   scroll-behavior: smooth;
-  
 }
 
 .btn {
-  background: #F1F3F5;
-  color: #17494D !important;
+  background: #f1f3f5;
+  color: #17494d !important;
   padding: 14px 25px;
   font-size: 20px;
   border-radius: 15px;
@@ -30,12 +36,12 @@
 }
 
 .btn.dark-btn {
-  background: #17494D;
+  background: #17494d;
   color: #fff;
 }
 
-h1{
-  color: #F1F3F5 !important;
+h1 {
+  color: #f1f3f5 !important;
 }
 
 body {
@@ -46,7 +52,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #17494D;
+    background-color: #17494d;
   }
 }
 

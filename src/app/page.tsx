@@ -8,12 +8,14 @@ import Info from "./pages/components/section/info/Info";
 export default function Home() {
   return (
     <>
-      <Navbar/>
-      <Hero/>
-      <Info/>
-      <About/>
-      <Contact/>
-      <Footer/> 
+      <div className="parallax">
+        <Navbar />
+        <Hero />
+        <Info />
+        <About />
+        <Contact />
+        <Footer />
+      </div>
     </>
   );
 }

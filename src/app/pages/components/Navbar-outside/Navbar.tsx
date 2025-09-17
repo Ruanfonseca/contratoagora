@@ -1,10 +1,10 @@
-'use client'
-import logo from '@/app/assets/logocontrato.png';
-import menu from '@/app/assets/menumobilewhite.png';
-import Image from 'next/image';
-import Link from 'next/link';
+"use client";
+import logo from "@/app/assets/logocontrato.png";
+import menu from "@/app/assets/menumobilewhite.png";
+import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import './Navbar.css';
+import "./Navbar.css";
 
 const Navbar: React.FC = () => {
   const [sticky, setSticky] = useState<boolean>(false);
@@ -17,17 +17,20 @@ const Navbar: React.FC = () => {
 
     const handleClickOutside = (event: MouseEvent) => {
       if (!event.target || !(event.target instanceof Element)) return;
-      if (!event.target.closest('.menu-icon') && !event.target.closest('nav ul')) {
+      if (
+        !event.target.closest(".menu-icon") &&
+        !event.target.closest("nav ul")
+      ) {
         setMobileMenu(false);
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener("scroll", handleScroll);
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -36,9 +39,9 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className={`containerProject ${sticky ? 'dark-nav' : ''}`}>
-      <Image src={logo} className='logo' alt='Logo' />
-      <ul className={mobileMenu ? '' : 'hide-mobile-menu'}>
+    <nav className="dark-nav">
+      <Image src={logo} className="logo" alt="Logo" />
+      <ul className={mobileMenu ? "" : "hide-mobile-menu"}>
         <li>
           <Link href="/#HOME" scroll={false}>
             Home
@@ -50,22 +53,21 @@ const Navbar: React.FC = () => {
           </Link>
         </li>
         <li>
-          <a href="/#AJUDA" >
-            Ajuda
-          </a>
+          <a href="/#AJUDA">Ajuda</a>
         </li>
         <li>
-          <a href="/#SOBRE" >
-            Sobre nós
-          </a>
+          <a href="/#SOBRE">Sobre nós</a>
         </li>
         <li>
-          <a href="/#CONTATO">
-            Contato
-          </a>
+          <a href="/#CONTATO">Contato</a>
         </li>
       </ul>
-      <Image src={menu} className='menu-icon' onClick={toggleMenu} alt='Menu icon' />
+      <Image
+        src={menu}
+        className="menu-icon"
+        onClick={toggleMenu}
+        alt="Menu icon"
+      />
     </nav>
   );
 };
