@@ -1,6 +1,6 @@
 "use client";
 import Pilha from "@/lib/pilha";
-import { verificarValor } from "@/lib/utils";
+import { validador, verificarValor } from "@/lib/utils";
 import api from "@/services";
 import axios from "axios";
 import jsPDF from "jspdf";
@@ -266,6 +266,16 @@ export default function Hospedagem() {
     setFormData((prev) => ({ ...prev, ...currentStepData }));
 
     let nextStep = step;
+
+    if (step === 8) {
+      const tipo = currentStepData.docidentLocador as string;
+      const numero = currentStepData.numeroDocLocador as string;
+
+      if (!validador(tipo, numero)) {
+        alert("❌ Documento inválido. Verifique o valor digitado.");
+        return;
+      }
+    }
 
     if (currentStepData.locador === "pj") {
       setLocadorPessoaJuri(true);
